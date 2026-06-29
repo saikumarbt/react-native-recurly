@@ -18,10 +18,17 @@ import { FlatList, Image, Text, View } from "react-native";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 const SafeAreaView = styled(RNSafeAreaView) as any;
 
+import { useUser, useClerk } from "@clerk/expo";
+import { Pressable } from "react-native";
+
 export default function App() {
+  const { user } = useUser();
+  const { signOut } = useClerk();
   const [expandedSubscriptionId, setExpandedSubscriptionId] = useState<
     string | null
   >(null);
+
+  const displayName = user?.firstName || user?.emailAddresses[0]?.emailAddress?.split("@")[0] || HOME_USER.name;
 
   return (
     <SafeAreaView className="flex-1  bg-background p-5">
@@ -31,11 +38,16 @@ export default function App() {
             <View className="home-header">
               <View className="home-user">
                 <Image
-                  source={images.avatar}
+                  source={{ uri: user?.imageUrl || Image.resolveAssetSource(images.avatar).uri }}
                   resizeMode="contain"
                   className="home-avatar"
                 />
-                <Text className="home-user-name">{HOME_USER.name}</Text>
+                <View>
+                  <Text className="home-user-name">{displayName}</Text>
+                  <Pressable onPress={() => signOut()} className="ml-4 mt-1">
+                    <Text className="text-sm font-sans-medium text-destructive">Sign out</Text>
+                  </Pressable>
+                </View>
               </View>
               <Image source={icons.add} className="home-add-icon" />
             </View>
