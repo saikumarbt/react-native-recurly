@@ -33,8 +33,16 @@ export default function RootLayout() {
   if (!fontsLoaded) {
     return null;
   }
+
+  const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+  if (!publishableKey) {
+    throw new Error(
+      "Missing env variable: EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY is not defined",
+    );
+  }
   return (
-    <ClerkProvider publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!} tokenCache={tokenCache}>
+    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <Stack screenOptions={{ headerShown: false }} />
     </ClerkProvider>
   );
