@@ -30,10 +30,6 @@ export default function RootLayout() {
     return null;
   }
 
-  if (!fontsLoaded) {
-    return null;
-  }
-
   const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
   if (!publishableKey) {
