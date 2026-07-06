@@ -68,8 +68,8 @@ npx expo start
 Create a `.env` file in the project root:
 ```dotenv
 EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_key
-POSTHOG_PROJECT_TOKEN=your_posthog_token
-POSTHOG_HOST=https://us.i.posthog.com
+EXPO_PUBLIC_POSTHOG_KEY=your_posthog_project_api_key
+EXPO_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 ```
 Replace placeholders with real credentials.
 

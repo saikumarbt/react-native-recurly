@@ -3,10 +3,38 @@ import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
 import { useEffect } from "react";
 
-import { ClerkProvider, useAuth } from "@clerk/expo";
+import { ClerkProvider, useAuth, useUser } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
+import { PostHogProvider, usePostHog } from "posthog-react-native";
 
 SplashScreen.preventAutoHideAsync();
+
+function PostHogUserIdentifier() {
+  const posthog = usePostHog();
+  const { isLoaded, isSignedIn, user } = useUser();
+
+  useEffect(() => {
+    if (!isLoaded) {
+      return;
+    }
+
+    if (isSignedIn && user) {
+      const properties: Record<string, string> = {};
+      const email = user.primaryEmailAddress?.emailAddress;
+      if (email) {
+        properties.email = email;
+      }
+      if (user.fullName) {
+        properties.name = user.fullName;
+      }
+      posthog.identify(user.id, properties);
+    } else {
+      posthog.reset();
+    }
+  }, [isLoaded, isSignedIn, user, posthog]);
+
+  return null;
+}
 
 function RootLayoutContent() {
   const { isLoaded: authLoaded } = useAuth();
@@ -44,9 +72,23 @@ export default function RootLayout() {
     );
   }
 
+  const posthogApiKey = process.env.EXPO_PUBLIC_POSTHOG_KEY;
+
+  if (!posthogApiKey) {
+    throw new Error(
+      "Missing env variable: EXPO_PUBLIC_POSTHOG_KEY is not defined",
+    );
+  }
+
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <RootLayoutContent />
-    </ClerkProvider>
+    <PostHogProvider
+      apiKey={posthogApiKey}
+      options={{ host: process.env.EXPO_PUBLIC_POSTHOG_HOST }}
+    >
+      <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+        <PostHogUserIdentifier />
+        <RootLayoutContent />
+      </ClerkProvider>
+    </PostHogProvider>
   );
 }
