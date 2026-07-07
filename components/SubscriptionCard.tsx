@@ -1,3 +1,4 @@
+import { icons } from "@/constants/icons";
 import {
   formatCurrency,
   formatStatusLabel,
@@ -23,6 +24,10 @@ const SubscriptionCard = ({
   status,
 }: SubscriptionCardProps) => {
   const fallback = "Not provided";
+  // Brand icons ship as navy tiles with a light logo. The generic wallet
+  // fallback is a white glyph on a transparent background, so it needs a
+  // navy tile behind it to match that look on the light card.
+  const isFallbackIcon = icon === icons.wallet;
   return (
     <Pressable
       onPress={onPress}
@@ -31,7 +36,18 @@ const SubscriptionCard = ({
     >
       <View className="sub-head">
         <View className="sub-main">
-          <Image source={icon} className="sub-icon" />
+          {isFallbackIcon ? (
+            <View className="sub-icon items-center justify-center bg-primary">
+              <Image
+                source={icon}
+                resizeMode="contain"
+                tintColor="#fff9e3"
+                className="size-8"
+              />
+            </View>
+          ) : (
+            <Image source={icon} className="sub-icon" />
+          )}
           <View className="sub-copy">
             <Text numberOfLines={1} className="sub-title">
               {name}
