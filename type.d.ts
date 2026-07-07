@@ -36,6 +36,12 @@ declare global {
     isCancelling?: boolean;
   }
 
+  interface CreateSubscriptionModalProps {
+    visible: boolean;
+    onClose: () => void;
+    onCreate: (subscription: Subscription) => void;
+  }
+
   interface UpcomingSubscription {
     id: string;
     icon: ImageSourcePropType;

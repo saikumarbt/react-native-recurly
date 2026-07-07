@@ -1,6 +1,7 @@
 import { useSignUp } from "@clerk/expo";
 import { Link, useRouter } from "expo-router";
 import { styled } from "nativewind";
+import { usePostHog } from "posthog-react-native";
 import React from "react";
 import {
   KeyboardAvoidingView,
@@ -18,6 +19,7 @@ const SafeAreaView = styled(RNSafeAreaView) as any;
 export default function SignUp() {
   const { signUp, errors, fetchStatus } = useSignUp();
   const router = useRouter();
+  const posthog = usePostHog();
 
   const [emailAddress, setEmailAddress] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -42,6 +44,7 @@ export default function SignUp() {
     });
 
     if (signUp.status === "complete") {
+      posthog.capture("user_signed_up");
       await signUp.finalize({
         navigate: ({ session, decorateUrl }) => {
           if (session?.currentTask) {

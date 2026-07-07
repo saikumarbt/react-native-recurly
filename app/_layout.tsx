@@ -1,17 +1,23 @@
 import "@/global.css";
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { ClerkProvider, useAuth, useUser } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { PostHogProvider, usePostHog } from "posthog-react-native";
+
+import { SubscriptionsProvider } from "@/context/SubscriptionsContext";
 
 SplashScreen.preventAutoHideAsync();
 
 function PostHogUserIdentifier() {
   const posthog = usePostHog();
   const { isLoaded, isSignedIn, user } = useUser();
+  // Tracks the previous auth state so we only capture on real transitions.
+  // `null` means "not yet known" (initial mount), which must not count as a
+  // sign-in/sign-out event (e.g. reopening the app while already signed in).
+  const wasSignedIn = useRef<boolean | null>(null);
 
   useEffect(() => {
     if (!isLoaded) {
@@ -28,9 +34,20 @@ function PostHogUserIdentifier() {
         properties.name = user.fullName;
       }
       posthog.identify(user.id, properties);
+
+      // Fire only on a genuine signed-out -> signed-in transition.
+      if (wasSignedIn.current === false) {
+        posthog.capture("user_signed_in");
+      }
     } else {
+      // Capture before reset() so the event is still attributed to the user.
+      if (wasSignedIn.current === true) {
+        posthog.capture("user_signed_out");
+      }
       posthog.reset();
     }
+
+    wasSignedIn.current = isSignedIn ?? false;
   }, [isLoaded, isSignedIn, user, posthog]);
 
   return null;
@@ -87,7 +104,9 @@ export default function RootLayout() {
     >
       <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
         <PostHogUserIdentifier />
-        <RootLayoutContent />
+        <SubscriptionsProvider>
+          <RootLayoutContent />
+        </SubscriptionsProvider>
       </ClerkProvider>
     </PostHogProvider>
   );

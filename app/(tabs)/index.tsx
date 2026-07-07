@@ -1,14 +1,15 @@
+import CreateSubscriptionModal from "@/components/CreateSubscriptionModal";
 import ListHeading from "@/components/ListHeading";
 import SubscriptionCard from "@/components/SubscriptionCard";
 import UpcomingSubscriptionCard from "@/components/UpcomingSubscriptionCard";
 import {
   HOME_BALANCE,
-  HOME_SUBSCRIPTIONS,
   HOME_USER,
   UPCOMING_SUBSCRIPTIONS,
 } from "@/constants/data";
 import { icons } from "@/constants/icons";
 import images from "@/constants/images";
+import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
 import { formatCurrency } from "@/lib/utils";
 import { useClerk, useUser } from "@clerk/expo";
@@ -23,9 +24,11 @@ const SafeAreaView = styled(RNSafeAreaView) as any;
 export default function App() {
   const { user } = useUser();
   const { signOut } = useClerk();
+  const { subscriptions, addSubscription } = useSubscriptions();
   const [expandedSubscriptionId, setExpandedSubscriptionId] = useState<
     string | null
   >(null);
+  const [isCreateModalVisible, setCreateModalVisible] = useState(false);
 
   const displayName =
     user?.firstName ||
@@ -57,7 +60,9 @@ export default function App() {
                   </Pressable>
                 </View>
               </View>
-              <Image source={icons.add} className="home-add-icon" />
+              <Pressable onPress={() => setCreateModalVisible(true)}>
+                <Image source={icons.add} className="home-add-icon" />
+              </Pressable>
             </View>
 
             <View className="home-balance-card">
@@ -92,7 +97,7 @@ export default function App() {
             <ListHeading title="All Subscriptions" />
           </>
         )}
-        data={HOME_SUBSCRIPTIONS}
+        data={subscriptions}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <SubscriptionCard
@@ -112,6 +117,12 @@ export default function App() {
           <Text className="home-empty-state">No subscriptions yet</Text>
         }
         contentContainerClassName="pb-30"
+      />
+
+      <CreateSubscriptionModal
+        visible={isCreateModalVisible}
+        onClose={() => setCreateModalVisible(false)}
+        onCreate={addSubscription}
       />
     </SafeAreaView>
   );
