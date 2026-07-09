@@ -417,4 +417,76 @@
   .category-chip-text-active {
     @apply text-accent;
   }
+
+  .insights-header {
+    @apply flex-row items-center justify-between border-b border-border px-5 py-4;
+  }
+
+  .insights-icon-btn {
+    @apply size-11 items-center justify-center rounded-full border border-border;
+  }
+
+  .insights-icon-glyph {
+    @apply size-5;
+  }
+
+  .insights-chart-card {
+    @apply rounded-3xl bg-muted p-5;
+  }
+
+  .insights-axis {
+    @apply mr-3 w-6 justify-between;
+  }
+
+  .insights-axis-label {
+    @apply text-xs font-sans-medium text-muted-foreground;
+  }
+
+  .insights-gridline {
+    @apply h-px w-full bg-black/10;
+  }
+
+  .insights-bar-track {
+    @apply flex-1 items-center justify-end;
+  }
+
+  .insights-bar {
+    @apply w-2.5 rounded-full bg-primary;
+  }
+
+  .insights-bar-active {
+    @apply bg-accent;
+  }
+
+  .insights-tooltip {
+    @apply mb-2 rounded-full bg-primary px-3 py-1;
+  }
+
+  .insights-tooltip-text {
+    @apply text-xs font-sans-bold text-background;
+  }
+
+  .insights-day-label {
+    @apply flex-1 text-center text-sm font-sans-semibold text-muted-foreground;
+  }
+
+  .insights-expense-card {
+    @apply flex-row items-center justify-between rounded-3xl border border-border bg-card p-5;
+  }
+
+  .insights-expense-label {
+    @apply text-xl font-sans-bold text-primary;
+  }
+
+  .insights-expense-period {
+    @apply mt-1 text-sm font-sans-medium text-muted-foreground;
+  }
+
+  .insights-expense-amount {
+    @apply text-2xl font-sans-extrabold text-primary;
+  }
+
+  .insights-expense-change {
+    @apply mt-1 text-right text-sm font-sans-semibold text-muted-foreground;
+  }
 }

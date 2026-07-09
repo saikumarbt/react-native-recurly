@@ -50,3 +50,26 @@ export const formatStatusLabel = (value?: string): string => {
   if (!value) return "Unknown";
   return value.charAt(0).toUpperCase() + value.slice(1);
 };
+
+/**
+ * Days from today until a subscription's next renewal.
+ *
+ * Renewals are recurring, so a renewal date in the past is rolled forward by
+ * the billing interval (monthly/yearly) until it lands on or after today.
+ *
+ * @returns Whole days until the next renewal, or `null` when the date is invalid.
+ */
+export const getDaysUntilRenewal = (
+  renewalDate: string | undefined,
+  billing: string | undefined,
+): number | null => {
+  const today = dayjs().startOf("day");
+  let next = dayjs(renewalDate).startOf("day");
+  if (!next.isValid()) return null;
+
+  const unit = billing?.trim().toLowerCase() === "yearly" ? "year" : "month";
+  while (next.isBefore(today)) {
+    next = next.add(1, unit);
+  }
+  return next.diff(today, "day");
+};
