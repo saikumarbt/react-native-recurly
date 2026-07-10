@@ -14,10 +14,8 @@
 - **TypeScript** – Strong static typing for a maintainable codebase.
 - **NativeWind** – Tailwind‑CSS utilities for rapid UI development.
 
-### Backend & Database
-- **Node.js** – High‑performance JavaScript runtime.
-- **Express** – Minimalist web framework for API routing.
-- **MongoDB** – Flexible NoSQL storage for user and subscription data.
+### Data & Storage
+- **SQLite (expo-sqlite)** – Local-first, on-device storage for subscription data. Your data lives on your phone.
 
 ### Infrastructure & Tools
 - **Clerk** – Secure authentication and user management.
@@ -77,9 +75,16 @@ Replace placeholders with real credentials.
 
 ## 📱 Running the Project
 ```bash
-npm run dev
+npx expo start
 ```
-Open `http://localhost:3000` in your browser (web) or scan the QR code with **Expo Go** on your device.
+Scan the QR code with a **development build** (or Expo Go) on your device, or press **a**/**i** for an emulator/simulator.
+
+### Scripts
+```bash
+npm run lint       # ESLint via expo lint
+npm run typecheck  # tsc --noEmit
+npm test           # Jest unit tests
+```
 
 ---
 

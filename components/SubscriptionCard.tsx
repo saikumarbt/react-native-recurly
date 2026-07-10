@@ -1,17 +1,25 @@
-import { icons } from "@/constants/icons";
+import SubscriptionIcon from "@/components/SubscriptionIcon";
+import { useCurrency } from "@/context/CurrencyContext";
+import { getDaysUntilRenewal } from "@/lib/billing";
 import {
   formatCurrency,
   formatStatusLabel,
   formatSubscriptionDateTime,
 } from "@/lib/utils";
 import clsx from "clsx";
-import { Image, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+
+/** Human renewal countdown for active subs. */
+const renewalCountdown = (days: number | null): string => {
+  if (days === null) return "";
+  if (days <= 0) return "Due today";
+  if (days === 1) return "Due tomorrow";
+  return `Due in ${days} days`;
+};
 
 const SubscriptionCard = ({
   name,
   price,
-  currency,
-  icon,
   billing,
   color,
   category,
@@ -22,45 +30,61 @@ const SubscriptionCard = ({
   paymentMethod,
   startDate,
   status,
+  billingCycle,
+  customIntervalDays,
 }: SubscriptionCardProps) => {
+  const { baseCurrency } = useCurrency();
   const fallback = "Not provided";
-  // Brand icons ship as navy tiles with a light logo. The generic wallet
-  // fallback is a white glyph on a transparent background, so it needs a
-  // navy tile behind it to match that look on the light card.
-  const isFallbackIcon = icon === icons.wallet;
+
+  const isActive = status === "active" || status === undefined;
+  const daysLeft = isActive
+    ? getDaysUntilRenewal(
+        renewalDate ?? startDate,
+        billingCycle ?? "monthly",
+        customIntervalDays,
+      )
+    : null;
+  const isDueSoon = daysLeft !== null && daysLeft <= 3;
+
+  // Meta line: status for paused/cancelled, renewal countdown for active.
+  const metaText =
+    status === "paused"
+      ? "Paused"
+      : status === "cancelled"
+        ? "Cancelled"
+        : renewalCountdown(daysLeft);
+
   return (
     <Pressable
       onPress={onPress}
-      className={clsx("sub-card", expanded ? "sub-card-expanded" : "bg-card")}
+      className={clsx(
+        "sub-card",
+        expanded ? "sub-card-expanded" : "bg-card",
+        !isActive && "opacity-60",
+      )}
       style={!expanded && color ? { backgroundColor: color } : undefined}
     >
       <View className="sub-head">
         <View className="sub-main">
-          {isFallbackIcon ? (
-            <View className="sub-icon items-center justify-center bg-primary">
-              <Image
-                source={icon}
-                resizeMode="contain"
-                tintColor="#fff9e3"
-                className="size-8"
-              />
-            </View>
-          ) : (
-            <Image source={icon} className="sub-icon" />
-          )}
+          <SubscriptionIcon name={name} size={64} />
           <View className="sub-copy">
             <Text numberOfLines={1} className="sub-title">
               {name}
             </Text>
-            <Text numberOfLines={1} ellipsizeMode="tail" className="sub-meta">
-              {category?.trim() ||
-                plan?.trim() ||
-                (renewalDate ? formatSubscriptionDateTime(renewalDate) : "")}
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              className={clsx(
+                "sub-meta",
+                isDueSoon && "font-sans-bold text-accent",
+              )}
+            >
+              {metaText}
             </Text>
           </View>
         </View>
         <View className="sub-price-box">
-          <Text className="sub-price">{formatCurrency(price, currency)}</Text>
+          <Text className="sub-price">{formatCurrency(price, baseCurrency)}</Text>
           <Text className="sub-billing">{billing}</Text>
         </View>
       </View>

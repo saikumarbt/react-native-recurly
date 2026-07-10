@@ -1,27 +1,41 @@
+import SubscriptionIcon from "@/components/SubscriptionIcon";
+import { useCurrency } from "@/context/CurrencyContext";
 import { formatCurrency } from "@/lib/utils";
-import { Image, Text, View } from "react-native";
+import clsx from "clsx";
+import { Text, View } from "react-native";
 
 const UpcomingSubscriptionCard = ({
   name,
   price,
   daysLeft,
-  icon,
-  currency,
 }: UpcomingSubscription) => {
+  const { baseCurrency } = useCurrency();
+  const meta = !Number.isFinite(daysLeft)
+    ? "Scheduled"
+    : daysLeft <= 0
+      ? "Due today"
+      : daysLeft === 1
+        ? "Tomorrow"
+        : `${daysLeft} days left`;
+  const isDueSoon = Number.isFinite(daysLeft) && daysLeft <= 3;
+
   return (
     <View className="upcoming-card">
       <View className="upcoming-row">
-        <Image source={icon} className="upcoming-icon" />
-        <View>
-          <Text className="upcoming-price">
-            {formatCurrency(price, currency)}
+        <SubscriptionIcon name={name} size={56} />
+        <View className="min-w-0 flex-1">
+          <Text className="upcoming-price" numberOfLines={1} adjustsFontSizeToFit>
+            {formatCurrency(price, baseCurrency)}
           </Text>
-          <Text className="upcoming-meta" numberOfLines={1}>
-            {daysLeft > 1 ? `${daysLeft} days left` : "Last Day"}
+          <Text
+            className={clsx("upcoming-meta", isDueSoon && "text-accent")}
+            numberOfLines={1}
+          >
+            {meta}
           </Text>
         </View>
       </View>
-      <Text className="upcoming-name" numberOfLines={1}>
+      <Text className="upcoming-name" numberOfLines={1} ellipsizeMode="tail">
         {name}
       </Text>
     </View>

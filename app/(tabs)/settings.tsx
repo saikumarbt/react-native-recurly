@@ -1,14 +1,26 @@
-import { styled } from "nativewind";
-import { Text, View, Pressable, Image, ScrollView } from "react-native";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
+import PickerSheet, { type PickerItem } from "@/components/PickerSheet";
+import { CURRENCY_CODES, currencyName } from "@/constants/currencies";
+import { useCurrency } from "@/context/CurrencyContext";
+import images from "@/constants/images";
 import { useClerk, useUser } from "@clerk/expo";
 import dayjs from "dayjs";
-import images from "@/constants/images";
+import { styled } from "nativewind";
+import { useState } from "react";
+import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
+
+const CURRENCY_ITEMS: PickerItem[] = CURRENCY_CODES.map((code) => ({
+  value: code,
+  label: code,
+  sublabel: currencyName(code),
+}));
 
 const SafeAreaView = styled(RNSafeAreaView) as any;
 const Settings = () => {
   const { signOut } = useClerk();
   const { user } = useUser();
+  const { baseCurrency, setBaseCurrency } = useCurrency();
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
   const displayName = user?.firstName || user?.fullName || user?.emailAddresses[0]?.emailAddress?.split("@")[0] || "User";
   const email = user?.emailAddresses[0]?.emailAddress || "No email";
@@ -48,6 +60,28 @@ const Settings = () => {
           </View>
         </View>
 
+        <View className="sub-card bg-card mt-4">
+          <Text className="text-lg font-sans-bold text-primary mb-4">
+            Preferences
+          </Text>
+          <Pressable
+            className="flex-row items-center justify-between py-2"
+            onPress={() => setShowCurrencyPicker(true)}
+          >
+            <View>
+              <Text className="text-sm font-sans-medium text-muted-foreground">
+                Currency
+              </Text>
+              <Text className="text-xs font-sans-medium text-muted-foreground/70 mt-0.5">
+                Used for every amount you enter
+              </Text>
+            </View>
+            <Text className="text-sm font-sans-bold text-primary">
+              {baseCurrency} · {currencyName(baseCurrency)} ▾
+            </Text>
+          </Pressable>
+        </View>
+
         <View className="mt-10">
           <Pressable 
             onPress={() => signOut()}
@@ -57,6 +91,16 @@ const Settings = () => {
           </Pressable>
         </View>
       </ScrollView>
+
+      <PickerSheet
+        visible={showCurrencyPicker}
+        title="Choose currency"
+        items={CURRENCY_ITEMS}
+        selected={baseCurrency}
+        placeholder="Search currency"
+        onSelect={setBaseCurrency}
+        onClose={() => setShowCurrencyPicker(false)}
+      />
     </SafeAreaView>
   );
 };

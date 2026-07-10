@@ -1,18 +1,21 @@
-import CreateSubscriptionModal from "@/components/CreateSubscriptionModal";
 import ListHeading from "@/components/ListHeading";
 import SubscriptionCard from "@/components/SubscriptionCard";
+import SubscriptionFormModal from "@/components/SubscriptionFormModal";
 import UpcomingSubscriptionCard from "@/components/UpcomingSubscriptionCard";
-import { HOME_BALANCE, HOME_USER } from "@/constants/data";
+import { HOME_USER } from "@/constants/data";
 import { icons } from "@/constants/icons";
 import images from "@/constants/images";
+import { useCurrency } from "@/context/CurrencyContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
-import { formatCurrency, getDaysUntilRenewal } from "@/lib/utils";
+import { getDaysUntilRenewal, getMonthlyEquivalent } from "@/lib/billing";
+import { formatCurrency } from "@/lib/utils";
 import { useClerk, useUser } from "@clerk/expo";
-import dayjs from "dayjs";
 import { styled } from "nativewind";
+import { usePostHog } from "posthog-react-native";
 import { useMemo, useState } from "react";
 import { FlatList, Image, Pressable, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 const SafeAreaView = styled(RNSafeAreaView) as any;
@@ -21,30 +24,76 @@ export default function App() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const { subscriptions, addSubscription } = useSubscriptions();
-  const [expandedSubscriptionId, setExpandedSubscriptionId] = useState<
-    string | null
-  >(null);
+  const { baseCurrency } = useCurrency();
+  const posthog = usePostHog();
+  const router = useRouter();
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
+
+  const activeSubscriptions = useMemo(
+    () => subscriptions.filter((sub) => sub.status === "active"),
+    [subscriptions],
+  );
+
+  // Real monthly outflow across mixed billing cycles (annual/quarterly/etc.
+  // are normalized to a per-month average, so the total reflects everything).
+  const monthlyTotal = useMemo(
+    () =>
+      activeSubscriptions.reduce(
+        (total, sub) =>
+          total +
+          getMonthlyEquivalent(
+            sub.price,
+            sub.billingCycle ?? "monthly",
+            sub.customIntervalDays,
+          ),
+        0,
+      ),
+    [activeSubscriptions],
+  );
+  const yearlyTotal = monthlyTotal * 12;
 
   const upcomingRenewals: UpcomingSubscription[] = useMemo(
     () =>
-      subscriptions
-        .filter((subscription) => subscription.status !== "cancelled")
+      activeSubscriptions
         .map((subscription) => ({
           id: subscription.id,
-          icon: subscription.icon,
           name: subscription.name,
           price: subscription.price,
           currency: subscription.currency,
           daysLeft:
             getDaysUntilRenewal(
-              subscription.renewalDate,
-              subscription.billing,
+              subscription.renewalDate ?? subscription.startDate,
+              subscription.billingCycle ?? "monthly",
+              subscription.customIntervalDays,
             ) ?? Infinity,
         }))
         .sort((a, b) => a.daysLeft - b.daysLeft),
-    [subscriptions],
+    [activeSubscriptions],
   );
+
+  // Soonest upcoming renewal, for the hero footer.
+  const nextUp = upcomingRenewals[0] ?? null;
+  const nextUpWhen =
+    nextUp === null || !Number.isFinite(nextUp.daysLeft)
+      ? ""
+      : nextUp.daysLeft <= 0
+        ? "due today"
+        : nextUp.daysLeft === 1
+          ? "tomorrow"
+          : `in ${nextUp.daysLeft} days`;
+
+  const handleCreate = (draft: SubscriptionDraft) => {
+    const created = addSubscription(draft);
+    posthog.capture("subscription_created", {
+      subscription_id: created.id,
+      name: created.name,
+      price: created.price,
+      currency: created.currency ?? "USD",
+      billing_cycle: created.billingCycle ?? "monthly",
+      category: created.category ?? "Uncategorized",
+      is_trial: !!created.isTrial,
+    });
+  };
 
   const displayName =
     user?.firstName ||
@@ -81,15 +130,44 @@ export default function App() {
               </Pressable>
             </View>
 
-            <View className="home-balance-card">
-              <Text className="home-balance-label">Balance</Text>
-              <View className="home-balance-row">
-                <Text className="home-balance-amount">
-                  {formatCurrency(HOME_BALANCE.amount)}
-                </Text>
-                <Text className="home-balance-date">
-                  {dayjs(HOME_BALANCE.nextRenewalDate).format("MM/DD")}
-                </Text>
+            <View className="home-hero">
+              <View className="home-hero-top">
+                <Text className="home-hero-label">Spend per month</Text>
+                <View className="home-hero-badge">
+                  <Text className="home-hero-badge-text">
+                    {activeSubscriptions.length} active
+                  </Text>
+                </View>
+              </View>
+
+              <Text
+                className="home-hero-amount"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {formatCurrency(monthlyTotal, baseCurrency)}
+              </Text>
+              <Text className="home-hero-year">
+                ≈ {formatCurrency(yearlyTotal, baseCurrency)} / year
+              </Text>
+
+              <View className="home-hero-divider" />
+
+              <View className="home-hero-foot">
+                <View className="min-w-0 flex-1">
+                  <Text className="home-hero-foot-label">Next renewal</Text>
+                  <Text className="home-hero-foot-value" numberOfLines={1}>
+                    {nextUp ? nextUp.name : "Nothing upcoming"}
+                  </Text>
+                </View>
+                {nextUp ? (
+                  <View className="items-end">
+                    <Text className="home-hero-foot-value">
+                      {formatCurrency(nextUp.price, baseCurrency)}
+                    </Text>
+                    <Text className="home-hero-foot-label">{nextUpWhen}</Text>
+                  </View>
+                ) : null}
               </View>
             </View>
 
@@ -118,27 +196,24 @@ export default function App() {
         renderItem={({ item }) => (
           <SubscriptionCard
             {...item}
-            expanded={expandedSubscriptionId === item.id}
-            onPress={() =>
-              setExpandedSubscriptionId((currentId) =>
-                currentId === item.id ? null : item.id,
-              )
-            }
+            expanded={false}
+            onPress={() => router.push(`/subscriptions/${item.id}`)}
           />
         )}
-        extraData={expandedSubscriptionId}
         ItemSeparatorComponent={() => <View className="h-4" />}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <Text className="home-empty-state">No subscriptions yet</Text>
+          <Text className="home-empty-state">
+            No subscriptions yet — tap + to add your first one.
+          </Text>
         }
         contentContainerClassName="pb-30"
       />
 
-      <CreateSubscriptionModal
+      <SubscriptionFormModal
         visible={isCreateModalVisible}
         onClose={() => setCreateModalVisible(false)}
-        onCreate={addSubscription}
+        onSubmit={handleCreate}
       />
     </SafeAreaView>
   );

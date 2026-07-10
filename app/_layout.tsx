@@ -7,6 +7,7 @@ import { ClerkProvider, useAuth, useUser } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { PostHogProvider, usePostHog } from "posthog-react-native";
 
+import { CurrencyProvider } from "@/context/CurrencyContext";
 import { SubscriptionsProvider } from "@/context/SubscriptionsContext";
 
 SplashScreen.preventAutoHideAsync();
@@ -77,7 +78,18 @@ function RootLayoutContent() {
     return null;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        gestureEnabled: true,
+        animation: "slide_from_right",
+      }}
+    >
+      <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
+      <Stack.Screen name="subscriptions/[id]" />
+    </Stack>
+  );
 }
 
 export default function RootLayout() {
@@ -104,9 +116,11 @@ export default function RootLayout() {
     >
       <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
         <PostHogUserIdentifier />
-        <SubscriptionsProvider>
-          <RootLayoutContent />
-        </SubscriptionsProvider>
+        <CurrencyProvider>
+          <SubscriptionsProvider>
+            <RootLayoutContent />
+          </SubscriptionsProvider>
+        </CurrencyProvider>
       </ClerkProvider>
     </PostHogProvider>
   );

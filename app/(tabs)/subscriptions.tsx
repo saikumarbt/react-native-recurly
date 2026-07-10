@@ -2,6 +2,7 @@ import ListHeading from "@/components/ListHeading";
 import SubscriptionCard from "@/components/SubscriptionCard";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
+import { useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { useMemo, useState } from "react";
 
@@ -20,10 +21,8 @@ const StyledKeyboardAvoidingView = styled(KeyboardAvoidingView) as any;
 
 const Subscriptions = () => {
   const { subscriptions } = useSubscriptions();
+  const router = useRouter();
   const [query, setQuery] = useState("");
-  const [expandedSubscriptionId, setExpandedSubscriptionId] = useState<
-    string | null
-  >(null);
 
   const filteredSubscriptions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -71,15 +70,10 @@ const Subscriptions = () => {
           renderItem={({ item }) => (
             <SubscriptionCard
               {...item}
-              expanded={expandedSubscriptionId === item.id}
-              onPress={() =>
-                setExpandedSubscriptionId((currentId) =>
-                  currentId === item.id ? null : item.id,
-                )
-              }
+              expanded={false}
+              onPress={() => router.push(`/subscriptions/${item.id}`)}
             />
           )}
-          extraData={expandedSubscriptionId}
           ItemSeparatorComponent={() => <View className="h-4" />}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
