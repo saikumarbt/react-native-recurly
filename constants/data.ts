@@ -58,6 +58,22 @@ export const UPCOMING_SUBSCRIPTIONS: UpcomingSubscription[] = [
   },
 ];
 
+export const INSIGHTS_WEEKLY: WeeklyInsight[] = [
+  { day: "Mon", amount: 35 },
+  { day: "Tue", amount: 28 },
+  { day: "Wed", amount: 20 },
+  { day: "Thu", amount: 40, highlighted: true },
+  { day: "Fri", amount: 34 },
+  { day: "Sat", amount: 18 },
+  { day: "Sun", amount: 22 },
+];
+
+export const INSIGHTS_SUMMARY: InsightsSummary = {
+  period: "March 2026",
+  amount: 424.63,
+  changePercent: 12,
+};
+
 export const HOME_SUBSCRIPTIONS: Subscription[] = [
   {
     id: "adobe-creative-cloud",

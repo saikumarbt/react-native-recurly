@@ -59,6 +59,23 @@ declare global {
   interface ListHeadingProps {
     title: string;
   }
+
+  interface WeeklyInsight {
+    day: string;
+    amount: number;
+    highlighted?: boolean;
+  }
+
+  interface InsightsSummary {
+    period: string;
+    amount: number;
+    changePercent: number;
+  }
+
+  interface InsightsModalProps {
+    visible: boolean;
+    onClose: () => void;
+  }
 }
 
 export {};

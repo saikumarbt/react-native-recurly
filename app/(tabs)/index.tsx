@@ -2,20 +2,16 @@ import CreateSubscriptionModal from "@/components/CreateSubscriptionModal";
 import ListHeading from "@/components/ListHeading";
 import SubscriptionCard from "@/components/SubscriptionCard";
 import UpcomingSubscriptionCard from "@/components/UpcomingSubscriptionCard";
-import {
-  HOME_BALANCE,
-  HOME_USER,
-  UPCOMING_SUBSCRIPTIONS,
-} from "@/constants/data";
+import { HOME_BALANCE, HOME_USER } from "@/constants/data";
 import { icons } from "@/constants/icons";
 import images from "@/constants/images";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, getDaysUntilRenewal } from "@/lib/utils";
 import { useClerk, useUser } from "@clerk/expo";
 import dayjs from "dayjs";
 import { styled } from "nativewind";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { FlatList, Image, Pressable, Text, View } from "react-native";
 
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
@@ -29,6 +25,26 @@ export default function App() {
     string | null
   >(null);
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
+
+  const upcomingRenewals: UpcomingSubscription[] = useMemo(
+    () =>
+      subscriptions
+        .filter((subscription) => subscription.status !== "cancelled")
+        .map((subscription) => ({
+          id: subscription.id,
+          icon: subscription.icon,
+          name: subscription.name,
+          price: subscription.price,
+          currency: subscription.currency,
+          daysLeft:
+            getDaysUntilRenewal(
+              subscription.renewalDate,
+              subscription.billing,
+            ) ?? Infinity,
+        }))
+        .sort((a, b) => a.daysLeft - b.daysLeft),
+    [subscriptions],
+  );
 
   const displayName =
     user?.firstName ||
@@ -82,7 +98,7 @@ export default function App() {
               <FlatList
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                data={UPCOMING_SUBSCRIPTIONS}
+                data={upcomingRenewals}
                 renderItem={({ item }) => (
                   <UpcomingSubscriptionCard {...item} />
                 )}
