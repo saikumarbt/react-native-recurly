@@ -1,5 +1,6 @@
 import { tabs } from "@/constants/data";
 import { colors, components } from "@/constants/theme";
+import { hasOnboarded } from "@/lib/onboarding";
 import { useAuth } from "@clerk/expo";
 import { clsx } from "clsx";
 import { Redirect, Tabs } from "expo-router";
@@ -23,6 +24,9 @@ const TabLayout = () => {
   if (!isLoaded) return null;
   if (!isSignedIn) {
     return <Redirect href="/(auth)/sign-in" />;
+  }
+  if (!hasOnboarded()) {
+    return <Redirect href="/onboarding" />;
   }
 
   return (

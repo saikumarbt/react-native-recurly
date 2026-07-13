@@ -65,20 +65,23 @@ function RootLayoutContent() {
   const { isLoaded: authLoaded } = useAuth();
   const router = useRouter();
 
-  // Tapping a reminder deep-links to that subscription (foreground + cold start).
+  // Tapping a reminder deep-links to that subscription. Only the live listener
+  // (fires while the app is running, navigator mounted) — navigation is
+  // deferred a tick so we never push before the router is ready.
   useEffect(() => {
-    const openFromResponse = (
-      response: Notifications.NotificationResponse | null,
-    ) => {
-      const id = response?.notification.request.content.data?.subscriptionId;
-      if (typeof id === "string") {
-        router.push(`/subscriptions/${id}`);
-      }
+    let active = true;
+    const sub = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const id = response?.notification.request.content.data?.subscriptionId;
+        if (active && typeof id === "string") {
+          setTimeout(() => router.push(`/subscriptions/${id}`), 0);
+        }
+      },
+    );
+    return () => {
+      active = false;
+      sub.remove();
     };
-    Notifications.getLastNotificationResponseAsync().then(openFromResponse);
-    const sub =
-      Notifications.addNotificationResponseReceivedListener(openFromResponse);
-    return () => sub.remove();
   }, [router]);
 
   const [fontsLoaded, fontError] = useFonts({
@@ -112,6 +115,7 @@ function RootLayoutContent() {
       }}
     >
       <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
+      <Stack.Screen name="onboarding" options={{ animation: "fade" }} />
       <Stack.Screen name="subscriptions/[id]" />
     </Stack>
   );

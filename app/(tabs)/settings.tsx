@@ -6,8 +6,10 @@ import images from "@/constants/images";
 import { getKv, setKv } from "@/db/subscriptionsRepo";
 import { ANALYTICS_OPTOUT_KEY } from "@/lib/analytics";
 import * as notifications from "@/lib/notifications";
+import { resetOnboarding } from "@/lib/onboarding";
 import { useClerk, useUser } from "@clerk/expo";
 import dayjs from "dayjs";
+import { useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { usePostHog } from "posthog-react-native";
 import { useState } from "react";
@@ -27,6 +29,7 @@ const Settings = () => {
   const { baseCurrency, setBaseCurrency } = useCurrency();
   const { subscriptions } = useSubscriptions();
   const posthog = usePostHog();
+  const router = useRouter();
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [remindersOn, setRemindersOn] = useState(() =>
     notifications.remindersEnabled(),
@@ -143,13 +146,27 @@ const Settings = () => {
         </View>
 
         <View className="mt-10">
-          <Pressable 
+          <Pressable
             onPress={() => signOut()}
             className="auth-button"
           >
             <Text className="auth-button-text">Sign out</Text>
           </Pressable>
         </View>
+
+        {__DEV__ && (
+          <Pressable
+            className="mt-4 items-center py-2"
+            onPress={() => {
+              resetOnboarding();
+              router.replace("/onboarding");
+            }}
+          >
+            <Text className="text-xs font-sans-semibold text-muted-foreground">
+              Reset onboarding (dev)
+            </Text>
+          </Pressable>
+        )}
       </ScrollView>
 
       <PickerSheet
