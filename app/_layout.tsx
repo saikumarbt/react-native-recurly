@@ -1,6 +1,7 @@
 import "@/global.css";
 import { useFonts } from "expo-font";
-import { SplashScreen, Stack } from "expo-router";
+import * as Notifications from "expo-notifications";
+import { SplashScreen, Stack, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 
 import { ClerkProvider, useAuth, useUser } from "@clerk/expo";
@@ -62,6 +63,24 @@ function PostHogUserIdentifier() {
 
 function RootLayoutContent() {
   const { isLoaded: authLoaded } = useAuth();
+  const router = useRouter();
+
+  // Tapping a reminder deep-links to that subscription (foreground + cold start).
+  useEffect(() => {
+    const openFromResponse = (
+      response: Notifications.NotificationResponse | null,
+    ) => {
+      const id = response?.notification.request.content.data?.subscriptionId;
+      if (typeof id === "string") {
+        router.push(`/subscriptions/${id}`);
+      }
+    };
+    Notifications.getLastNotificationResponseAsync().then(openFromResponse);
+    const sub =
+      Notifications.addNotificationResponseReceivedListener(openFromResponse);
+    return () => sub.remove();
+  }, [router]);
+
   const [fontsLoaded, fontError] = useFonts({
     "sans-regular": require("../assets/fonts/PlusJakartaSans-Regular.ttf"),
     "sans-medium": require("../assets/fonts/PlusJakartaSans-Medium.ttf"),
