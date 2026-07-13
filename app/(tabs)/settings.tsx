@@ -2,11 +2,14 @@ import PickerSheet, { type PickerItem } from "@/components/PickerSheet";
 import { CURRENCY_CODES, currencyName } from "@/constants/currencies";
 import { useCurrency } from "@/context/CurrencyContext";
 import images from "@/constants/images";
+import { getKv, setKv } from "@/db/subscriptionsRepo";
+import { ANALYTICS_OPTOUT_KEY } from "@/lib/analytics";
 import { useClerk, useUser } from "@clerk/expo";
 import dayjs from "dayjs";
 import { styled } from "nativewind";
+import { usePostHog } from "posthog-react-native";
 import { useState } from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 
 const CURRENCY_ITEMS: PickerItem[] = CURRENCY_CODES.map((code) => ({
@@ -20,7 +23,21 @@ const Settings = () => {
   const { signOut } = useClerk();
   const { user } = useUser();
   const { baseCurrency, setBaseCurrency } = useCurrency();
+  const posthog = usePostHog();
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(
+    () => getKv(ANALYTICS_OPTOUT_KEY) !== "1",
+  );
+
+  const toggleAnalytics = (enabled: boolean) => {
+    setAnalyticsEnabled(enabled);
+    setKv(ANALYTICS_OPTOUT_KEY, enabled ? "0" : "1");
+    if (enabled) {
+      posthog.optIn();
+    } else {
+      posthog.optOut();
+    }
+  };
 
   const displayName = user?.firstName || user?.fullName || user?.emailAddresses[0]?.emailAddress?.split("@")[0] || "User";
   const email = user?.emailAddresses[0]?.emailAddress || "No email";
@@ -80,6 +97,18 @@ const Settings = () => {
               {baseCurrency} · {currencyName(baseCurrency)} ▾
             </Text>
           </Pressable>
+
+          <View className="flex-row items-center justify-between py-2 border-t border-border/50 mt-2 pt-4">
+            <View className="flex-1 pr-3">
+              <Text className="text-sm font-sans-medium text-muted-foreground">
+                Share anonymous analytics
+              </Text>
+              <Text className="text-xs font-sans-medium text-muted-foreground/70 mt-0.5">
+                Usage only — never your subscription names, amounts, or email.
+              </Text>
+            </View>
+            <Switch value={analyticsEnabled} onValueChange={toggleAnalytics} />
+          </View>
         </View>
 
         <View className="mt-10">

@@ -8,6 +8,7 @@ import images from "@/constants/images";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
+import { priceBucket } from "@/lib/analytics";
 import { getDaysUntilRenewal, getMonthlyEquivalent } from "@/lib/billing";
 import { formatCurrency } from "@/lib/utils";
 import { useClerk, useUser } from "@clerk/expo";
@@ -84,14 +85,19 @@ export default function App() {
 
   const handleCreate = (draft: SubscriptionDraft) => {
     const created = addSubscription(draft);
+    // Non-identifying signal only: no name, no exact price, no currency.
     posthog.capture("subscription_created", {
       subscription_id: created.id,
-      name: created.name,
-      price: created.price,
-      currency: created.currency ?? "USD",
       billing_cycle: created.billingCycle ?? "monthly",
       category: created.category ?? "Uncategorized",
       is_trial: !!created.isTrial,
+      price_bucket: priceBucket(
+        getMonthlyEquivalent(
+          created.price,
+          created.billingCycle ?? "monthly",
+          created.customIntervalDays,
+        ),
+      ),
     });
   };
 
