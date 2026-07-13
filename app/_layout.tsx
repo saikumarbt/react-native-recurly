@@ -9,12 +9,23 @@ import { PostHogProvider, usePostHog } from "posthog-react-native";
 
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { SubscriptionsProvider } from "@/context/SubscriptionsContext";
+import { getKv } from "@/db/subscriptionsRepo";
+import { ANALYTICS_OPTOUT_KEY } from "@/lib/analytics";
 
 SplashScreen.preventAutoHideAsync();
 
 function PostHogUserIdentifier() {
   const posthog = usePostHog();
   const { isLoaded, isSignedIn, user } = useUser();
+
+  // Apply the persisted analytics opt-out on launch (before any capture).
+  useEffect(() => {
+    if (getKv(ANALYTICS_OPTOUT_KEY) === "1") {
+      posthog.optOut();
+    } else {
+      posthog.optIn();
+    }
+  }, [posthog]);
   // Tracks the previous auth state so we only capture on real transitions.
   // `null` means "not yet known" (initial mount), which must not count as a
   // sign-in/sign-out event (e.g. reopening the app while already signed in).
@@ -26,15 +37,10 @@ function PostHogUserIdentifier() {
     }
 
     if (isSignedIn && user) {
-      const properties: Record<string, string> = {};
-      const email = user.primaryEmailAddress?.emailAddress;
-      if (email) {
-        properties.email = email;
-      }
-      if (user.fullName) {
-        properties.name = user.fullName;
-      }
-      posthog.identify(user.id, properties);
+      // Identify by the opaque Clerk id only. PII (email/name) intentionally
+      // stays out of analytics — it lives in Clerk (auth) and, later, the
+      // marketing list. PostHog holds behavior keyed to this id.
+      posthog.identify(user.id);
 
       // Fire only on a genuine signed-out -> signed-in transition.
       if (wasSignedIn.current === false) {

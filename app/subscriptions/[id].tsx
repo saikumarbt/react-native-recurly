@@ -102,11 +102,9 @@ const SubscriptionDetail = () => {
   const isPaused = subscription.status === "paused";
   const isCancelled = subscription.status === "cancelled";
 
+  // Opaque id only — no subscription name in analytics.
   const captureStatus = (event: string) =>
-    posthog.capture(event, {
-      subscription_id: subscription.id,
-      name: subscription.name,
-    });
+    posthog.capture(event, { subscription_id: subscription.id });
 
   const handleEdit = (draft: SubscriptionDraft) => {
     updateSubscription(subscription.id, draft);
