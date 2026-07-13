@@ -1,9 +1,11 @@
 import PickerSheet, { type PickerItem } from "@/components/PickerSheet";
 import { CURRENCY_CODES, currencyName } from "@/constants/currencies";
 import { useCurrency } from "@/context/CurrencyContext";
+import { useSubscriptions } from "@/context/SubscriptionsContext";
 import images from "@/constants/images";
 import { getKv, setKv } from "@/db/subscriptionsRepo";
 import { ANALYTICS_OPTOUT_KEY } from "@/lib/analytics";
+import * as notifications from "@/lib/notifications";
 import { useClerk, useUser } from "@clerk/expo";
 import dayjs from "dayjs";
 import { styled } from "nativewind";
@@ -23,8 +25,25 @@ const Settings = () => {
   const { signOut } = useClerk();
   const { user } = useUser();
   const { baseCurrency, setBaseCurrency } = useCurrency();
+  const { subscriptions } = useSubscriptions();
   const posthog = usePostHog();
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [remindersOn, setRemindersOn] = useState(() =>
+    notifications.remindersEnabled(),
+  );
+
+  const toggleReminders = (enabled: boolean) => {
+    setRemindersOn(enabled);
+    setKv(notifications.REMINDERS_ENABLED_KEY, enabled ? "1" : "0");
+    void (async () => {
+      if (enabled) {
+        await notifications.ensurePermission();
+        await notifications.rescheduleAll(subscriptions);
+      } else {
+        await notifications.cancelAllReminders();
+      }
+    })();
+  };
   const [analyticsEnabled, setAnalyticsEnabled] = useState(
     () => getKv(ANALYTICS_OPTOUT_KEY) !== "1",
   );
@@ -97,6 +116,18 @@ const Settings = () => {
               {baseCurrency} · {currencyName(baseCurrency)} ▾
             </Text>
           </Pressable>
+
+          <View className="flex-row items-center justify-between py-2 border-t border-border/50 mt-2 pt-4">
+            <View className="flex-1 pr-3">
+              <Text className="text-sm font-sans-medium text-muted-foreground">
+                Renewal reminders
+              </Text>
+              <Text className="text-xs font-sans-medium text-muted-foreground/70 mt-0.5">
+                Get notified before renewals and free-trial endings.
+              </Text>
+            </View>
+            <Switch value={remindersOn} onValueChange={toggleReminders} />
+          </View>
 
           <View className="flex-row items-center justify-between py-2 border-t border-border/50 mt-2 pt-4">
             <View className="flex-1 pr-3">

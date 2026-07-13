@@ -7,14 +7,18 @@ import {
   softDeleteSubscription,
   updateSubscription as repoUpdate,
 } from "@/db/subscriptionsRepo";
+import * as notifications from "@/lib/notifications";
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { AppState } from "react-native";
 
 interface SubscriptionsContextValue {
   subscriptions: Subscription[];
@@ -47,6 +51,24 @@ export const SubscriptionsProvider = ({
     return getAllSubscriptions();
   });
 
+  // Always-current snapshot for the foreground reconciler's listener.
+  const subscriptionsRef = useRef(subscriptions);
+  subscriptionsRef.current = subscriptions;
+
+  // Configure notifications once and reconcile scheduled reminders on launch
+  // and every time the app returns to the foreground (rolls renewals forward,
+  // drops stale ones, and stays under the OS pending-notification cap).
+  useEffect(() => {
+    void notifications.configureNotifications();
+    void notifications.rescheduleAll(subscriptionsRef.current);
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        void notifications.rescheduleAll(subscriptionsRef.current);
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
   const refresh = useCallback(() => {
     setSubscriptions(getAllSubscriptions());
   }, []);
@@ -55,6 +77,11 @@ export const SubscriptionsProvider = ({
     (draft: SubscriptionDraft) => {
       const created = insertSubscription(draft);
       refresh();
+      // Ask for permission at this first high-intent moment, then schedule.
+      void (async () => {
+        await notifications.ensurePermission();
+        await notifications.rescheduleForSubscription(created);
+      })();
       return created;
     },
     [refresh],
@@ -64,6 +91,7 @@ export const SubscriptionsProvider = ({
     (id: string, patch: Partial<SubscriptionDraft>) => {
       const updated = repoUpdate(id, patch);
       refresh();
+      if (updated) void notifications.rescheduleForSubscription(updated);
       return updated;
     },
     [refresh],
@@ -73,6 +101,7 @@ export const SubscriptionsProvider = ({
     (id: string) => {
       softDeleteSubscription(id);
       refresh();
+      void notifications.cancelForSubscription(id);
     },
     [refresh],
   );
@@ -81,6 +110,7 @@ export const SubscriptionsProvider = ({
     (id: string) => {
       const restored = repoRestore(id);
       refresh();
+      if (restored) void notifications.rescheduleForSubscription(restored);
       return restored;
     },
     [refresh],
@@ -90,6 +120,8 @@ export const SubscriptionsProvider = ({
     (id: string, status: SubscriptionStatus) => {
       const updated = setSubscriptionStatus(id, status);
       refresh();
+      // reschedule handles active (schedule) and paused/cancelled (clears).
+      if (updated) void notifications.rescheduleForSubscription(updated);
       return updated;
     },
     [refresh],
