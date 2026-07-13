@@ -151,6 +151,57 @@ describe("resolveNextRenewal (start-date aware)", () => {
   });
 });
 
+describe("next renewal across all cycles (existing sub, started in the past)", () => {
+  // "Today" is 2026-07-13. A subscription started 2026-06-08 has already had
+  // its 2026-07-08 monthly charge, so the *next* one is 2026-08-08 — verifying
+  // the roll-forward skips passed dates for every cycle.
+  const START = "2026-06-08T10:00:00.000Z";
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-07-13T12:00:00Z"));
+  });
+  afterEach(() => jest.useRealTimers());
+
+  const fmt = (cycle: Parameters<typeof resolveNextRenewal>[1], custom?: number) =>
+    resolveNextRenewal(START, cycle, custom)?.format("YYYY-MM-DD");
+
+  it("monthly rolls past the passed 07-08 to 08-08", () => {
+    expect(fmt("monthly")).toBe("2026-08-08");
+  });
+  it("weekly rolls to the next future weekly hit", () => {
+    // Jun 8 + 7*n: …Jul 6, Jul 13(=today, not after)→ Jul 20
+    expect(fmt("weekly")).toBe("2026-07-20");
+  });
+  it("biweekly", () => {
+    // Jun 8, Jun 22, Jul 6, Jul 20
+    expect(fmt("biweekly")).toBe("2026-07-20");
+  });
+  it("quarterly", () => {
+    expect(fmt("quarterly")).toBe("2026-09-08");
+  });
+  it("semiannual", () => {
+    expect(fmt("semiannual")).toBe("2026-12-08");
+  });
+  it("annual rolls to next year", () => {
+    expect(fmt("annual")).toBe("2027-06-08");
+  });
+  it("custom (45 days)", () => {
+    // Jun 8 + 45 = Jul 23 (first future)
+    expect(fmt("custom", 45)).toBe("2026-07-23");
+  });
+
+  it("a sub started today renews one interval out", () => {
+    expect(resolveNextRenewal("2026-07-13T00:00:00.000Z", "monthly")?.format("YYYY-MM-DD")).toBe(
+      "2026-08-13",
+    );
+  });
+
+  it("a future-dated start keeps that date as the first renewal", () => {
+    expect(resolveNextRenewal("2026-09-01T00:00:00.000Z", "monthly")?.format("YYYY-MM-DD")).toBe(
+      "2026-09-01",
+    );
+  });
+});
+
 describe("getCycleLabel", () => {
   it("labels standard and custom cycles", () => {
     expect(getCycleLabel("monthly")).toBe("Monthly");
