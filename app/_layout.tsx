@@ -22,6 +22,8 @@ function PostHogUserIdentifier() {
   useEffect(() => {
     if (getKv(ANALYTICS_OPTOUT_KEY) === "1") {
       posthog.optOut();
+    } else {
+      posthog.optIn();
     }
   }, [posthog]);
   // Tracks the previous auth state so we only capture on real transitions.
