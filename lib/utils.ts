@@ -46,8 +46,10 @@ export function formatCurrencyShort(
 export const formatSubscriptionDateTime = (value?: string): string => {
   if (!value) return "Not provided";
   const parsedDate = dayjs(value);
+  // "MMM D, YYYY" (e.g. "Jun 8, 2026") — consistent, locale-agnostic, and
+  // avoids MM/DD vs DD/MM ambiguity.
   return parsedDate.isValid()
-    ? parsedDate.format("MM/DD/YYYY")
+    ? parsedDate.format("MMM D, YYYY")
     : "Not provided";
 };
 

@@ -23,9 +23,9 @@ describe("formatCurrency", () => {
 });
 
 describe("formatSubscriptionDateTime", () => {
-  it("formats ISO dates", () => {
+  it("formats ISO dates as 'MMM D, YYYY'", () => {
     expect(formatSubscriptionDateTime("2026-03-20T10:00:00.000Z")).toBe(
-      "03/20/2026",
+      "Mar 20, 2026",
     );
   });
 

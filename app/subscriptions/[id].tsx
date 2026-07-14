@@ -4,12 +4,13 @@ import { icons } from "@/constants/icons";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
-import { getCycleLabel, getDaysUntilRenewal } from "@/lib/billing";
+import { getCycleLabel, getNextRenewal } from "@/lib/billing";
 import {
   formatCurrency,
   formatStatusLabel,
   formatSubscriptionDateTime,
 } from "@/lib/utils";
+import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { usePostHog } from "posthog-react-native";
@@ -93,11 +94,16 @@ const SubscriptionDetail = () => {
   }
 
   const fallback = "Not provided";
-  const daysLeft = getDaysUntilRenewal(
+  // Compute the live next renewal from the anchor so the displayed date and
+  // the countdown always agree and never show a stale/past stored value.
+  const nextRenewal = getNextRenewal(
     subscription.renewalDate ?? subscription.startDate,
     subscription.billingCycle ?? "monthly",
     subscription.customIntervalDays,
   );
+  const daysLeft = nextRenewal
+    ? nextRenewal.startOf("day").diff(dayjs().startOf("day"), "day")
+    : null;
   const isActive = subscription.status === "active";
   const isPaused = subscription.status === "paused";
   const isCancelled = subscription.status === "cancelled";
@@ -230,7 +236,9 @@ const SubscriptionDetail = () => {
             />
             <DetailRow
               label="Next renewal:"
-              value={formatSubscriptionDateTime(subscription.renewalDate)}
+              value={
+                nextRenewal ? nextRenewal.format("MMM D, YYYY") : fallback
+              }
             />
             {subscription.isTrial && (
               <DetailRow
