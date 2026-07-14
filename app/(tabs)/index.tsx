@@ -1,3 +1,4 @@
+import AnimatedCounter from "@/components/AnimatedCounter";
 import ListHeading from "@/components/ListHeading";
 import SubscriptionCard from "@/components/SubscriptionCard";
 import SubscriptionFormModal from "@/components/SubscriptionFormModal";
@@ -9,12 +10,14 @@ import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
 import { priceBucket } from "@/lib/analytics";
 import { getDaysUntilRenewal, getMonthlyEquivalent } from "@/lib/billing";
+import { success } from "@/lib/haptics";
+import { hasSeenNudge, markNudgeSeen } from "@/lib/nudges";
 import { formatCurrency } from "@/lib/utils";
 import { useClerk, useUser } from "@clerk/expo";
 import { styled } from "nativewind";
 import { usePostHog } from "posthog-react-native";
-import { useMemo, useState } from "react";
-import { FlatList, Image, Pressable, Text, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Animated, FlatList, Image, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
@@ -28,11 +31,40 @@ export default function App() {
   const posthog = usePostHog();
   const router = useRouter();
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
+  const [showAddNudge, setShowAddNudge] = useState(
+    () => !hasSeenNudge("add_first"),
+  );
 
   const activeSubscriptions = useMemo(
     () => subscriptions.filter((sub) => sub.status === "active"),
     [subscriptions],
   );
+
+  // One-time first-run nudge: gently pulse the "+" until the first sub is added.
+  const addPulse = useRef(new Animated.Value(1)).current;
+  const nudgeActive = showAddNudge && activeSubscriptions.length === 0;
+  useEffect(() => {
+    if (!nudgeActive) {
+      addPulse.setValue(1);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(addPulse, {
+          toValue: 1.15,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(addPulse, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [nudgeActive, addPulse]);
 
   // Real monthly outflow across mixed billing cycles (annual/quarterly/etc.
   // are normalized to a per-month average, so the total reflects everything).
@@ -84,6 +116,11 @@ export default function App() {
 
   const handleCreate = (draft: SubscriptionDraft) => {
     const created = addSubscription(draft);
+    success();
+    if (showAddNudge) {
+      markNudgeSeen("add_first");
+      setShowAddNudge(false);
+    }
     // Non-identifying signal only: no name, no exact price, no currency.
     posthog.capture("subscription_created", {
       subscription_id: created.id,
@@ -133,7 +170,9 @@ export default function App() {
                 </View>
               </View>
               <Pressable onPress={() => setCreateModalVisible(true)}>
-                <Image source={icons.add} className="home-add-icon" />
+                <Animated.View style={{ transform: [{ scale: addPulse }] }}>
+                  <Image source={icons.add} className="home-add-icon" />
+                </Animated.View>
               </Pressable>
             </View>
 
@@ -147,13 +186,13 @@ export default function App() {
                 </View>
               </View>
 
-              <Text
+              <AnimatedCounter
+                value={monthlyTotal}
+                currency={baseCurrency}
                 className="home-hero-amount"
                 numberOfLines={1}
                 adjustsFontSizeToFit
-              >
-                {formatCurrency(monthlyTotal, baseCurrency)}
-              </Text>
+              />
               <Text className="home-hero-year">
                 ≈ {formatCurrency(yearlyTotal, baseCurrency)} / year
               </Text>
@@ -211,7 +250,7 @@ export default function App() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <Text className="home-empty-state">
-            No subscriptions yet — tap + to add your first one.
+            No subscriptions yet — tap + and I&apos;ll do the math.
           </Text>
         }
         contentContainerClassName="pb-30"

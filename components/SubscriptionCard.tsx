@@ -62,7 +62,10 @@ const SubscriptionCard = ({
         expanded ? "sub-card-expanded" : "bg-card",
         !isActive && "opacity-60",
       )}
-      style={!expanded && color ? { backgroundColor: color } : undefined}
+      style={({ pressed }) => [
+        !expanded && color ? { backgroundColor: color } : null,
+        pressed && !expanded ? { opacity: 0.85 } : null,
+      ]}
     >
       <View className="sub-head">
         <View className="sub-main">
@@ -87,6 +90,11 @@ const SubscriptionCard = ({
           <Text className="sub-price">{formatCurrency(price, baseCurrency)}</Text>
           <Text className="sub-billing">{billing}</Text>
         </View>
+        {!expanded && (
+          <Text className="ml-1 text-2xl font-sans-medium text-muted-foreground">
+            ›
+          </Text>
+        )}
       </View>
       {expanded && (
         <View className="sub-body">

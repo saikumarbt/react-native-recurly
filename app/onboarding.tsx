@@ -1,5 +1,10 @@
+import AnimatedCounter from "@/components/AnimatedCounter";
+import CelebrationOverlay from "@/components/onboarding/CelebrationOverlay";
+import GuideBubble from "@/components/onboarding/GuideBubble";
+import ProgressBar from "@/components/onboarding/ProgressBar";
 import PickerSheet, { type PickerItem } from "@/components/PickerSheet";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
+import logoGlow from "@/assets/images/logo-glow.png";
 import { CURRENCY_CODES, currencyName } from "@/constants/currencies";
 import { ONBOARDING_BRANDS } from "@/constants/onboardingBrands";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -12,6 +17,7 @@ import {
   resolveNextRenewal,
   type BillingCycle,
 } from "@/lib/billing";
+import { tapLight } from "@/lib/haptics";
 import { markOnboarded } from "@/lib/onboarding";
 import { formatCurrency } from "@/lib/utils";
 import clsx from "clsx";
@@ -20,12 +26,31 @@ import { useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { usePostHog } from "posthog-react-native";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import {
+  Animated,
+  Easing,
+  Image,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 
 const SafeAreaView = styled(RNSafeAreaView) as any;
 
-type Step = "intro" | "currency" | "pick" | "confirm";
+type Step =
+  | "intro"
+  | "goal"
+  | "currency"
+  | "pick"
+  | "confirm"
+  | "analyzing"
+  | "done";
+
+// Steps that show the progress bar, in order.
+const DOT_STEPS: Step[] = ["goal", "currency", "pick", "confirm"];
 
 const CURRENCY_ITEMS: PickerItem[] = CURRENCY_CODES.map((code) => ({
   value: code,
@@ -39,11 +64,62 @@ const CYCLE_ITEMS: PickerItem[] = BILLING_CYCLE_KEYS.filter(
   (key) => key !== "custom",
 ).map((key) => ({ value: key, label: getCycleLabel(key) }));
 
-const VALUE_POINTS = [
-  "See every subscription and what it really costs you each month",
-  "Get reminded before renewals and free trials end — so nothing surprises you",
-  "Your data stays on your device. No bank login, ever.",
+const GOALS = [
+  { key: "forgotten", label: "Stop paying for forgotten subs" },
+  { key: "renewals", label: "Never miss a renewal" },
+  { key: "total", label: "See my total spend" },
+  { key: "trials", label: "Catch free-trial endings" },
+] as const;
+
+// Light, goal-tailored guide line on the confirm step.
+const CONFIRM_GUIDE: Record<string, string> = {
+  forgotten: "Let's see what's quietly adding up.",
+  renewals: "I'll remind you before each of these renews.",
+  total: "Here's what you're really spending.",
+  trials: "Add these and I'll warn you before any trial charges.",
+};
+
+const ANALYZING_LINES = [
+  "Adding your subscriptions…",
+  "Working out your monthly total…",
 ];
+
+/** Simple ring spinner (no animation library). */
+const Spinner = () => {
+  const spin = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(spin, {
+        toValue: 1,
+        duration: 900,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [spin]);
+  return (
+    <Animated.View
+      style={{
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        borderWidth: 4,
+        borderColor: "rgba(0,0,0,0.1)",
+        borderTopColor: "#ea7a53",
+        transform: [
+          {
+            rotate: spin.interpolate({
+              inputRange: [0, 1],
+              outputRange: ["0deg", "360deg"],
+            }),
+          },
+        ],
+      }}
+    />
+  );
+};
 
 const Onboarding = () => {
   const router = useRouter();
@@ -52,13 +128,49 @@ const Onboarding = () => {
   const { addSubscription } = useSubscriptions();
 
   const [step, setStep] = useState<Step>("intro");
+  const [goal, setGoal] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [cycles, setCycles] = useState<Record<string, BillingCycle>>({});
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [cyclePickerFor, setCyclePickerFor] = useState<string | null>(null);
+  const [addedCount, setAddedCount] = useState(0);
+  const [celebrateTotal, setCelebrateTotal] = useState(0);
+  const [analyzeLine, setAnalyzeLine] = useState(0);
 
   const cycleFor = (title: string): BillingCycle => cycles[title] ?? "monthly";
+
+  // Fade + spring the active step in whenever `step` changes.
+  const fade = useRef(new Animated.Value(1)).current;
+  const slide = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    fade.setValue(0);
+    slide.setValue(24);
+    Animated.parallel([
+      Animated.timing(fade, { toValue: 1, duration: 240, useNativeDriver: true }),
+      Animated.spring(slide, {
+        toValue: 0,
+        friction: 7,
+        tension: 60,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [step, fade, slide]);
+
+  // The "analyzing" anticipation beat: cycle lines, then reveal the celebration.
+  useEffect(() => {
+    if (step !== "analyzing") return;
+    setAnalyzeLine(0);
+    const cycle = setInterval(
+      () => setAnalyzeLine((i) => (i + 1) % ANALYZING_LINES.length),
+      650,
+    );
+    const done = setTimeout(() => setStep("done"), 1500);
+    return () => {
+      clearInterval(cycle);
+      clearTimeout(done);
+    };
+  }, [step]);
 
   const started = useRef(false);
   useEffect(() => {
@@ -89,6 +201,18 @@ const Onboarding = () => {
     router.replace("/");
   };
 
+  const selectGoal = (key: string) => {
+    tapLight();
+    setGoal(key);
+    posthog.capture("onboarding_goal_selected", { goal: key });
+    setStep("currency");
+  };
+
+  const toggleBrand = (title: string) => {
+    tapLight();
+    setSelected((s) => ({ ...s, [title]: !s[title] }));
+  };
+
   const addSelected = () => {
     const now = dayjs().toISOString();
     let count = 0;
@@ -108,215 +232,268 @@ const Onboarding = () => {
       });
       count += 1;
     }
-    finish(count);
+    if (count === 0) {
+      finish(0);
+      return;
+    }
+    setAddedCount(count);
+    setCelebrateTotal(monthlyTotal);
+    setStep("analyzing");
   };
 
-  const goToPick = () => setStep("pick");
   const afterPick = () => {
     if (selectedBrands.length > 0) setStep("confirm");
     else finish(0);
   };
 
+  const dotIndex = DOT_STEPS.indexOf(step);
+  const confirmGuide =
+    (goal && CONFIRM_GUIDE[goal]) || "Set what you pay and how often.";
+
   return (
     <SafeAreaView className="flex-1 bg-background">
-      {step === "intro" && (
-        <View className="flex-1 justify-between p-6">
-          <View className="mt-6">
-            <View className="auth-logo-wrap">
-              <View className="auth-logo-mark">
-                <Text className="auth-logo-mark-text">R</Text>
-              </View>
-              <View>
-                <Text className="auth-wordmark">Recurrly</Text>
-                <Text className="auth-wordmark-sub">SMART BILLING</Text>
-              </View>
-            </View>
-            <Text className="auth-title mt-6">Take back control of your subscriptions</Text>
-            <View className="mt-8 gap-5">
-              {VALUE_POINTS.map((point) => (
-                <View key={point} className="flex-row gap-3">
-                  <Text className="text-lg text-accent">●</Text>
-                  <Text className="flex-1 text-base font-sans-medium text-primary">
-                    {point}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-          <View className="gap-3">
-            <Pressable className="auth-button" onPress={() => setStep("currency")}>
-              <Text className="auth-button-text">Get started</Text>
-            </Pressable>
-          </View>
+      {dotIndex >= 0 && (
+        <View className="px-6 pt-3">
+          <ProgressBar count={DOT_STEPS.length} index={dotIndex} />
         </View>
       )}
 
-      {step === "currency" && (
-        <View className="flex-1 justify-between p-6">
-          <View className="mt-8">
-            <Text className="auth-title">What currency do you pay in?</Text>
-            <Text className="auth-subtitle mt-2 text-left">
-              Every amount you enter will be shown in this currency. You can
-              change it later in Settings.
-            </Text>
-            <Pressable
-              className="auth-input mt-8 flex-row items-center justify-between"
-              onPress={() => setShowCurrencyPicker(true)}
-            >
-              <Text className="text-base font-sans-bold text-primary">
-                {baseCurrency} · {currencyName(baseCurrency)}
+      <Animated.View
+        style={{ flex: 1, opacity: fade, transform: [{ translateY: slide }] }}
+      >
+        {step === "intro" && (
+          <View className="flex-1 justify-between p-6">
+            <View className="mt-4 gap-7">
+              <View className="items-center gap-4 pt-6">
+                <Image
+                  source={logoGlow}
+                  style={{ width: 132, height: 132 }}
+                  resizeMode="contain"
+                />
+                <View className="items-center">
+                  <Text className="auth-wordmark">Recurrly</Text>
+                  <Text className="auth-wordmark-sub">SMART BILLING</Text>
+                </View>
+              </View>
+              <Text className="onboarding-headline">
+                See what you&apos;re really paying for.
               </Text>
               <Text className="text-base font-sans-medium text-muted-foreground">
-                ▾
+                No bank login. Your data stays on your phone.
+              </Text>
+            </View>
+            <Pressable className="auth-button" onPress={() => setStep("goal")}>
+              <Text className="auth-button-text">Let&apos;s go</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {step === "goal" && (
+          <View className="flex-1 justify-between p-6">
+            <View className="mt-4 gap-6">
+              <GuideBubble text="What brings you here?" />
+              <View className="gap-3">
+                {GOALS.map((g) => (
+                  <Pressable
+                    key={g.key}
+                    onPress={() => selectGoal(g.key)}
+                    className={clsx(
+                      "rounded-2xl border p-4",
+                      goal === g.key
+                        ? "border-accent bg-accent/10"
+                        : "border-border bg-card",
+                    )}
+                  >
+                    <Text className="text-base font-sans-semibold text-primary">
+                      {g.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+            <Pressable
+              className="items-center py-2"
+              onPress={() => setStep("currency")}
+            >
+              <Text className="text-sm font-sans-semibold text-muted-foreground">
+                Skip
               </Text>
             </Pressable>
           </View>
-          <Pressable className="auth-button" onPress={goToPick}>
-            <Text className="auth-button-text">Continue</Text>
-          </Pressable>
-        </View>
-      )}
+        )}
 
-      {step === "pick" && (
-        // Single scroll with the CTA at the end so it's always reachable
-        // (a flex-1 ScrollView + fixed footer can push the button off-screen).
-        <ScrollView
-          className="flex-1"
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          contentContainerClassName="gap-4 p-6"
-        >
-          <Text className="auth-title mt-4">Add your subscriptions</Text>
-          <Text className="auth-subtitle text-left">
-            Tap the ones you pay for. You can add more (or custom ones) anytime.
-          </Text>
-          <View className="flex-row flex-wrap justify-between gap-y-4">
-            {ONBOARDING_BRANDS.map((brand) => {
-              const active = !!selected[brand.title];
-              return (
-                <Pressable
-                  key={brand.title}
-                  onPress={() =>
-                    setSelected((s) => ({ ...s, [brand.title]: !s[brand.title] }))
-                  }
-                  style={{ width: "31%" }}
-                  className={clsx(
-                    "items-center gap-2 rounded-2xl border p-3",
-                    active
-                      ? "border-accent bg-accent/10"
-                      : "border-border bg-card",
-                  )}
-                >
-                  <SubscriptionIcon name={brand.title} size={44} />
+        {step === "currency" && (
+          <View className="flex-1 justify-between p-6">
+            <View className="mt-4 gap-6">
+              <GuideBubble text="First, what currency do you pay in?" />
+              <Pressable
+                className="auth-input flex-row items-center justify-between"
+                onPress={() => setShowCurrencyPicker(true)}
+              >
+                <Text className="text-base font-sans-bold text-primary">
+                  {baseCurrency} · {currencyName(baseCurrency)}
+                </Text>
+                <Text className="text-base font-sans-medium text-muted-foreground">
+                  ▾
+                </Text>
+              </Pressable>
+            </View>
+            <Pressable className="auth-button" onPress={() => setStep("pick")}>
+              <Text className="auth-button-text">Continue</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {step === "pick" && (
+          // Single scroll with the CTA at the end so it's always reachable
+          // (a flex-1 ScrollView + fixed footer can push the button off-screen).
+          <ScrollView
+            className="flex-1"
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerClassName="gap-4 p-6"
+          >
+            <GuideBubble text="Tap everything you pay for." />
+            <View className="flex-row flex-wrap justify-between gap-y-4">
+              {ONBOARDING_BRANDS.map((brand) => {
+                const active = !!selected[brand.title];
+                return (
+                  <Pressable
+                    key={brand.title}
+                    onPress={() => toggleBrand(brand.title)}
+                    style={{ width: "31%" }}
+                    className={clsx(
+                      "items-center gap-2 rounded-2xl border p-3",
+                      active
+                        ? "border-accent bg-accent/10"
+                        : "border-border bg-card",
+                    )}
+                  >
+                    <SubscriptionIcon name={brand.title} size={44} />
+                    <Text
+                      numberOfLines={1}
+                      className="text-xs font-sans-semibold text-primary"
+                    >
+                      {brand.title}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Pressable className="auth-button mt-2" onPress={afterPick}>
+              <Text className="auth-button-text">
+                {selectedBrands.length > 0
+                  ? `Continue with ${selectedBrands.length}`
+                  : "Continue"}
+              </Text>
+            </Pressable>
+            <Pressable className="items-center py-2" onPress={skip}>
+              <Text className="text-sm font-sans-semibold text-muted-foreground">
+                Skip for now
+              </Text>
+            </Pressable>
+          </ScrollView>
+        )}
+
+        {step === "confirm" && (
+          <ScrollView
+            className="flex-1"
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+            automaticallyAdjustKeyboardInsets
+            showsVerticalScrollIndicator={false}
+            contentContainerClassName="gap-3 p-6 pb-40"
+          >
+            <GuideBubble text={confirmGuide} />
+
+            <View className="my-2 items-center rounded-3xl bg-accent p-5">
+              <Text className="text-xs font-sans-bold uppercase tracking-[2px] text-white/70">
+                Your monthly spend
+              </Text>
+              <AnimatedCounter
+                value={monthlyTotal}
+                currency={baseCurrency}
+                duration={900}
+                className="mt-1 text-5xl font-sans-extrabold text-white"
+              />
+              <Text className="text-sm font-sans-medium text-white/80">
+                ≈ {formatCurrency(monthlyTotal * 12, baseCurrency)} a year
+              </Text>
+            </View>
+
+            {selectedBrands.map((brand) => (
+              <View
+                key={brand.title}
+                className="flex-row items-center gap-3 rounded-2xl border border-border bg-card p-3"
+              >
+                <SubscriptionIcon name={brand.title} size={40} />
+                <View className="min-w-0 flex-1">
                   <Text
                     numberOfLines={1}
-                    className="text-xs font-sans-semibold text-primary"
+                    className="text-base font-sans-semibold text-primary"
                   >
                     {brand.title}
                   </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <Pressable className="auth-button mt-2" onPress={afterPick}>
-            <Text className="auth-button-text">
-              {selectedBrands.length > 0
-                ? `Continue with ${selectedBrands.length}`
-                : "Continue"}
-            </Text>
-          </Pressable>
-          <Pressable className="items-center py-2" onPress={skip}>
-            <Text className="text-sm font-sans-semibold text-muted-foreground">
-              Skip for now
-            </Text>
-          </Pressable>
-        </ScrollView>
-      )}
-
-      {step === "confirm" && (
-        <ScrollView
-          className="flex-1"
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          automaticallyAdjustKeyboardInsets
-          showsVerticalScrollIndicator={false}
-          contentContainerClassName="gap-3 p-6 pb-40"
-        >
-          <Text className="mt-4 text-xs font-sans-bold uppercase tracking-[2px] text-muted-foreground">
-            Quick add · optional
-          </Text>
-          <Text className="auth-title mt-1">Confirm what you pay</Text>
-          <Text className="auth-subtitle text-left">
-            Set what you pay in {baseCurrency} and how often. Category, renewal
-            date and payment method are filled in for you — open any
-            subscription on your dashboard to fine-tune the details and see your
-            full picture.
-          </Text>
-
-          <View className="my-2 items-center rounded-3xl bg-accent p-5">
-            <Text className="text-xs font-sans-bold uppercase tracking-[2px] text-white/70">
-              Your monthly spend
-            </Text>
-            <Text className="mt-1 text-4xl font-sans-extrabold text-white">
-              {formatCurrency(monthlyTotal, baseCurrency)}
-            </Text>
-            <Text className="text-sm font-sans-medium text-white/80">
-              ≈ {formatCurrency(monthlyTotal * 12, baseCurrency)} a year
-            </Text>
-          </View>
-
-          {selectedBrands.map((brand) => (
-            <View
-              key={brand.title}
-              className="flex-row items-center gap-3 rounded-2xl border border-border bg-card p-3"
-            >
-              <SubscriptionIcon name={brand.title} size={40} />
-              <View className="min-w-0 flex-1">
-                <Text
-                  numberOfLines={1}
-                  className="text-base font-sans-semibold text-primary"
-                >
-                  {brand.title}
-                </Text>
-                <Pressable
-                  onPress={() => setCyclePickerFor(brand.title)}
-                  className="mt-1 flex-row items-center gap-1 self-start rounded-full border border-accent bg-accent/10 px-3 py-1"
-                >
-                  <Text className="text-xs font-sans-bold text-accent">
-                    {getCycleLabel(cycleFor(brand.title))}
-                  </Text>
-                  <Text className="text-xs font-sans-bold text-accent">▾</Text>
-                </Pressable>
+                  <Pressable
+                    onPress={() => setCyclePickerFor(brand.title)}
+                    className="mt-1 flex-row items-center gap-1 self-start rounded-full border border-accent bg-accent/10 px-3 py-1"
+                  >
+                    <Text className="text-xs font-sans-bold text-accent">
+                      {getCycleLabel(cycleFor(brand.title))}
+                    </Text>
+                    <Text className="text-xs font-sans-bold text-accent">▾</Text>
+                  </Pressable>
+                </View>
+                <TextInput
+                  className="auth-input"
+                  style={{ width: 104, textAlign: "right" }}
+                  keyboardType="decimal-pad"
+                  value={prices[brand.title] ?? String(brand.price)}
+                  onChangeText={(v) =>
+                    setPrices((p) => ({ ...p, [brand.title]: v }))
+                  }
+                  placeholder="0.00"
+                  placeholderTextColor="#666666"
+                />
               </View>
-              <TextInput
-                className="auth-input"
-                style={{ width: 104, textAlign: "right" }}
-                keyboardType="decimal-pad"
-                value={prices[brand.title] ?? String(brand.price)}
-                onChangeText={(v) =>
-                  setPrices((p) => ({ ...p, [brand.title]: v }))
-                }
-                placeholder="0.00"
-                placeholderTextColor="#666666"
-              />
-            </View>
-          ))}
+            ))}
 
-          <Pressable className="auth-button mt-2" onPress={addSelected}>
-            <Text className="auth-button-text">
-              Add {selectedBrands.length} subscription
-              {selectedBrands.length === 1 ? "" : "s"}
+            <Pressable className="auth-button mt-2" onPress={addSelected}>
+              <Text className="auth-button-text">
+                Add {selectedBrands.length} subscription
+                {selectedBrands.length === 1 ? "" : "s"}
+              </Text>
+            </Pressable>
+            <Text className="text-center text-xs font-sans-medium text-muted-foreground">
+              Edit or remove anything later. Just tap a subscription.
             </Text>
-          </Pressable>
-          <Text className="text-center text-xs font-sans-medium text-muted-foreground">
-            You can edit or remove anything later — just tap a subscription.
-          </Text>
-          <Pressable className="items-center py-2" onPress={() => setStep("pick")}>
-            <Text className="text-sm font-sans-semibold text-muted-foreground">
-              Back
+            <Pressable
+              className="items-center py-2"
+              onPress={() => setStep("pick")}
+            >
+              <Text className="text-sm font-sans-semibold text-muted-foreground">
+                Back
+              </Text>
+            </Pressable>
+          </ScrollView>
+        )}
+
+        {step === "analyzing" && (
+          <View className="flex-1 items-center justify-center gap-6 p-6">
+            <Spinner />
+            <Text className="text-lg font-sans-semibold text-muted-foreground">
+              {ANALYZING_LINES[analyzeLine]}
             </Text>
-          </Pressable>
-        </ScrollView>
+          </View>
+        )}
+      </Animated.View>
+
+      {step === "done" && (
+        <CelebrationOverlay
+          title="You're all set!"
+          subtitle={`Now tracking ${formatCurrency(celebrateTotal, baseCurrency)}/mo across ${addedCount} subscription${addedCount === 1 ? "" : "s"}.`}
+          onDone={() => finish(addedCount)}
+        />
       )}
 
       <PickerSheet
