@@ -25,9 +25,9 @@ const CURRENCY_ITEMS: PickerItem[] = CURRENCY_CODES.map((code) => ({
 const SafeAreaView = styled(RNSafeAreaView) as any;
 const Settings = () => {
   const { signOut } = useClerk();
-  const { user } = useUser();
+  const { user, isSignedIn } = useUser();
   const { baseCurrency, setBaseCurrency } = useCurrency();
-  const { subscriptions } = useSubscriptions();
+  const { subscriptions, clearAllData } = useSubscriptions();
   const posthog = usePostHog();
   const router = useRouter();
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
@@ -61,9 +61,17 @@ const Settings = () => {
     }
   };
 
-  const displayName = user?.firstName || user?.fullName || user?.emailAddresses[0]?.emailAddress?.split("@")[0] || "User";
-  const email = user?.emailAddresses[0]?.emailAddress || "No email";
-  const memberSince = user?.createdAt ? dayjs(user.createdAt).format("MMMM D, YYYY") : "Recently";
+  const displayName =
+    user?.firstName ||
+    user?.fullName ||
+    user?.emailAddresses[0]?.emailAddress?.split("@")[0] ||
+    "Guest";
+  const email = isSignedIn
+    ? (user?.emailAddresses[0]?.emailAddress ?? "No email")
+    : "Not signed in";
+  const memberSince = user?.createdAt
+    ? dayjs(user.createdAt).format("MMMM D, YYYY")
+    : "Recently";
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -146,26 +154,51 @@ const Settings = () => {
         </View>
 
         <View className="mt-10">
-          <Pressable
-            onPress={() => signOut()}
-            className="auth-button"
-          >
-            <Text className="auth-button-text">Sign out</Text>
-          </Pressable>
+          {isSignedIn ? (
+            <Pressable onPress={() => signOut()} className="auth-button">
+              <Text className="auth-button-text">Sign out</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={() => router.push("/(auth)/sign-in")}
+              className="auth-button"
+            >
+              <Text className="auth-button-text">Sign in</Text>
+            </Pressable>
+          )}
+          {!isSignedIn && (
+            <Text className="mt-3 text-center text-xs font-sans-medium text-muted-foreground">
+              Sign in to back up your subscriptions and sync across devices.
+            </Text>
+          )}
         </View>
 
         {__DEV__ && (
-          <Pressable
-            className="mt-4 items-center py-2"
-            onPress={() => {
-              resetOnboarding();
-              router.replace("/onboarding");
-            }}
-          >
-            <Text className="text-xs font-sans-semibold text-muted-foreground">
-              Reset onboarding (dev)
-            </Text>
-          </Pressable>
+          <View className="mt-6 gap-1">
+            <Pressable
+              className="items-center py-2"
+              onPress={() => {
+                resetOnboarding();
+                router.replace("/onboarding");
+              }}
+            >
+              <Text className="text-xs font-sans-semibold text-muted-foreground">
+                Reset onboarding (dev)
+              </Text>
+            </Pressable>
+            <Pressable
+              className="items-center py-2"
+              onPress={() => {
+                clearAllData();
+                resetOnboarding();
+                router.replace("/onboarding");
+              }}
+            >
+              <Text className="text-xs font-sans-semibold text-destructive">
+                Clear all data (dev)
+              </Text>
+            </Pressable>
+          </View>
         )}
       </ScrollView>
 

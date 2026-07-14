@@ -166,6 +166,11 @@ export const updateSubscription = (
   return getSubscriptionById(id);
 };
 
+/** Hard-deletes every subscription (for "delete all my data" / dev reset). */
+export const clearAllSubscriptions = (): void => {
+  getDatabase().runSync("DELETE FROM subscriptions");
+};
+
 /** Soft delete (tombstone kept for future sync + undo). */
 export const softDeleteSubscription = (id: string): void => {
   const timestamp = nowIso();

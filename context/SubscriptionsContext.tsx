@@ -1,5 +1,5 @@
-import { seedIfEmpty } from "@/db/seed";
 import {
+  clearAllSubscriptions,
   getAllSubscriptions,
   insertSubscription,
   restoreSubscription as repoRestore,
@@ -33,6 +33,8 @@ interface SubscriptionsContextValue {
   resumeSubscription: (id: string) => Subscription | null;
   cancelSubscription: (id: string) => Subscription | null;
   getSubscription: (id: string) => Subscription | undefined;
+  /** Wipes all subscriptions from the device (delete-all / dev reset). */
+  clearAllData: () => void;
 }
 
 const SubscriptionsContext = createContext<SubscriptionsContextValue | null>(
@@ -45,11 +47,11 @@ export const SubscriptionsProvider = ({
   children: ReactNode;
 }) => {
   // Load synchronously on first render (SQLite reads are sync) so the UI
-  // never flashes an empty list before data arrives.
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>(() => {
-    seedIfEmpty();
-    return getAllSubscriptions();
-  });
+  // never flashes an empty list before data arrives. No dev seeding — real
+  // data comes from onboarding / the user.
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>(() =>
+    getAllSubscriptions(),
+  );
 
   // Always-current snapshot for the foreground reconciler's listener.
   const subscriptionsRef = useRef(subscriptions);
@@ -145,6 +147,12 @@ export const SubscriptionsProvider = ({
     [subscriptions],
   );
 
+  const clearAllData = useCallback(() => {
+    clearAllSubscriptions();
+    void notifications.cancelAllReminders();
+    setSubscriptions([]);
+  }, []);
+
   const value = useMemo(
     () => ({
       subscriptions,
@@ -156,6 +164,7 @@ export const SubscriptionsProvider = ({
       resumeSubscription,
       cancelSubscription,
       getSubscription,
+      clearAllData,
     }),
     [
       subscriptions,
@@ -167,6 +176,7 @@ export const SubscriptionsProvider = ({
       resumeSubscription,
       cancelSubscription,
       getSubscription,
+      clearAllData,
     ],
   );
 

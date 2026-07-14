@@ -1,30 +1,77 @@
-// Popular subscriptions offered as quick-add tiles during onboarding. Titles
-// match brand-icon keywords so SubscriptionIcon renders the right logo. Prices
-// are editable starting defaults (indicative monthly, in the user's base
-// currency) — the user confirms/adjusts before adding.
+import { BRAND_ICONS } from "@/constants/brandIcons";
+
+// Onboarding quick-add tiles: every brand we have an icon for. Titles match
+// SubscriptionIcon so the real logo renders. Prices are editable starting
+// defaults (indicative monthly, in the user's base currency); the user
+// confirms/adjusts before adding.
 export interface OnboardingBrand {
   title: string;
   price: number;
   category: string;
 }
 
-export const ONBOARDING_BRANDS: OnboardingBrand[] = [
-  { title: "Netflix", price: 15.49, category: "Entertainment" },
-  { title: "Spotify", price: 11.99, category: "Music" },
-  { title: "YouTube Premium", price: 13.99, category: "Entertainment" },
-  { title: "Apple Music", price: 10.99, category: "Music" },
-  { title: "iCloud+", price: 2.99, category: "Cloud" },
-  { title: "ChatGPT", price: 20, category: "AI Tools" },
-  { title: "Claude", price: 20, category: "AI Tools" },
-  { title: "Perplexity", price: 20, category: "AI Tools" },
-  { title: "Cursor", price: 20, category: "AI Tools" },
-  { title: "Gemini", price: 19.99, category: "AI Tools" },
-  { title: "Midjourney", price: 10, category: "AI Tools" },
-  { title: "Notion", price: 10, category: "Productivity" },
-  { title: "GitHub", price: 4, category: "Developer Tools" },
-  { title: "Figma", price: 12, category: "Design" },
-  { title: "Dropbox", price: 11.99, category: "Cloud" },
-  { title: "Grammarly", price: 12, category: "Productivity" },
-  { title: "Audible", price: 14.95, category: "Music" },
-  { title: "Discord Nitro", price: 9.99, category: "Entertainment" },
-];
+// Known indicative monthly prices for popular services, keyed by lowercased
+// brand title. Anything not listed falls back to a generic default.
+const DEFAULTS: Record<string, { price: number; category: string }> = {
+  netflix: { price: 15.49, category: "Entertainment" },
+  youtube: { price: 13.99, category: "Entertainment" },
+  "youtube music": { price: 10.99, category: "Music" },
+  hbo: { price: 15.99, category: "Entertainment" },
+  crunchyroll: { price: 7.99, category: "Entertainment" },
+  twitch: { price: 8.99, category: "Entertainment" },
+  "paramount+": { price: 11.99, category: "Entertainment" },
+  spotify: { price: 11.99, category: "Music" },
+  "apple music": { price: 10.99, category: "Music" },
+  tidal: { price: 10.99, category: "Music" },
+  deezer: { price: 11.99, category: "Music" },
+  soundcloud: { price: 12.5, category: "Music" },
+  audible: { price: 14.95, category: "Music" },
+  anthropic: { price: 20, category: "AI Tools" },
+  claude: { price: 20, category: "AI Tools" },
+  openai: { price: 20, category: "AI Tools" },
+  chatgpt: { price: 20, category: "AI Tools" },
+  perplexity: { price: 20, category: "AI Tools" },
+  "github copilot": { price: 10, category: "AI Tools" },
+  "google gemini": { price: 19.99, category: "AI Tools" },
+  gemini: { price: 19.99, category: "AI Tools" },
+  cursor: { price: 20, category: "AI Tools" },
+  midjourney: { price: 10, category: "AI Tools" },
+  runway: { price: 15, category: "AI Tools" },
+  suno: { price: 10, category: "AI Tools" },
+  elevenlabs: { price: 5, category: "AI Tools" },
+  notion: { price: 10, category: "Productivity" },
+  github: { price: 4, category: "Developer Tools" },
+  gitlab: { price: 29, category: "Developer Tools" },
+  figma: { price: 12, category: "Design" },
+  zoom: { price: 13.99, category: "Productivity" },
+  dropbox: { price: 11.99, category: "Cloud" },
+  "google drive": { price: 1.99, category: "Cloud" },
+  grammarly: { price: 12, category: "Productivity" },
+  vercel: { price: 20, category: "Developer Tools" },
+  jetbrains: { price: 16.9, category: "Developer Tools" },
+  medium: { price: 5, category: "Productivity" },
+  substack: { price: 5, category: "Productivity" },
+  patreon: { price: 5, category: "Entertainment" },
+  x: { price: 8, category: "Entertainment" },
+  "1password": { price: 2.99, category: "Cloud" },
+  dashlane: { price: 4.99, category: "Cloud" },
+  nordvpn: { price: 12.99, category: "Cloud" },
+  expressvpn: { price: 12.95, category: "Cloud" },
+  protonvpn: { price: 9.99, category: "Cloud" },
+  steam: { price: 9.99, category: "Entertainment" },
+  discord: { price: 9.99, category: "Entertainment" },
+  roblox: { price: 4.99, category: "Entertainment" },
+  coursera: { price: 59, category: "Productivity" },
+  udemy: { price: 20, category: "Productivity" },
+  duolingo: { price: 12.99, category: "Productivity" },
+  skillshare: { price: 14, category: "Productivity" },
+  icloud: { price: 2.99, category: "Cloud" },
+};
+
+const FALLBACK = { price: 9.99, category: "Other" };
+
+// One tile per available brand icon, in the curated icon order (popular first).
+export const ONBOARDING_BRANDS: OnboardingBrand[] = BRAND_ICONS.map((icon) => {
+  const preset = DEFAULTS[icon.title.toLowerCase()] ?? FALLBACK;
+  return { title: icon.title, price: preset.price, category: preset.category };
+});

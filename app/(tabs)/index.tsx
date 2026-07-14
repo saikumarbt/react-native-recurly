@@ -2,7 +2,6 @@ import ListHeading from "@/components/ListHeading";
 import SubscriptionCard from "@/components/SubscriptionCard";
 import SubscriptionFormModal from "@/components/SubscriptionFormModal";
 import UpcomingSubscriptionCard from "@/components/UpcomingSubscriptionCard";
-import { HOME_USER } from "@/constants/data";
 import { icons } from "@/constants/icons";
 import images from "@/constants/images";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -22,7 +21,7 @@ import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 const SafeAreaView = styled(RNSafeAreaView) as any;
 
 export default function App() {
-  const { user } = useUser();
+  const { user, isSignedIn } = useUser();
   const { signOut } = useClerk();
   const { subscriptions, addSubscription } = useSubscriptions();
   const { baseCurrency } = useCurrency();
@@ -104,7 +103,7 @@ export default function App() {
   const displayName =
     user?.firstName ||
     user?.emailAddresses[0]?.emailAddress?.split("@")[0] ||
-    HOME_USER.name;
+    "Guest";
 
   return (
     <SafeAreaView className="flex-1  bg-background p-5">
@@ -124,11 +123,13 @@ export default function App() {
                 />
                 <View>
                   <Text className="home-user-name">{displayName}</Text>
-                  <Pressable onPress={() => signOut()} className="ml-4 mt-1">
-                    <Text className="text-sm font-sans-medium text-destructive">
-                      Sign out
-                    </Text>
-                  </Pressable>
+                  {isSignedIn && (
+                    <Pressable onPress={() => signOut()} className="ml-4 mt-1">
+                      <Text className="text-sm font-sans-medium text-destructive">
+                        Sign out
+                      </Text>
+                    </Pressable>
+                  )}
                 </View>
               </View>
               <Pressable onPress={() => setCreateModalVisible(true)}>
