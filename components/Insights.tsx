@@ -1,12 +1,10 @@
 import ListHeading from "@/components/ListHeading";
-import SubscriptionCard from "@/components/SubscriptionCard";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
 import { getMonthlyEquivalent } from "@/lib/billing";
 import { formatCurrency, formatCurrencyShort } from "@/lib/utils";
 import clsx from "clsx";
-import { useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { useMemo } from "react";
 import { ScrollView, Text, View } from "react-native";
@@ -49,19 +47,24 @@ const StatTile = ({
 const Insights = () => {
   const { subscriptions } = useSubscriptions();
   const { baseCurrency } = useCurrency();
-  const router = useRouter();
 
   const stats = useMemo(() => {
     const active = subscriptions.filter((s) => s.status === "active");
+    const paused = subscriptions.filter((s) => s.status === "paused");
     const cancelled = subscriptions.filter((s) => s.status === "cancelled");
 
+    // Spend matches Home: all active subs (incl. those on trial, disclosed
+    // below). Savings = the recurring value of what the user has cancelled.
     const monthlyTotal = active.reduce((sum, s) => sum + monthlyOf(s), 0);
     const savedMonthly = cancelled.reduce((sum, s) => sum + monthlyOf(s), 0);
-    const trialCount = active.filter((s) => s.isTrial).length;
 
-    // Top subscriptions by monthly-equivalent cost → each bar is a real
-    // subscription from the list, so the chart reconciles with what the user
-    // sees below and with the Home total.
+    // Mutually-exclusive portfolio buckets that reconcile with the History
+    // list: paying + onTrial + paused + cancelled === subscriptions.length.
+    const trialCount = active.filter((s) => s.isTrial).length;
+    const payingCount = active.length - trialCount;
+
+    // Top subscriptions by monthly-equivalent cost — each bar is a real active
+    // subscription, so the chart reconciles with the list and the Home total.
     const chart = active
       .map((sub) => ({ label: sub.name, amount: monthlyOf(sub) }))
       .sort((a, b) => b.amount - a.amount)
@@ -72,9 +75,12 @@ const Insights = () => {
       monthlyTotal,
       yearlyTotal: monthlyTotal * 12,
       savedMonthly,
-      activeCount: active.length,
+      savedYearly: savedMonthly * 12,
+      payingCount,
       trialCount,
+      pausedCount: paused.length,
       cancelledCount: cancelled.length,
+      totalCount: subscriptions.length,
       chart,
       maxAmount,
     };
@@ -93,7 +99,7 @@ const Insights = () => {
         <Text className="modal-title">Insights</Text>
         <View className="insights-icon-btn">
           <Text className="text-base font-sans-bold text-primary">
-            {stats.activeCount}
+            {stats.totalCount}
           </Text>
         </View>
       </View>
@@ -102,7 +108,7 @@ const Insights = () => {
         contentContainerClassName="gap-5 p-5 pb-30"
         showsVerticalScrollIndicator={false}
       >
-        {/* Headline stats */}
+        {/* Spend */}
         <View className="flex-row gap-3">
           <StatTile
             label="Per month"
@@ -113,25 +119,55 @@ const Insights = () => {
             value={formatCurrency(stats.yearlyTotal, baseCurrency)}
           />
         </View>
-        <View className="flex-row gap-3">
-          <StatTile
-            label="Active subs"
-            value={String(stats.activeCount)}
-          />
-          <StatTile
-            label="Saved / mo"
-            value={formatCurrency(stats.savedMonthly, baseCurrency)}
-            accent
-          />
-        </View>
-        <View className="flex-row gap-3">
-          <StatTile label="On trial" value={String(stats.trialCount)} />
-          <StatTile label="Cancelled" value={String(stats.cancelledCount)} />
+        {stats.trialCount > 0 && (
+          <Text className="-mt-3 text-xs font-sans-medium text-muted-foreground">
+            Includes {stats.trialCount} on a free trial — billing hasn&apos;t
+            started yet.
+          </Text>
+        )}
+
+        {/* Savings — the "celebrate not spending" hero */}
+        <View className="rounded-3xl border border-border bg-card p-5">
+          <Text className="text-xs font-sans-bold uppercase tracking-[2px] text-muted-foreground">
+            Cut from cancellations
+          </Text>
+          {stats.cancelledCount > 0 ? (
+            <>
+              <Text className="mt-1 text-3xl font-sans-extrabold text-success">
+                {formatCurrency(stats.savedMonthly, baseCurrency)}
+                <Text className="text-base font-sans-bold"> / mo</Text>
+              </Text>
+              <Text className="text-sm font-sans-medium text-muted-foreground">
+                ≈ {formatCurrency(stats.savedYearly, baseCurrency)} a year back
+                in your pocket
+              </Text>
+            </>
+          ) : (
+            <Text className="mt-1 text-sm font-sans-medium text-muted-foreground">
+              Cancel a subscription and we&apos;ll track what it saves you.
+            </Text>
+          )}
         </View>
 
-        {/* Spend by category */}
+        {/* Portfolio — reconciles with the History list below */}
+        <View className="gap-3">
+          <View className="flex-row gap-3">
+            <StatTile label="Paying" value={String(stats.payingCount)} />
+            <StatTile label="On trial" value={String(stats.trialCount)} />
+          </View>
+          <View className="flex-row gap-3">
+            <StatTile label="Paused" value={String(stats.pausedCount)} />
+            <StatTile
+              label="Cancelled"
+              value={String(stats.cancelledCount)}
+              accent
+            />
+          </View>
+        </View>
+
+        {/* Where the money goes */}
         <View>
-          <ListHeading title="Top subscriptions" />
+          <ListHeading title="Where your money goes" />
           {stats.chart.length === 0 ? (
             <View className="insights-chart-card">
               <Text className="home-empty-state">
@@ -211,26 +247,6 @@ const Insights = () => {
           )}
         </View>
 
-        {/* History */}
-        <View>
-          <ListHeading title="History" />
-          <View className="gap-4">
-            {subscriptions.length === 0 ? (
-              <Text className="home-empty-state">No subscriptions yet.</Text>
-            ) : (
-              subscriptions.map((subscription) => (
-                <SubscriptionCard
-                  key={subscription.id}
-                  {...subscription}
-                  expanded={false}
-                  onPress={() =>
-                    router.push(`/subscriptions/${subscription.id}`)
-                  }
-                />
-              ))
-            )}
-          </View>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );

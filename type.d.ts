@@ -80,6 +80,9 @@ declare global {
 
   interface ListHeadingProps {
     title: string;
+    /** Optional trailing action; the link only renders when both are set. */
+    actionLabel?: string;
+    onAction?: () => void;
   }
 
 }
