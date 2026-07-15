@@ -442,6 +442,62 @@
     @apply text-accent;
   }
 
+  .guide-avatar {
+    @apply size-11 items-center justify-center rounded-2xl bg-accent;
+  }
+
+  .guide-avatar-text {
+    @apply text-xl font-sans-extrabold text-background;
+  }
+
+  .guide-bubble {
+    @apply flex-1 rounded-2xl rounded-tl-sm border border-border bg-card px-4 py-3;
+  }
+
+  .guide-bubble-text {
+    @apply text-lg font-sans-semibold text-primary;
+  }
+
+  .onboarding-headline {
+    @apply text-4xl font-sans-extrabold leading-tight text-primary;
+  }
+
+  .progress-row {
+    @apply flex-row items-center gap-3;
+  }
+
+  .progress-track {
+    @apply h-2 flex-1 overflow-hidden rounded-full bg-border;
+  }
+
+  .progress-fill {
+    @apply h-full rounded-full bg-accent;
+  }
+
+  .progress-count {
+    @apply text-xs font-sans-bold text-muted-foreground;
+  }
+
+  .celebrate-overlay {
+    @apply absolute inset-0 items-center justify-center gap-6 bg-background p-8;
+  }
+
+  .celebrate-check {
+    @apply size-24 items-center justify-center rounded-full bg-success;
+  }
+
+  .celebrate-check-text {
+    @apply text-5xl font-sans-extrabold text-background;
+  }
+
+  .celebrate-title {
+    @apply text-center text-4xl font-sans-extrabold text-primary;
+  }
+
+  .celebrate-subtitle {
+    @apply text-center text-base font-sans-medium text-muted-foreground;
+  }
+
   .insights-header {
     @apply flex-row items-center justify-between border-b border-border px-5 py-4;
   }

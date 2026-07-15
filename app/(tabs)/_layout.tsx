@@ -1,6 +1,6 @@
 import { tabs } from "@/constants/data";
 import { colors, components } from "@/constants/theme";
-import { useAuth } from "@clerk/expo";
+import { hasOnboarded } from "@/lib/onboarding";
 import { clsx } from "clsx";
 import { Redirect, Tabs } from "expo-router";
 import { Image, View } from "react-native";
@@ -17,12 +17,12 @@ const TabIcon = ({ focused, icon }: TabIconProps) => (
 );
 
 const TabLayout = () => {
-  const { isSignedIn, isLoaded } = useAuth();
   const insets = useSafeAreaInsets();
 
-  if (!isLoaded) return null;
-  if (!isSignedIn) {
-    return <Redirect href="/(auth)/sign-in" />;
+  // Guest-first: no auth wall. Onboarding runs first for everyone; signing in
+  // is optional (from Settings) and only needed later for Pro/backup.
+  if (!hasOnboarded()) {
+    return <Redirect href="/onboarding" />;
   }
 
   return (

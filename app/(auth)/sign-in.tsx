@@ -22,14 +22,35 @@ export default function SignIn() {
   const [emailAddress, setEmailAddress] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [code, setCode] = React.useState("");
+  const [formError, setFormError] = React.useState<string | null>(null);
 
   const handleSubmit = async () => {
+    setFormError(null);
     const { error } = await signIn.password({
       emailAddress,
       password,
     });
     if (error) {
-      console.error(JSON.stringify(error, null, 2));
+      // Expected states (wrong password, no such account) — show a friendly
+      // message instead of throwing a dev error overlay.
+      const first = (
+        error as {
+          errors?: { code?: string; message?: string; longMessage?: string }[];
+        } | null
+      )?.errors?.[0];
+      if (first?.code === "form_identifier_not_found") {
+        setFormError(
+          "We couldn't find an account with that email. Sign up below to get started.",
+        );
+      } else if (first?.code === "form_password_incorrect") {
+        setFormError("That password doesn't look right. Please try again.");
+      } else {
+        setFormError(
+          first?.longMessage ||
+            first?.message ||
+            "Something went wrong signing in. Please try again.",
+        );
+      }
       return;
     }
 
@@ -151,11 +172,6 @@ export default function SignIn() {
                     }
                     keyboardType="email-address"
                   />
-                  {errors?.fields?.identifier && (
-                    <Text className="auth-error">
-                      {errors.fields.identifier.message}
-                    </Text>
-                  )}
                 </View>
 
                 <View className="auth-field">
@@ -168,12 +184,11 @@ export default function SignIn() {
                     secureTextEntry={true}
                     onChangeText={(password) => setPassword(password)}
                   />
-                  {errors?.fields?.password && (
-                    <Text className="auth-error">
-                      {errors.fields.password.message}
-                    </Text>
-                  )}
                 </View>
+
+                {formError && (
+                  <Text className="auth-error">{formError}</Text>
+                )}
 
                 <Pressable
                   className={`auth-button ${!emailAddress || !password || fetchStatus === "fetching" ? "auth-button-disabled" : ""}`}
@@ -188,7 +203,7 @@ export default function SignIn() {
             </View>
 
             <View className="auth-link-row">
-              <Text className="auth-link-copy">Don't have an account?</Text>
+              <Text className="auth-link-copy">Don&apos;t have an account?</Text>
               <Link href="/(auth)/sign-up">
                 <Text className="auth-link">Sign up</Text>
               </Link>
