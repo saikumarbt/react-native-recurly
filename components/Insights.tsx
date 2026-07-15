@@ -57,6 +57,7 @@ const Insights = () => {
 
     const monthlyTotal = active.reduce((sum, s) => sum + monthlyOf(s), 0);
     const savedMonthly = cancelled.reduce((sum, s) => sum + monthlyOf(s), 0);
+    const trialCount = active.filter((s) => s.isTrial).length;
 
     // Top subscriptions by monthly-equivalent cost → each bar is a real
     // subscription from the list, so the chart reconciles with what the user
@@ -72,6 +73,8 @@ const Insights = () => {
       yearlyTotal: monthlyTotal * 12,
       savedMonthly,
       activeCount: active.length,
+      trialCount,
+      cancelledCount: cancelled.length,
       chart,
       maxAmount,
     };
@@ -120,6 +123,10 @@ const Insights = () => {
             value={formatCurrency(stats.savedMonthly, baseCurrency)}
             accent
           />
+        </View>
+        <View className="flex-row gap-3">
+          <StatTile label="On trial" value={String(stats.trialCount)} />
+          <StatTile label="Cancelled" value={String(stats.cancelledCount)} />
         </View>
 
         {/* Spend by category */}

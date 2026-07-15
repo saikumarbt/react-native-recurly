@@ -261,6 +261,16 @@ All of these ride on the existing SQLite + design system + report/share infrastr
 - **"Suggest a brand"** entry (routes into the feature-request board) for logos we don't have — monogram covers them meanwhile.
 - _Explicitly NOT adopting:_ Bobby's per-sub multiple currencies / currency breakdown — we chose single base currency.
 
+**Adopted from a Russian subscription-tracker reference scan (July 2026, flow diagrams + screens):**
+
+- **"Add another subscription?" loop** after a save — keep the add flow open with an Add-another / Done choice to sustain momentum (bulk-add). _(shipped early as a quick win.)_
+- **Social login (Google/Apple)** at sign-up/paywall via Clerk OAuth — we're email/password only; cuts signup friction where it matters most (the trial gate). Near-term.
+- **Analytics upgrades:** an **"on trial" count** _(shipped early as a quick win)_; a **spend-over-time 12-month chart with an average line** (distinct from our current top-subs-by-cost chart); a **"next month" projection** tab; a **payment-history / charge ledger**. → fold into the Phase-2 Reports surface.
+- **Catalog category filters + explicit "Nothing found" state** on brand search (pairs with "suggest a brand").
+- **Group the Home list by date** (section headers) and optional **voice search** on the catalog — minor niceties for the UX-redesign phase.
+- **"Loading with a reward"** framing — present onboarding completion as a "first win" reward (our celebration already does the mechanics; a copy/reward layer with the rebrand).
+- _Explicitly NOT adopting:_ the reference's **Wallet / Pay / Top-up / Transfer** payment features — moving money in-app requires bank/payment rails, which contradicts our "no bank login, local-first, data-stays-on-device" wedge and balloons the compliance surface. Center-FAB tab redesign → deferred to the UX-redesign phase.
+
 ---
 
 ## 8. Marketing & Launch Plan

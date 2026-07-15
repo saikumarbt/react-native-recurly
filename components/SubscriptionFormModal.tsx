@@ -13,7 +13,7 @@ import { formatSubscriptionDateTime } from "@/lib/utils";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import clsx from "clsx";
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -76,11 +76,27 @@ const SubscriptionFormModal = ({
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showBrandPicker, setShowBrandPicker] = useState(false);
+  // After a create, we keep the modal open on a success prompt so the user can
+  // add another subscription in a row (bulk-add momentum).
+  const [showAddedPrompt, setShowAddedPrompt] = useState(false);
+
+  const resetForm = useCallback(() => {
+    setName("");
+    setPrice("");
+    setPaymentMethod("");
+    setBillingCycle("monthly");
+    setCustomDays("30");
+    setCategory(null);
+    setIsTrial(false);
+    setTrialDays("7");
+    setStartDate(new Date());
+  }, []);
 
   // Prefill when opening in edit mode (or reset when opening in create mode).
   useEffect(() => {
     if (!visible) return;
     setShowDatePicker(false);
+    setShowAddedPrompt(false);
     if (subscription) {
       setName(subscription.name);
       setPrice(String(subscription.price));
@@ -103,17 +119,9 @@ const SubscriptionFormModal = ({
         subscription.startDate ? new Date(subscription.startDate) : new Date(),
       );
     } else {
-      setName("");
-      setPrice("");
-      setPaymentMethod("");
-      setBillingCycle("monthly");
-      setCustomDays("30");
-      setCategory(null);
-      setIsTrial(false);
-      setTrialDays("7");
-      setStartDate(new Date());
+      resetForm();
     }
-  }, [visible, subscription]);
+  }, [visible, subscription, resetForm]);
 
   const trimmedName = name.trim();
   const parsedPrice = parseFloat(price);
@@ -166,7 +174,12 @@ const SubscriptionFormModal = ({
     };
 
     onSubmit(draft);
-    onClose();
+    // Edits close immediately; a new add offers "add another" to keep momentum.
+    if (isEdit) {
+      onClose();
+    } else {
+      setShowAddedPrompt(true);
+    }
   };
 
   const onDateChange = (event: { type: string }, selected?: Date) => {
@@ -197,18 +210,51 @@ const SubscriptionFormModal = ({
           <View className="modal-container">
             <View className="modal-header">
               <Text className="modal-title">
-                {isEdit ? "Edit Subscription" : "New Subscription"}
+                {showAddedPrompt
+                  ? "Subscription added"
+                  : isEdit
+                    ? "Edit Subscription"
+                    : "New Subscription"}
               </Text>
               <Pressable className="modal-close" onPress={onClose}>
                 <Text className="modal-close-text">×</Text>
               </Pressable>
             </View>
 
-            <ScrollView
-              contentContainerClassName="modal-body"
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
+            {showAddedPrompt ? (
+              <View className="modal-body items-center">
+                <View className="my-2 size-16 items-center justify-center rounded-full bg-success">
+                  <Text className="text-3xl font-sans-extrabold text-background">
+                    ✓
+                  </Text>
+                </View>
+                <Text className="text-lg font-sans-bold text-primary">
+                  Added to your list
+                </Text>
+                <Text className="auth-helper text-center">
+                  Track another, or tap Done.
+                </Text>
+                <Pressable
+                  className="auth-button w-full"
+                  onPress={() => {
+                    resetForm();
+                    setShowAddedPrompt(false);
+                  }}
+                >
+                  <Text className="auth-button-text">Add another</Text>
+                </Pressable>
+                <Pressable className="items-center py-2" onPress={onClose}>
+                  <Text className="text-sm font-sans-semibold text-muted-foreground">
+                    Done
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
+              <ScrollView
+                contentContainerClassName="modal-body"
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
               <View className="auth-field">
                 <View className="flex-row items-center justify-between">
                   <Text className="auth-label">Name</Text>
@@ -407,7 +453,8 @@ const SubscriptionFormModal = ({
                   {isEdit ? "Save Changes" : "Add Subscription"}
                 </Text>
               </Pressable>
-            </ScrollView>
+              </ScrollView>
+            )}
           </View>
         </View>
       </KeyboardAvoidingView>
