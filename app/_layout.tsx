@@ -3,6 +3,7 @@ import { useFonts } from "expo-font";
 import * as Notifications from "expo-notifications";
 import { SplashScreen, Stack, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { ClerkProvider, useAuth, useUser } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
@@ -139,18 +140,20 @@ export default function RootLayout() {
   }
 
   return (
-    <PostHogProvider
-      apiKey={posthogApiKey}
-      options={{ host: process.env.EXPO_PUBLIC_POSTHOG_HOST }}
-    >
-      <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-        <PostHogUserIdentifier />
-        <CurrencyProvider>
-          <SubscriptionsProvider>
-            <RootLayoutContent />
-          </SubscriptionsProvider>
-        </CurrencyProvider>
-      </ClerkProvider>
-    </PostHogProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <PostHogProvider
+        apiKey={posthogApiKey}
+        options={{ host: process.env.EXPO_PUBLIC_POSTHOG_HOST }}
+      >
+        <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+          <PostHogUserIdentifier />
+          <CurrencyProvider>
+            <SubscriptionsProvider>
+              <RootLayoutContent />
+            </SubscriptionsProvider>
+          </CurrencyProvider>
+        </ClerkProvider>
+      </PostHogProvider>
+    </GestureHandlerRootView>
   );
 }

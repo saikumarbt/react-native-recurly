@@ -1,4 +1,5 @@
 import AnimatedCounter from "@/components/AnimatedCounter";
+import { FadeInUp, PressableScale } from "@/components/motion";
 import CelebrationOverlay from "@/components/onboarding/CelebrationOverlay";
 import GuideBubble from "@/components/onboarding/GuideBubble";
 import ProgressBar from "@/components/onboarding/ProgressBar";
@@ -37,6 +38,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
+import Reanimated, { FadeIn } from "react-native-reanimated";
 
 const SafeAreaView = styled(RNSafeAreaView) as any;
 
@@ -139,23 +141,6 @@ const Onboarding = () => {
   const [analyzeLine, setAnalyzeLine] = useState(0);
 
   const cycleFor = (title: string): BillingCycle => cycles[title] ?? "monthly";
-
-  // Fade + spring the active step in whenever `step` changes.
-  const fade = useRef(new Animated.Value(1)).current;
-  const slide = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    fade.setValue(0);
-    slide.setValue(24);
-    Animated.parallel([
-      Animated.timing(fade, { toValue: 1, duration: 240, useNativeDriver: true }),
-      Animated.spring(slide, {
-        toValue: 0,
-        friction: 7,
-        tension: 60,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [step, fade, slide]);
 
   // The "analyzing" anticipation beat: cycle lines, then reveal the celebration.
   useEffect(() => {
@@ -274,33 +259,43 @@ const Onboarding = () => {
         </View>
       )}
 
-      <Animated.View
-        style={{ flex: 1, opacity: fade, transform: [{ translateY: slide }] }}
+      <Reanimated.View
+        key={step}
+        entering={FadeIn.duration(220)}
+        style={{ flex: 1 }}
       >
         {step === "intro" && (
           <View className="flex-1 justify-between p-6">
             <View className="mt-4 gap-7">
-              <View className="items-center gap-4 pt-6">
-                <Image
-                  source={logoGlow}
-                  style={{ width: 132, height: 132 }}
-                  resizeMode="contain"
-                />
-                <View className="items-center">
-                  <Text className="auth-wordmark">Recurrly</Text>
-                  <Text className="auth-wordmark-sub">SMART BILLING</Text>
+              <FadeInUp delay={40}>
+                <View className="items-center gap-4 pt-6">
+                  <Image
+                    source={logoGlow}
+                    style={{ width: 132, height: 132 }}
+                    resizeMode="contain"
+                  />
+                  <View className="items-center">
+                    <Text className="auth-wordmark">Recurrly</Text>
+                    <Text className="auth-wordmark-sub">SMART BILLING</Text>
+                  </View>
                 </View>
-              </View>
-              <Text className="onboarding-headline">
-                See what you&apos;re really paying for.
-              </Text>
-              <Text className="text-base font-sans-medium text-muted-foreground">
-                No bank login. Your data stays on your phone.
-              </Text>
+              </FadeInUp>
+              <FadeInUp delay={140}>
+                <Text className="onboarding-headline">
+                  See what you&apos;re really paying for.
+                </Text>
+              </FadeInUp>
+              <FadeInUp delay={240}>
+                <Text className="text-base font-sans-medium text-muted-foreground">
+                  No bank login. Your data stays on your phone.
+                </Text>
+              </FadeInUp>
             </View>
-            <Pressable className="auth-button" onPress={() => setStep("goal")}>
-              <Text className="auth-button-text">Let&apos;s go</Text>
-            </Pressable>
+            <PressableScale onPress={() => setStep("goal")}>
+              <View className="auth-button">
+                <Text className="auth-button-text">Let&apos;s go</Text>
+              </View>
+            </PressableScale>
           </View>
         )}
 
@@ -309,21 +304,22 @@ const Onboarding = () => {
             <View className="mt-4 gap-6">
               <GuideBubble text="What brings you here?" />
               <View className="gap-3">
-                {GOALS.map((g) => (
-                  <Pressable
-                    key={g.key}
-                    onPress={() => selectGoal(g.key)}
-                    className={clsx(
-                      "rounded-2xl border p-4",
-                      goal === g.key
-                        ? "border-accent bg-accent/10"
-                        : "border-border bg-card",
-                    )}
-                  >
-                    <Text className="text-base font-sans-semibold text-primary">
-                      {g.label}
-                    </Text>
-                  </Pressable>
+                {GOALS.map((g, i) => (
+                  <FadeInUp key={g.key} delay={i * 70}>
+                    <Pressable
+                      onPress={() => selectGoal(g.key)}
+                      className={clsx(
+                        "rounded-2xl border p-4",
+                        goal === g.key
+                          ? "border-accent bg-accent/10"
+                          : "border-border bg-card",
+                      )}
+                    >
+                      <Text className="text-base font-sans-semibold text-primary">
+                        {g.label}
+                      </Text>
+                    </Pressable>
+                  </FadeInUp>
                 ))}
               </View>
             </View>
@@ -354,9 +350,11 @@ const Onboarding = () => {
                 </Text>
               </Pressable>
             </View>
-            <Pressable className="auth-button" onPress={() => setStep("pick")}>
-              <Text className="auth-button-text">Continue</Text>
-            </Pressable>
+            <PressableScale onPress={() => setStep("pick")}>
+              <View className="auth-button">
+                <Text className="auth-button-text">Continue</Text>
+              </View>
+            </PressableScale>
           </View>
         )}
 
@@ -396,13 +394,15 @@ const Onboarding = () => {
                 );
               })}
             </View>
-            <Pressable className="auth-button mt-2" onPress={afterPick}>
-              <Text className="auth-button-text">
-                {selectedBrands.length > 0
-                  ? `Continue with ${selectedBrands.length}`
-                  : "Continue"}
-              </Text>
-            </Pressable>
+            <PressableScale onPress={afterPick}>
+              <View className="auth-button mt-2">
+                <Text className="auth-button-text">
+                  {selectedBrands.length > 0
+                    ? `Continue with ${selectedBrands.length}`
+                    : "Continue"}
+                </Text>
+              </View>
+            </PressableScale>
             <Pressable className="items-center py-2" onPress={skip}>
               <Text className="text-sm font-sans-semibold text-muted-foreground">
                 Skip for now
@@ -474,11 +474,13 @@ const Onboarding = () => {
               </View>
             ))}
 
-            <Pressable className="auth-button mt-2" onPress={addSelected}>
-              <Text className="auth-button-text">
-                Add {addableCount} subscription{addableCount === 1 ? "" : "s"}
-              </Text>
-            </Pressable>
+            <PressableScale onPress={addSelected}>
+              <View className="auth-button mt-2">
+                <Text className="auth-button-text">
+                  Add {addableCount} subscription{addableCount === 1 ? "" : "s"}
+                </Text>
+              </View>
+            </PressableScale>
             <Text className="text-center text-xs font-sans-medium text-muted-foreground">
               Edit or remove anything later. Just tap a subscription.
             </Text>
@@ -501,7 +503,7 @@ const Onboarding = () => {
             </Text>
           </View>
         )}
-      </Animated.View>
+      </Reanimated.View>
 
       {step === "done" && (
         <CelebrationOverlay
