@@ -1,6 +1,5 @@
 import AnimatedCounter from "@/components/AnimatedCounter";
 import ListHeading from "@/components/ListHeading";
-import SubscriptionCard from "@/components/SubscriptionCard";
 import SubscriptionFormModal from "@/components/SubscriptionFormModal";
 import UpcomingSubscriptionCard from "@/components/UpcomingSubscriptionCard";
 import { icons } from "@/constants/icons";
@@ -17,7 +16,15 @@ import { useClerk, useUser } from "@clerk/expo";
 import { styled } from "nativewind";
 import { usePostHog } from "posthog-react-native";
 import { useEffect, useMemo, useState } from "react";
-import { Animated, FlatList, Image, Pressable, Text, View } from "react-native";
+import {
+  Animated,
+  FlatList,
+  Image,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useRouter } from "expo-router";
 
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
@@ -144,10 +151,11 @@ export default function App() {
 
   return (
     <SafeAreaView className="flex-1  bg-background p-5">
-      <FlatList
-        ListHeaderComponent={() => (
-          <>
-            <View className="home-header">
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerClassName="pb-30"
+      >
+        <View className="home-header">
               <View className="home-user">
                 <Image
                   source={{
@@ -234,27 +242,32 @@ export default function App() {
                 }
               />
             </View>
-            <ListHeading title="All Subscriptions" />
-          </>
-        )}
-        data={subscriptions}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <SubscriptionCard
-            {...item}
-            expanded={false}
-            onPress={() => router.push(`/subscriptions/${item.id}`)}
-          />
-        )}
-        ItemSeparatorComponent={() => <View className="h-4" />}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <Text className="home-empty-state">
-            No subscriptions yet — tap + and I&apos;ll do the math.
-          </Text>
-        }
-        contentContainerClassName="pb-30"
-      />
+            {subscriptions.length === 0 ? (
+              <View className="items-center py-6">
+                <Text className="home-empty-state">
+                  No subscriptions yet. Tap + and I&apos;ll do the math.
+                </Text>
+              </View>
+            ) : (
+              <Pressable
+                onPress={() => router.push("/subscriptions")}
+                className="flex-row items-center justify-between rounded-2xl border border-border bg-card p-4"
+              >
+                <View>
+                  <Text className="text-base font-sans-semibold text-primary">
+                    Your subscriptions
+                  </Text>
+                  <Text className="mt-0.5 text-sm font-sans-medium text-muted-foreground">
+                    {activeSubscriptions.length} active · {subscriptions.length}{" "}
+                    total
+                  </Text>
+                </View>
+                <Text className="text-2xl font-sans-medium text-muted-foreground">
+                  ›
+                </Text>
+              </Pressable>
+            )}
+      </ScrollView>
 
       <SubscriptionFormModal
         visible={isCreateModalVisible}
