@@ -25,7 +25,7 @@ import dayjs from "dayjs";
 import { useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { usePostHog } from "posthog-react-native";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -181,19 +181,35 @@ const Onboarding = () => {
   }, [posthog]);
 
   const selectedBrands = ONBOARDING_BRANDS.filter((b) => selected[b.title]);
+  // Normalize comma decimal separators (e.g. "12,99") before parsing.
   const priceFor = (title: string, fallback: number) =>
-    parseFloat(prices[title] ?? String(fallback)) || 0;
+    parseFloat((prices[title] ?? String(fallback)).replace(",", ".")) || 0;
   const monthlyTotal = selectedBrands.reduce(
     (sum, b) =>
       sum + getMonthlyEquivalent(priceFor(b.title, b.price), cycleFor(b.title)),
     0,
   );
+  // Same validity rule addSelected uses (price > 0), so the CTA count matches
+  // what actually gets added.
+  const addableCount = selectedBrands.filter(
+    (b) => priceFor(b.title, b.price) > 0,
+  ).length;
 
-  const finish = (subsAdded: number) => {
-    markOnboarded();
-    posthog.capture("onboarding_completed", { subs_added: subsAdded });
-    router.replace("/");
-  };
+  const finish = useCallback(
+    (subsAdded: number) => {
+      markOnboarded();
+      posthog.capture("onboarding_completed", { subs_added: subsAdded });
+      router.replace("/");
+    },
+    [posthog, router],
+  );
+
+  // Stable callback for the celebration so incidental re-renders don't restart
+  // its animation sequence.
+  const handleCelebrationDone = useCallback(
+    () => finish(addedCount),
+    [finish, addedCount],
+  );
 
   const skip = () => {
     markOnboarded();
@@ -460,8 +476,7 @@ const Onboarding = () => {
 
             <Pressable className="auth-button mt-2" onPress={addSelected}>
               <Text className="auth-button-text">
-                Add {selectedBrands.length} subscription
-                {selectedBrands.length === 1 ? "" : "s"}
+                Add {addableCount} subscription{addableCount === 1 ? "" : "s"}
               </Text>
             </Pressable>
             <Text className="text-center text-xs font-sans-medium text-muted-foreground">
@@ -492,7 +507,7 @@ const Onboarding = () => {
         <CelebrationOverlay
           title="You're all set!"
           subtitle={`Now tracking ${formatCurrency(celebrateTotal, baseCurrency)}/mo across ${addedCount} subscription${addedCount === 1 ? "" : "s"}.`}
-          onDone={() => finish(addedCount)}
+          onDone={handleCelebrationDone}
         />
       )}
 

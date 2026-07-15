@@ -16,7 +16,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useClerk, useUser } from "@clerk/expo";
 import { styled } from "nativewind";
 import { usePostHog } from "posthog-react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Animated, FlatList, Image, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
@@ -41,7 +41,7 @@ export default function App() {
   );
 
   // One-time first-run nudge: gently pulse the "+" until the first sub is added.
-  const addPulse = useRef(new Animated.Value(1)).current;
+  const [addPulse] = useState(() => new Animated.Value(1));
   const nudgeActive = showAddNudge && activeSubscriptions.length === 0;
   useEffect(() => {
     if (!nudgeActive) {

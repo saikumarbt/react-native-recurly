@@ -35,10 +35,14 @@ const CelebrationOverlay = ({
   const scale = useRef(new Animated.Value(0)).current;
   const copyOpacity = useRef(new Animated.Value(0)).current;
   const burst = useRef(new Animated.Value(0)).current;
+  // Read onDone through a ref so a changed callback identity never restarts the
+  // sequence (which would fire onDone — i.e. navigation — more than once).
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
   useEffect(() => {
     success();
-    Animated.sequence([
+    const sequence = Animated.sequence([
       Animated.parallel([
         Animated.spring(scale, {
           toValue: 1,
@@ -59,8 +63,12 @@ const CelebrationOverlay = ({
         }),
       ]),
       Animated.delay(1000),
-    ]).start(() => onDone());
-  }, [scale, copyOpacity, burst, onDone]);
+    ]);
+    sequence.start(({ finished }) => {
+      if (finished) onDoneRef.current();
+    });
+    return () => sequence.stop();
+  }, [scale, copyOpacity, burst]);
 
   return (
     <View className="celebrate-overlay">

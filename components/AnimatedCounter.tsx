@@ -1,5 +1,5 @@
 import { formatCurrency } from "@/lib/utils";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Animated, Easing, Text, type TextProps } from "react-native";
 
 interface AnimatedCounterProps extends TextProps {
@@ -20,7 +20,7 @@ const AnimatedCounter = ({
   duration = 700,
   ...textProps
 }: AnimatedCounterProps) => {
-  const anim = useRef(new Animated.Value(0)).current;
+  const [anim] = useState(() => new Animated.Value(0));
   const [display, setDisplay] = useState(0);
 
   useEffect(() => {
