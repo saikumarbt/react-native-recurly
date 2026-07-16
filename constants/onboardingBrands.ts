@@ -142,10 +142,20 @@ const CATEGORY_KEYWORDS: [string, string[]][] = [
   ],
 ];
 
-const inferCategory = (icon: { title: string; keywords: string[] }): string => {
-  const haystack = [icon.title, ...icon.keywords].join(" ").toLowerCase();
+const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const inferCategory = (icon: {
+  title: string;
+  keywords?: string[];
+}): string => {
+  const haystack = [icon.title, ...(icon.keywords ?? [])]
+    .join(" ")
+    .toLowerCase();
   for (const [category, needles] of CATEGORY_KEYWORDS) {
-    if (needles.some((n) => haystack.includes(n))) return category;
+    // Whole-word match (not substring) so short terms like "git" don't match
+    // inside "digital". Needles are already lowercase, as is the haystack.
+    if (needles.some((n) => new RegExp(`\\b${escapeRegex(n)}\\b`).test(haystack)))
+      return category;
   }
   return FALLBACK.category;
 };
