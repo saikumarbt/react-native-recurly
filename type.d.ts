@@ -58,6 +58,8 @@ declare global {
     onPress: () => void;
     onCancelPress?: () => void;
     isCancelling?: boolean;
+    /** Another active sub shares this name — flag as a possible duplicate. */
+    isDuplicate?: boolean;
   }
 
   interface SubscriptionFormModalProps {

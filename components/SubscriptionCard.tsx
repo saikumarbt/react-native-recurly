@@ -35,6 +35,7 @@ const SubscriptionCard = ({
   customIntervalDays,
   dateAssumed,
   confirmedThrough,
+  isDuplicate,
 }: SubscriptionCardProps) => {
   const { baseCurrency } = useCurrency();
   const fallback = "Not provided";
@@ -98,7 +99,17 @@ const SubscriptionCard = ({
             >
               {metaText}
             </Text>
-            {dateAssumed && isActive && !expanded ? (
+            {isDuplicate && !expanded ? (
+              <View className="mt-1 flex-row items-center gap-1.5">
+                <PulsingDot size={7} color="#dc2626" />
+                <Text
+                  style={{ color: "#dc2626" }}
+                  className="text-xs font-sans-semibold"
+                >
+                  Possible duplicate
+                </Text>
+              </View>
+            ) : dateAssumed && isActive && !expanded ? (
               <View className="mt-1 flex-row items-center gap-1.5">
                 <PulsingDot size={7} />
                 <Text

@@ -2,6 +2,7 @@ import PickerSheet, { type PickerItem } from "@/components/PickerSheet";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
 import { BRAND_ICONS } from "@/constants/brandIcons";
 import { useCurrency } from "@/context/CurrencyContext";
+import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
 import {
   BILLING_CYCLE_KEYS,
@@ -9,12 +10,14 @@ import {
   resolveNextRenewal,
   type BillingCycle,
 } from "@/lib/billing";
+import { normalizeName } from "@/lib/duplicates";
 import { formatSubscriptionDateTime } from "@/lib/utils";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import clsx from "clsx";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -65,6 +68,7 @@ const SubscriptionFormModal = ({
 }: SubscriptionFormModalProps) => {
   const isEdit = !!subscription;
   const { baseCurrency } = useCurrency();
+  const { subscriptions } = useSubscriptions();
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
@@ -145,9 +149,7 @@ const SubscriptionFormModal = ({
     customIntervalDays,
   );
 
-  const handleSubmit = () => {
-    if (!isValid) return;
-
+  const commit = () => {
     const startIso = startDate.toISOString();
     const nextRenewal = resolveNextRenewal(
       startIso,
@@ -187,6 +189,31 @@ const SubscriptionFormModal = ({
     } else {
       setShowAddedPrompt(true);
     }
+  };
+
+  const handleSubmit = () => {
+    if (!isValid) return;
+    // Warn on an accidental duplicate of an active sub — never hard-block, since
+    // some people legitimately track two of the same.
+    if (!isEdit) {
+      const duplicate = subscriptions.some(
+        (s) =>
+          s.status === "active" &&
+          normalizeName(s.name) === normalizeName(trimmedName),
+      );
+      if (duplicate) {
+        Alert.alert(
+          `Already tracking ${trimmedName}`,
+          "You already have this subscription. Add another anyway?",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Add anyway", onPress: commit },
+          ],
+        );
+        return;
+      }
+    }
+    commit();
   };
 
   const onDateChange = (event: { type: string }, selected?: Date) => {

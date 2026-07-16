@@ -8,6 +8,7 @@ import { useCurrency } from "@/context/CurrencyContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
 import { getCycleLabel, getNextRenewal, pendingRenewal } from "@/lib/billing";
+import { normalizeName } from "@/lib/duplicates";
 import {
   formatCurrency,
   formatStatusLabel,
@@ -127,6 +128,14 @@ const SubscriptionDetail = () => {
         )
       : null;
 
+  // Another active sub shares this name → possible accidental duplicate.
+  const isDuplicate =
+    subscriptions.filter(
+      (s) =>
+        s.status === "active" &&
+        normalizeName(s.name) === normalizeName(subscription.name),
+    ).length > 1;
+
   // Opaque id only — no subscription name in analytics.
   const captureStatus = (event: string) =>
     posthog.capture(event, { subscription_id: subscription.id });
@@ -230,6 +239,27 @@ const SubscriptionDetail = () => {
               <Text className="flex-1 text-sm font-sans-bold text-primary">
                 All set — your reminders are now accurate.
               </Text>
+            </View>
+          </FadeInUp>
+        )}
+
+        {isDuplicate && (
+          <FadeInUp>
+            <View className="mb-5 rounded-2xl border border-destructive bg-destructive/10 p-4">
+              <Text className="text-sm font-sans-bold text-primary">
+                Possible duplicate
+              </Text>
+              <Text className="mt-0.5 text-xs font-sans-medium text-muted-foreground">
+                You&apos;re tracking another active “{subscription.name}”. If
+                this one was added by mistake, remove it.
+              </Text>
+              <PressableScale onPress={handleDelete}>
+                <View className="mt-3 self-start rounded-xl bg-destructive px-4 py-2">
+                  <Text className="text-sm font-sans-bold text-white">
+                    Delete this one
+                  </Text>
+                </View>
+              </PressableScale>
             </View>
           </FadeInUp>
         )}

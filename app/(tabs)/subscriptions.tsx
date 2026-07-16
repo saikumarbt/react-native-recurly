@@ -2,6 +2,7 @@ import ListHeading from "@/components/ListHeading";
 import SubscriptionCard from "@/components/SubscriptionCard";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
+import { duplicateActiveNames, normalizeName } from "@/lib/duplicates";
 import { useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { useMemo, useState } from "react";
@@ -23,6 +24,11 @@ const Subscriptions = () => {
   const { subscriptions } = useSubscriptions();
   const router = useRouter();
   const [query, setQuery] = useState("");
+
+  const duplicateNames = useMemo(
+    () => duplicateActiveNames(subscriptions),
+    [subscriptions],
+  );
 
   const filteredSubscriptions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -71,6 +77,7 @@ const Subscriptions = () => {
             <SubscriptionCard
               {...item}
               expanded={false}
+              isDuplicate={duplicateNames.has(normalizeName(item.name))}
               onPress={() => router.push(`/subscriptions/${item.id}`)}
             />
           )}
