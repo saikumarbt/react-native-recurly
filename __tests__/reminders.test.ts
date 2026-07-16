@@ -18,11 +18,12 @@ describe("buildReminders", () => {
   });
   afterEach(() => jest.useRealTimers());
 
-  it("schedules T-3 and T-1 renewal reminders at 09:00", () => {
+  it("schedules T-3, T-1 renewal reminders + a day-of check-in at 09:00", () => {
     const reminders = buildReminders(baseSub(), "USD");
     expect(reminders.map((r) => r.id)).toEqual([
       "sub1::renewal_3",
       "sub1::renewal_1",
+      "sub1::checkin",
     ]);
     for (const r of reminders) {
       expect(dayjs(r.date).hour()).toBe(9);
@@ -30,15 +31,19 @@ describe("buildReminders", () => {
     }
     expect(dayjs(reminders[0].date).date()).toBe(17); // 3 days before the 20th
     expect(dayjs(reminders[1].date).date()).toBe(19); // 1 day before
+    expect(dayjs(reminders[2].date).date()).toBe(20); // check-in on the day
   });
 
   it("skips leads whose fire time is already in the past", () => {
-    // Renews in 2 days → T-3 is in the past, only T-1 remains.
+    // Renews in 2 days → T-3 is in the past; T-1 and the day-of check-in remain.
     const reminders = buildReminders(
       baseSub({ renewalDate: "2026-07-15T10:00:00.000Z" }),
       "USD",
     );
-    expect(reminders.map((r) => r.id)).toEqual(["sub1::renewal_1"]);
+    expect(reminders.map((r) => r.id)).toEqual([
+      "sub1::renewal_1",
+      "sub1::checkin",
+    ]);
   });
 
   it("adds T-2 and T-0 trial reminders for trials", () => {

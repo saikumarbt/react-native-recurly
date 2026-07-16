@@ -95,6 +95,22 @@ export default function SignIn() {
     return (
       <SafeAreaView className="auth-screen">
         <View className="auth-content">
+          <Pressable
+            className="mb-2 flex-row items-center gap-1 self-start py-2"
+            onPress={() =>
+              router.canGoBack() ? router.back() : router.replace("/")
+            }
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Text className="text-2xl font-sans-medium text-muted-foreground">
+              ‹
+            </Text>
+            <Text className="text-sm font-sans-semibold text-muted-foreground">
+              Back
+            </Text>
+          </Pressable>
           <Text className="auth-title">Verify your account</Text>
           <Text className="auth-subtitle">
             Enter the code sent to your email.
@@ -148,7 +164,7 @@ export default function SignIn() {
               }
               hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel="Back to app"
+              accessibilityLabel="Go back"
             >
               <Text className="text-2xl font-sans-medium text-muted-foreground">
                 ‹

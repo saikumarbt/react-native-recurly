@@ -44,6 +44,8 @@ declare global {
     trialEndDate?: string;
     /** True when the renewal date was assumed by quick-add (not user-confirmed). */
     dateAssumed?: boolean;
+    /** Latest billing occurrence the user has confirmed/we've assumed (ISO). */
+    confirmedThrough?: string;
     notes?: string;
     createdAt?: string;
     updatedAt?: string;
@@ -56,6 +58,8 @@ declare global {
     onPress: () => void;
     onCancelPress?: () => void;
     isCancelling?: boolean;
+    /** Another active sub shares this name — flag as a possible duplicate. */
+    isDuplicate?: boolean;
   }
 
   interface SubscriptionFormModalProps {

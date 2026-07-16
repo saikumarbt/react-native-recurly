@@ -20,6 +20,7 @@ export interface SubscriptionRow {
   custom_interval_days: number | null;
   is_trial: number;
   date_assumed: number;
+  confirmed_through: string | null;
   trial_end_date: string | null;
   start_date: string | null;
   next_renewal_date: string | null;
@@ -52,6 +53,7 @@ export const rowToSubscription = (row: SubscriptionRow): Subscription => {
     billing: getCycleLabel(billingCycle, row.custom_interval_days ?? undefined),
     isTrial: row.is_trial === 1,
     dateAssumed: row.date_assumed === 1,
+    confirmedThrough: row.confirmed_through ?? undefined,
     trialEndDate: row.trial_end_date ?? undefined,
     startDate: row.start_date ?? undefined,
     renewalDate: row.next_renewal_date ?? undefined,
@@ -88,9 +90,9 @@ export const insertSubscription = (input: NewSubscription): Subscription => {
     `INSERT INTO subscriptions (
       id, name, color, plan, category, payment_method, notes,
       status, price, currency, billing_cycle, custom_interval_days,
-      is_trial, date_assumed, trial_end_date, start_date, next_renewal_date,
-      created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      is_trial, date_assumed, confirmed_through, trial_end_date, start_date,
+      next_renewal_date, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       input.name,
@@ -106,6 +108,7 @@ export const insertSubscription = (input: NewSubscription): Subscription => {
       input.customIntervalDays ?? null,
       input.isTrial ? 1 : 0,
       input.dateAssumed ? 1 : 0,
+      input.confirmedThrough ?? null,
       input.trialEndDate ?? null,
       input.startDate ?? null,
       input.renewalDate ?? null,
@@ -132,6 +135,7 @@ const PATCH_COLUMNS: Record<string, string> = {
   customIntervalDays: "custom_interval_days",
   isTrial: "is_trial",
   dateAssumed: "date_assumed",
+  confirmedThrough: "confirmed_through",
   trialEndDate: "trial_end_date",
   startDate: "start_date",
   renewalDate: "next_renewal_date",

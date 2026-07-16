@@ -58,4 +58,14 @@ export const MIGRATIONS: Migration[] = [
       ADD COLUMN date_assumed INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    // Latest billing occurrence the user has confirmed (or we've assumed) for
+    // the "did it renew?" check-in. Additive; existing rows are NULL and
+    // treated as the start date by the app.
+    version: 3,
+    sql: `
+      ALTER TABLE subscriptions
+      ADD COLUMN confirmed_through TEXT;
+    `,
+  },
 ];

@@ -11,6 +11,7 @@ export const TRIAL_LEAD_DAYS = [2, 0];
 export const REMINDER_KINDS = [
   ...RENEWAL_LEAD_DAYS.map((d) => `renewal_${d}`),
   ...TRIAL_LEAD_DAYS.map((d) => `trial_${d}`),
+  "checkin",
 ];
 
 export interface PlannedReminder {
@@ -59,6 +60,19 @@ export const buildReminders = (
           body: `${price} · ${nextRenewal.format("MMM D")}`,
         });
       }
+    }
+
+    // Check-in on the renewal day itself: "did it renew?" (we can't detect
+    // payment). Tapping deep-links to the sub, where the check-in card shows.
+    const checkinAt = atReminderHour(nextRenewal);
+    if (checkinAt.isAfter(now)) {
+      reminders.push({
+        id: `${sub.id}::checkin`,
+        date: checkinAt.toDate(),
+        subscriptionId: sub.id,
+        title: `Did ${sub.name} renew?`,
+        body: "Confirm it renewed or cancelled to keep your tracking accurate.",
+      });
     }
   }
 

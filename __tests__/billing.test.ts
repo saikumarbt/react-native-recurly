@@ -5,6 +5,8 @@ import {
   getMonthlyEquivalent,
   getNextRenewal,
   normalizeBillingCycle,
+  pendingRenewal,
+  reconcileConfirmedThrough,
   resolveNextRenewal,
 } from "@/lib/billing";
 import dayjs from "dayjs";
@@ -209,6 +211,74 @@ describe("next renewal across all cycles (existing sub, started in the past)", (
     expect(resolveNextRenewal("2026-09-01T00:00:00.000Z", "monthly")?.format("YYYY-MM-DD")).toBe(
       "2026-09-01",
     );
+  });
+});
+
+describe("pendingRenewal + reconcileConfirmedThrough (renewal check-in)", () => {
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-07-16T12:00:00Z"));
+  });
+  afterEach(() => jest.useRealTimers());
+
+  const iso = (d: string) => `${d}T00:00:00.000Z`;
+
+  it("flags a monthly charge that came due today", () => {
+    // start Jun 16, confirmed through Jun 16 → Jul 16 (today) is pending.
+    expect(
+      pendingRenewal(iso("2026-06-16"), "monthly", iso("2026-06-16"))?.format(
+        "YYYY-MM-DD",
+      ),
+    ).toBe("2026-07-16");
+  });
+
+  it("nothing pending for a sub started today", () => {
+    expect(
+      pendingRenewal(iso("2026-07-16"), "monthly", iso("2026-07-16")),
+    ).toBeNull();
+  });
+
+  it("nothing pending once confirmed through the latest occurrence", () => {
+    expect(
+      pendingRenewal(iso("2026-06-16"), "monthly", iso("2026-07-16")),
+    ).toBeNull();
+  });
+
+  it("flags a charge still within the grace window (2 days ago)", () => {
+    expect(
+      pendingRenewal(iso("2026-06-14"), "monthly", iso("2026-06-14"))?.format(
+        "YYYY-MM-DD",
+      ),
+    ).toBe("2026-07-14");
+  });
+
+  it("reconcile absorbs a charge older than the grace window", () => {
+    // start Jun 1 → Jul 1 is 15 days ago (> grace 4): auto-assumed renewed.
+    const nc = reconcileConfirmedThrough(
+      iso("2026-06-01"),
+      "monthly",
+      iso("2026-06-01"),
+    );
+    expect(dayjs(nc!).format("YYYY-MM-DD")).toBe("2026-07-01");
+    expect(pendingRenewal(iso("2026-06-01"), "monthly", nc!)).toBeNull();
+  });
+
+  it("reconcile absorbs old occurrences but leaves a within-grace one pending", () => {
+    // start May 16 → Jun 16 absorbed (> grace), Jul 16 (today) left to prompt.
+    const nc = reconcileConfirmedThrough(
+      iso("2026-05-16"),
+      "monthly",
+      iso("2026-05-16"),
+    );
+    expect(dayjs(nc!).format("YYYY-MM-DD")).toBe("2026-06-16");
+    expect(
+      pendingRenewal(iso("2026-05-16"), "monthly", nc!)?.format("YYYY-MM-DD"),
+    ).toBe("2026-07-16");
+  });
+
+  it("reconcile is a no-op when the next occurrence is within grace / future", () => {
+    expect(
+      reconcileConfirmedThrough(iso("2026-06-16"), "monthly", iso("2026-06-16")),
+    ).toBeNull();
   });
 });
 

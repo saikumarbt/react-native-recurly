@@ -126,6 +126,69 @@ export const getDaysUntilRenewal = (
   return next.diff(dayjs().startOf("day"), "day");
 };
 
+/** Days after a renewal before the reconciler auto-assumes it renewed. */
+export const RENEWAL_GRACE_DAYS = 4;
+
+/**
+ * The earliest billing occurrence that has come due since the user last
+ * confirmed a renewal — the first occurrence in
+ * `(confirmedThrough ?? startDate, today]`. This powers the "did it renew?"
+ * check-in. Returns null when nothing is pending (a sub started today, or the
+ * user is all caught up).
+ */
+export const pendingRenewal = (
+  startDate: string | undefined,
+  cycle: BillingCycle,
+  confirmedThrough: string | undefined,
+  customIntervalDays?: number,
+  now: dayjs.Dayjs = dayjs(),
+): dayjs.Dayjs | null => {
+  if (!startDate) return null;
+  const start = dayjs(startDate).startOf("day");
+  if (!start.isValid()) return null;
+  const anchorRaw = confirmedThrough
+    ? dayjs(confirmedThrough).startOf("day")
+    : start;
+  const anchor = anchorRaw.isValid() ? anchorRaw : start;
+  const today = now.startOf("day");
+
+  const next = addInterval(anchor, cycle, customIntervalDays);
+  return next.isAfter(today) ? null : next;
+};
+
+/**
+ * For the launch/foreground reconciler: advances `confirmedThrough` past any
+ * occurrences older than the grace window (we assume long-passed charges
+ * renewed), leaving only recent ones to prompt about. Returns the new
+ * confirmedThrough ISO, or null when nothing changed.
+ */
+export const reconcileConfirmedThrough = (
+  startDate: string | undefined,
+  cycle: BillingCycle,
+  confirmedThrough: string | undefined,
+  customIntervalDays?: number,
+  graceDays: number = RENEWAL_GRACE_DAYS,
+  now: dayjs.Dayjs = dayjs(),
+): string | null => {
+  if (!startDate) return null;
+  const start = dayjs(startDate).startOf("day");
+  if (!start.isValid()) return null;
+  const anchorRaw = confirmedThrough
+    ? dayjs(confirmedThrough).startOf("day")
+    : start;
+  let anchor = anchorRaw.isValid() ? anchorRaw : start;
+  const cutoff = now.startOf("day").subtract(graceDays, "day");
+
+  let changed = false;
+  let next = addInterval(anchor, cycle, customIntervalDays);
+  while (!next.isAfter(cutoff)) {
+    anchor = next;
+    changed = true;
+    next = addInterval(anchor, cycle, customIntervalDays);
+  }
+  return changed ? anchor.toISOString() : null;
+};
+
 /**
  * Converts a price on any billing cycle to its monthly equivalent.
  * weekly x52/12, biweekly x26/12, quarterly /3, semiannual /6, annual /12,

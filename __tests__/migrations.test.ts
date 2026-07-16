@@ -43,7 +43,12 @@ describe("MIGRATIONS list", () => {
   it("adds the date_assumed column at v2", () => {
     const v2 = MIGRATIONS.find((m) => m.version === 2);
     expect(v2?.sql).toMatch(/date_assumed/);
-    expect(latest).toBe(2);
+  });
+
+  it("adds the confirmed_through column at v3", () => {
+    const v3 = MIGRATIONS.find((m) => m.version === 3);
+    expect(v3?.sql).toMatch(/confirmed_through/);
+    expect(latest).toBe(3);
   });
 });
 
@@ -57,10 +62,13 @@ describe("migrateIfNeeded", () => {
 
   it("runs only pending migrations when already at v1", () => {
     const fake = run(1);
-    expect(fake.version()).toBe(2);
-    // v1 (CREATE TABLE) is skipped; v2 (ALTER) runs.
+    expect(fake.version()).toBe(latest);
+    // v1 (CREATE TABLE) is skipped; v2/v3 (ALTERs) run.
     expect(fake.executed.some((s) => s.includes("CREATE TABLE"))).toBe(false);
     expect(fake.executed.some((s) => s.includes("date_assumed"))).toBe(true);
+    expect(fake.executed.some((s) => s.includes("confirmed_through"))).toBe(
+      true,
+    );
   });
 
   it("is a no-op when already at the latest version", () => {
@@ -87,6 +95,7 @@ describe("rowToSubscription date_assumed mapping", () => {
     custom_interval_days: null,
     is_trial: 0,
     date_assumed: 0,
+    confirmed_through: null,
     trial_end_date: null,
     start_date: null,
     next_renewal_date: null,

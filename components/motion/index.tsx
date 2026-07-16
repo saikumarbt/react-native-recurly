@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Pressable, type StyleProp, type ViewStyle } from "react-native";
 import Animated, {
-  FadeInDown,
+  FadeInUp as FadeInUpEntrance,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -25,7 +25,7 @@ export const FadeInUp = ({
   style?: StyleProp<ViewStyle>;
 }) => (
   <Animated.View
-    entering={FadeInDown.springify().damping(16).mass(0.6).delay(delay)}
+    entering={FadeInUpEntrance.springify().damping(16).mass(0.6).delay(delay)}
     style={style}
   >
     {children}
@@ -58,10 +58,10 @@ export const PressableScale = ({
       onPress={onPress}
       disabled={disabled}
       onPressIn={() => {
-        scale.value = withSpring(0.96, { damping: 15, stiffness: 220 });
+        scale.set(withSpring(0.96, { damping: 15, stiffness: 220 }));
       }}
       onPressOut={() => {
-        scale.value = withSpring(1, { damping: 12, stiffness: 180 });
+        scale.set(withSpring(1, { damping: 12, stiffness: 180 }));
       }}
     >
       <Animated.View style={[animatedStyle, style]}>{children}</Animated.View>
