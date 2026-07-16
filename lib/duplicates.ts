@@ -11,6 +11,8 @@ export const duplicateActiveNames = (subs: Subscription[]): Set<string> => {
   const counts = new Map<string, number>();
   for (const s of subs) {
     if (s.status !== "active") continue;
+    // The user confirmed this same-name sub is intentional — don't count it.
+    if (s.duplicateAcknowledged) continue;
     const key = normalizeName(s.name);
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }

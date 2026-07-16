@@ -21,6 +21,7 @@ export interface SubscriptionRow {
   is_trial: number;
   date_assumed: number;
   confirmed_through: string | null;
+  duplicate_acknowledged: number;
   trial_end_date: string | null;
   start_date: string | null;
   next_renewal_date: string | null;
@@ -54,6 +55,7 @@ export const rowToSubscription = (row: SubscriptionRow): Subscription => {
     isTrial: row.is_trial === 1,
     dateAssumed: row.date_assumed === 1,
     confirmedThrough: row.confirmed_through ?? undefined,
+    duplicateAcknowledged: row.duplicate_acknowledged === 1,
     trialEndDate: row.trial_end_date ?? undefined,
     startDate: row.start_date ?? undefined,
     renewalDate: row.next_renewal_date ?? undefined,
@@ -90,9 +92,9 @@ export const insertSubscription = (input: NewSubscription): Subscription => {
     `INSERT INTO subscriptions (
       id, name, color, plan, category, payment_method, notes,
       status, price, currency, billing_cycle, custom_interval_days,
-      is_trial, date_assumed, confirmed_through, trial_end_date, start_date,
-      next_renewal_date, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      is_trial, date_assumed, confirmed_through, duplicate_acknowledged,
+      trial_end_date, start_date, next_renewal_date, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       input.name,
@@ -109,6 +111,7 @@ export const insertSubscription = (input: NewSubscription): Subscription => {
       input.isTrial ? 1 : 0,
       input.dateAssumed ? 1 : 0,
       input.confirmedThrough ?? null,
+      input.duplicateAcknowledged ? 1 : 0,
       input.trialEndDate ?? null,
       input.startDate ?? null,
       input.renewalDate ?? null,
@@ -136,6 +139,7 @@ const PATCH_COLUMNS: Record<string, string> = {
   isTrial: "is_trial",
   dateAssumed: "date_assumed",
   confirmedThrough: "confirmed_through",
+  duplicateAcknowledged: "duplicate_acknowledged",
   trialEndDate: "trial_end_date",
   startDate: "start_date",
   renewalDate: "next_renewal_date",
@@ -154,7 +158,11 @@ export const updateSubscription = (
     if (!(key in patch)) continue;
     const raw = (patch as Record<string, unknown>)[key];
     assignments.push(`${column} = ?`);
-    if (key === "isTrial" || key === "dateAssumed") {
+    if (
+      key === "isTrial" ||
+      key === "dateAssumed" ||
+      key === "duplicateAcknowledged"
+    ) {
       values.push(raw ? 1 : 0);
     } else {
       values.push((raw as string | number | null | undefined) ?? null);

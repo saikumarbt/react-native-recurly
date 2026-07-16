@@ -8,7 +8,7 @@ import { useCurrency } from "@/context/CurrencyContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
 import { getCycleLabel, getNextRenewal, pendingRenewal } from "@/lib/billing";
-import { normalizeName } from "@/lib/duplicates";
+import { duplicateActiveNames, normalizeName } from "@/lib/duplicates";
 import {
   formatCurrency,
   formatStatusLabel,
@@ -128,13 +128,10 @@ const SubscriptionDetail = () => {
         )
       : null;
 
-  // Another active sub shares this name → possible accidental duplicate.
+  // Another active, non-acknowledged sub shares this name → possible duplicate.
   const isDuplicate =
-    subscriptions.filter(
-      (s) =>
-        s.status === "active" &&
-        normalizeName(s.name) === normalizeName(subscription.name),
-    ).length > 1;
+    !subscription.duplicateAcknowledged &&
+    duplicateActiveNames(subscriptions).has(normalizeName(subscription.name));
 
   // Opaque id only — no subscription name in analytics.
   const captureStatus = (event: string) =>
@@ -171,6 +168,12 @@ const SubscriptionDetail = () => {
   const handleRenewalCancelled = () => {
     cancelSubscription(subscription.id);
     captureStatus("subscription_cancelled");
+  };
+
+  const handleKeepDuplicate = () => {
+    // It's intentional (a partner's / child's) — stop flagging it as a dup.
+    updateSubscription(subscription.id, { duplicateAcknowledged: true });
+    captureStatus("duplicate_kept");
   };
 
   const handlePauseResume = () => {
@@ -211,7 +214,7 @@ const SubscriptionDetail = () => {
       "Delete subscription?",
       `${subscription.name} will be removed from all lists.`,
       [
-        { text: "Keep it", style: "cancel" },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
@@ -250,22 +253,33 @@ const SubscriptionDetail = () => {
                 Possible duplicate
               </Text>
               <Text className="mt-0.5 text-xs font-sans-medium text-muted-foreground">
-                You&apos;re tracking another active “{subscription.name}”. If
-                this one was added by mistake, remove it.
+                You already track another active “{subscription.name}”. If it&apos;s
+                a separate one — a partner&apos;s or child&apos;s, say — keep it
+                and rename it (e.g. “{subscription.name} for Sally”) to tell them
+                apart. If it was a mistake, delete it.
               </Text>
-              <PressableScale onPress={handleDelete}>
-                <View
-                  className="mt-3 self-start rounded-xl px-4 py-2"
-                  style={{ backgroundColor: "#dc2626" }}
-                >
-                  <Text
-                    className="text-sm font-sans-bold"
-                    style={{ color: "#ffffff" }}
+              <View className="mt-3 flex-row gap-2">
+                <PressableScale onPress={handleKeepDuplicate}>
+                  <View className="rounded-xl border border-border bg-card px-4 py-2">
+                    <Text className="text-sm font-sans-semibold text-primary">
+                      Keep it
+                    </Text>
+                  </View>
+                </PressableScale>
+                <PressableScale onPress={handleDelete}>
+                  <View
+                    className="rounded-xl px-4 py-2"
+                    style={{ backgroundColor: "#dc2626" }}
                   >
-                    Delete this one
-                  </Text>
-                </View>
-              </PressableScale>
+                    <Text
+                      className="text-sm font-sans-bold"
+                      style={{ color: "#ffffff" }}
+                    >
+                      Delete this one
+                    </Text>
+                  </View>
+                </PressableScale>
+              </View>
             </View>
           </FadeInUp>
         )}

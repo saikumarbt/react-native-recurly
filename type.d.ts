@@ -46,6 +46,8 @@ declare global {
     dateAssumed?: boolean;
     /** Latest billing occurrence the user has confirmed/we've assumed (ISO). */
     confirmedThrough?: string;
+    /** User confirmed this same-name sub is intentional — stop flagging as dup. */
+    duplicateAcknowledged?: boolean;
     notes?: string;
     createdAt?: string;
     updatedAt?: string;

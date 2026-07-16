@@ -48,7 +48,12 @@ describe("MIGRATIONS list", () => {
   it("adds the confirmed_through column at v3", () => {
     const v3 = MIGRATIONS.find((m) => m.version === 3);
     expect(v3?.sql).toMatch(/confirmed_through/);
-    expect(latest).toBe(3);
+  });
+
+  it("adds the duplicate_acknowledged column at v4", () => {
+    const v4 = MIGRATIONS.find((m) => m.version === 4);
+    expect(v4?.sql).toMatch(/duplicate_acknowledged/);
+    expect(latest).toBe(4);
   });
 });
 
@@ -96,6 +101,7 @@ describe("rowToSubscription date_assumed mapping", () => {
     is_trial: 0,
     date_assumed: 0,
     confirmed_through: null,
+    duplicate_acknowledged: 0,
     trial_end_date: null,
     start_date: null,
     next_renewal_date: null,
