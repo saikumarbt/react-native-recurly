@@ -13,6 +13,7 @@ import {
   getNextRenewal,
   pendingRenewal,
 } from "@/lib/billing";
+import { cardTint } from "@/lib/brand";
 import { duplicateActiveNames, normalizeName } from "@/lib/duplicates";
 import {
   formatCurrency,
@@ -300,7 +301,7 @@ const SubscriptionDetail = () => {
         {/* Hero */}
         <View
           className="sub-card mb-5"
-          style={{ backgroundColor: subscription.color ?? undefined }}
+          style={{ backgroundColor: cardTint(subscription.name) }}
         >
           <View className="sub-head">
             <View className="sub-main">

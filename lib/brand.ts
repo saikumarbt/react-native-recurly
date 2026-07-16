@@ -108,3 +108,22 @@ export const getIconVisual = (name: string): IconVisual => {
     monogram,
   };
 };
+
+/** Mixes a hex toward white by `whiteMix` (0–1) — for soft, tinted panels. */
+export const tintColor = (hex: string, whiteMix = 0.85): string => {
+  const clean = hex.replace("#", "");
+  if (clean.length !== 6) return hex;
+  const ch = (i: number) => parseInt(clean.slice(i, i + 2), 16);
+  const mix = (c: number) => Math.round(c + (255 - c) * whiteMix);
+  const toHex = (v: number) => v.toString(16).padStart(2, "0");
+  return `#${toHex(mix(ch(0)))}${toHex(mix(ch(2)))}${toHex(mix(ch(4)))}`;
+};
+
+/**
+ * A soft, distinct panel tint for a subscription — a light wash of its brand
+ * color. Gives every card its own recognisable color (Netflix pink-ish,
+ * Spotify green-ish), which aids scanning and recall (colour-coding), while
+ * staying subtle enough to read text on.
+ */
+export const cardTint = (name: string): string =>
+  tintColor(getIconVisual(name).background);

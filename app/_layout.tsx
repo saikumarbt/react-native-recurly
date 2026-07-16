@@ -5,7 +5,7 @@ import { SplashScreen, Stack, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-import { ClerkProvider, useAuth, useUser } from "@clerk/expo";
+import { ClerkProvider, useUser } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { PostHogProvider, usePostHog } from "posthog-react-native";
 
@@ -63,7 +63,6 @@ function PostHogUserIdentifier() {
 }
 
 function RootLayoutContent() {
-  const { isLoaded: authLoaded } = useAuth();
   const router = useRouter();
 
   // Tapping a reminder deep-links to that subscription. Only the live listener
@@ -98,10 +97,13 @@ function RootLayoutContent() {
     if (fontError) {
       throw fontError;
     }
-    if (fontsLoaded && authLoaded) {
+    // Guest-first: reveal the UI as soon as fonts are ready — don't wait on
+    // Clerk auth (it resolves in the background; screens show the guest state
+    // and update when it loads). Avoids a visible startup delay.
+    if (fontsLoaded) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError, authLoaded]);
+  }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded) {
     return null;

@@ -2,6 +2,7 @@ import PulsingDot from "@/components/PulsingDot";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
 import { useCurrency } from "@/context/CurrencyContext";
 import { getDaysUntilRenewal, pendingRenewal } from "@/lib/billing";
+import { cardTint } from "@/lib/brand";
 import {
   formatCurrency,
   formatStatusLabel,
@@ -22,7 +23,6 @@ const SubscriptionCard = ({
   name,
   price,
   billing,
-  color,
   category,
   plan,
   renewalDate,
@@ -69,6 +69,19 @@ const SubscriptionCard = ({
         ? "Cancelled"
         : renewalCountdown(daysLeft);
 
+  // Each card gets a soft, unique wash of its brand colour so the list is
+  // scannable and memorable (colour-coding). A coloured left edge makes cards
+  // that need attention pop out pre-attentively (duplicate > confirm-date >
+  // renewed?).
+  const tint = cardTint(name);
+  const warningColor = isDuplicate
+    ? "#dc2626"
+    : dateAssumed && isActive
+      ? "#E0952F"
+      : pendingCheckin
+        ? "#EA7A53"
+        : null;
+
   return (
     <Pressable
       onPress={onPress}
@@ -78,8 +91,11 @@ const SubscriptionCard = ({
         !isActive && "opacity-60",
       )}
       style={({ pressed }) => [
-        !expanded && color ? { backgroundColor: color } : null,
-        pressed && !expanded ? { opacity: 0.85 } : null,
+        !expanded ? { backgroundColor: tint } : null,
+        !expanded && warningColor
+          ? { borderLeftWidth: 5, borderLeftColor: warningColor }
+          : null,
+        pressed && !expanded ? { opacity: 0.9 } : null,
       ]}
     >
       <View className="sub-head">

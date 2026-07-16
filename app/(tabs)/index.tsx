@@ -2,6 +2,7 @@ import AnimatedCounter from "@/components/AnimatedCounter";
 import { FadeInUp, PressableScale } from "@/components/motion";
 import PulsingDot from "@/components/PulsingDot";
 import ListHeading from "@/components/ListHeading";
+import SubscriptionIcon from "@/components/SubscriptionIcon";
 import SubscriptionFormModal from "@/components/SubscriptionFormModal";
 import UpcomingSubscriptionCard from "@/components/UpcomingSubscriptionCard";
 import { icons } from "@/constants/icons";
@@ -375,23 +376,42 @@ export default function App() {
                 </Text>
               </View>
             ) : (
-              <Pressable
-                onPress={() => router.push("/subscriptions")}
-                className="flex-row items-center justify-between rounded-2xl border border-border bg-card p-4"
-              >
-                <View>
-                  <Text className="text-base font-sans-semibold text-primary">
-                    Your subscriptions
-                  </Text>
-                  <Text className="mt-0.5 text-sm font-sans-medium text-muted-foreground">
-                    {activeSubscriptions.length} active · {subscriptions.length}{" "}
-                    total
+              <PressableScale onPress={() => router.push("/subscriptions")}>
+                <View className="flex-row items-center justify-between rounded-2xl border border-border bg-card p-4">
+                  <View className="min-w-0 flex-1 flex-row items-center gap-3">
+                    <View className="flex-row">
+                      {activeSubscriptions.slice(0, 4).map((sub, i) => (
+                        <View
+                          key={sub.id}
+                          style={{
+                            marginLeft: i === 0 ? 0 : -12,
+                            borderRadius: 12,
+                            borderWidth: 2,
+                            borderColor: "#fff8e7",
+                          }}
+                        >
+                          <SubscriptionIcon name={sub.name} size={36} />
+                        </View>
+                      ))}
+                    </View>
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-base font-sans-semibold text-primary">
+                        Your subscriptions
+                      </Text>
+                      <Text
+                        numberOfLines={1}
+                        className="mt-0.5 text-sm font-sans-medium text-muted-foreground"
+                      >
+                        {activeSubscriptions.length} active ·{" "}
+                        {subscriptions.length} total
+                      </Text>
+                    </View>
+                  </View>
+                  <Text className="ml-2 text-2xl font-sans-medium text-muted-foreground">
+                    ›
                   </Text>
                 </View>
-                <Text className="text-2xl font-sans-medium text-muted-foreground">
-                  ›
-                </Text>
-              </Pressable>
+              </PressableScale>
             )}
       </ScrollView>
 
