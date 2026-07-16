@@ -17,7 +17,6 @@ import clsx from "clsx";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -84,6 +83,7 @@ const SubscriptionFormModal = ({
   // After a create, we keep the modal open on a success prompt so the user can
   // add another subscription in a row (bulk-add momentum).
   const [showAddedPrompt, setShowAddedPrompt] = useState(false);
+  const [showDuplicatePrompt, setShowDuplicatePrompt] = useState(false);
 
   const resetForm = useCallback(() => {
     setName("");
@@ -102,6 +102,7 @@ const SubscriptionFormModal = ({
     if (!visible) return;
     setShowDatePicker(false);
     setShowAddedPrompt(false);
+    setShowDuplicatePrompt(false);
     if (subscription) {
       setName(subscription.name);
       setPrice(String(subscription.price));
@@ -193,8 +194,9 @@ const SubscriptionFormModal = ({
 
   const handleSubmit = () => {
     if (!isValid) return;
-    // Warn on an accidental duplicate of an active sub — never hard-block, since
-    // some people legitimately track two of the same.
+    // Confirm BEFORE adding an accidental duplicate of an active sub — never
+    // hard-block (some people legitimately track two of the same). Shown as an
+    // in-modal step, not an OS Alert (Alert is unreliable over a RN Modal).
     if (!isEdit) {
       const duplicate = subscriptions.some(
         (s) =>
@@ -202,14 +204,7 @@ const SubscriptionFormModal = ({
           normalizeName(s.name) === normalizeName(trimmedName),
       );
       if (duplicate) {
-        Alert.alert(
-          `Already tracking ${trimmedName}`,
-          "You already have this subscription. Add another anyway?",
-          [
-            { text: "Cancel", style: "cancel" },
-            { text: "Add anyway", onPress: commit },
-          ],
-        );
+        setShowDuplicatePrompt(true);
         return;
       }
     }
@@ -244,18 +239,53 @@ const SubscriptionFormModal = ({
           <View className="modal-container">
             <View className="modal-header">
               <Text className="modal-title">
-                {showAddedPrompt
-                  ? "Subscription added"
-                  : isEdit
-                    ? "Edit Subscription"
-                    : "New Subscription"}
+                {showDuplicatePrompt
+                  ? "Already tracking this?"
+                  : showAddedPrompt
+                    ? "Subscription added"
+                    : isEdit
+                      ? "Edit Subscription"
+                      : "New Subscription"}
               </Text>
               <Pressable className="modal-close" onPress={onClose}>
                 <Text className="modal-close-text">×</Text>
               </Pressable>
             </View>
 
-            {showAddedPrompt ? (
+            {showDuplicatePrompt ? (
+              <View className="modal-body items-center gap-2">
+                <View className="my-2 size-16 items-center justify-center rounded-full bg-destructive/15">
+                  <Text className="text-3xl font-sans-extrabold text-destructive">
+                    !
+                  </Text>
+                </View>
+                <Text className="text-center text-lg font-sans-bold text-primary">
+                  You already track {trimmedName}
+                </Text>
+                <Text className="auth-helper text-center">
+                  Some people have more than one — a partner&apos;s or a
+                  child&apos;s, say. Add another anyway? Tip: rename it (e.g.
+                  “{trimmedName} for Sally”) so you can tell them apart.
+                </Text>
+                <Pressable
+                  className="auth-button w-full"
+                  onPress={() => {
+                    setShowDuplicatePrompt(false);
+                    commit();
+                  }}
+                >
+                  <Text className="auth-button-text">Add anyway</Text>
+                </Pressable>
+                <Pressable
+                  className="items-center py-2"
+                  onPress={() => setShowDuplicatePrompt(false)}
+                >
+                  <Text className="text-sm font-sans-semibold text-muted-foreground">
+                    Go back &amp; rename
+                  </Text>
+                </Pressable>
+              </View>
+            ) : showAddedPrompt ? (
               <View className="modal-body items-center">
                 <View className="my-2 size-16 items-center justify-center rounded-full bg-success">
                   <Text className="text-3xl font-sans-extrabold text-background">
