@@ -233,6 +233,9 @@ const Onboarding = () => {
         // Quick-add assumes "today" as the start; flag so we nudge the user to
         // confirm the real renewal date for accurate reminders.
         dateAssumed: true,
+        // Nothing to check in on yet — the assumed start is "confirmed" until
+        // the user sets the real date (which re-anchors this).
+        confirmedThrough: now,
       });
       count += 1;
     }

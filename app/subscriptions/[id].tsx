@@ -7,7 +7,7 @@ import { success } from "@/lib/haptics";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
-import { getCycleLabel, getNextRenewal } from "@/lib/billing";
+import { getCycleLabel, getNextRenewal, pendingRenewal } from "@/lib/billing";
 import {
   formatCurrency,
   formatStatusLabel,
@@ -52,6 +52,7 @@ const SubscriptionDetail = () => {
   const [isEditVisible, setEditVisible] = useState(false);
   const [highlightDate, setHighlightDate] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
+  const [checkinSnoozed, setCheckinSnoozed] = useState(false);
 
   const goBack = () => {
     if (router.canGoBack()) {
@@ -114,6 +115,18 @@ const SubscriptionDetail = () => {
   const isPaused = subscription.status === "paused";
   const isCancelled = subscription.status === "cancelled";
 
+  // A charge that has come due since the user last confirmed a renewal — drives
+  // the "did it renew?" check-in. Date-confirm (dateAssumed) takes priority.
+  const pending =
+    isActive && !subscription.dateAssumed
+      ? pendingRenewal(
+          subscription.startDate,
+          subscription.billingCycle ?? "monthly",
+          subscription.confirmedThrough,
+          subscription.customIntervalDays,
+        )
+      : null;
+
   // Opaque id only — no subscription name in analytics.
   const captureStatus = (event: string) =>
     posthog.capture(event, { subscription_id: subscription.id });
@@ -135,6 +148,20 @@ const SubscriptionDetail = () => {
         setTimeout(() => setJustCompleted(false), 2600);
       }
     }
+  };
+
+  const handleRenewed = () => {
+    if (!pending) return;
+    updateSubscription(subscription.id, {
+      confirmedThrough: pending.toISOString(),
+    });
+    captureStatus("renewal_confirmed");
+    success();
+  };
+
+  const handleRenewalCancelled = () => {
+    cancelSubscription(subscription.id);
+    captureStatus("subscription_cancelled");
   };
 
   const handlePauseResume = () => {
@@ -276,6 +303,48 @@ const SubscriptionDetail = () => {
                 </Text>
               </View>
             </PressableScale>
+          </FadeInUp>
+        )}
+
+        {pending && !checkinSnoozed && (
+          <FadeInUp>
+            <View className="mb-5 rounded-2xl border border-accent bg-accent/10 p-4">
+              <Text className="text-sm font-sans-bold text-primary">
+                Did {subscription.name} renew?
+              </Text>
+              <Text className="mt-0.5 text-xs font-sans-medium text-muted-foreground">
+                A {getCycleLabel(
+                  subscription.billingCycle ?? "monthly",
+                  subscription.customIntervalDays,
+                ).toLowerCase()}{" "}
+                charge was due {pending.format("MMM D")}. Confirm so your
+                tracking stays accurate.
+              </Text>
+              <View className="mt-3 flex-row items-center gap-2">
+                <PressableScale onPress={handleRenewed}>
+                  <View className="rounded-xl bg-accent px-4 py-2">
+                    <Text className="text-sm font-sans-bold text-primary">
+                      Yes, renewed
+                    </Text>
+                  </View>
+                </PressableScale>
+                <PressableScale onPress={handleRenewalCancelled}>
+                  <View className="rounded-xl border border-border bg-card px-4 py-2">
+                    <Text className="text-sm font-sans-semibold text-primary">
+                      I cancelled
+                    </Text>
+                  </View>
+                </PressableScale>
+                <Pressable
+                  onPress={() => setCheckinSnoozed(true)}
+                  className="px-2 py-2"
+                >
+                  <Text className="text-sm font-sans-semibold text-muted-foreground">
+                    Not yet
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
           </FadeInUp>
         )}
 

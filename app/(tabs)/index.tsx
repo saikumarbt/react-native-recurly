@@ -10,7 +10,11 @@ import { useCurrency } from "@/context/CurrencyContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
 import { priceBucket } from "@/lib/analytics";
-import { getDaysUntilRenewal, getMonthlyEquivalent } from "@/lib/billing";
+import {
+  getDaysUntilRenewal,
+  getMonthlyEquivalent,
+  pendingRenewal,
+} from "@/lib/billing";
 import { success } from "@/lib/haptics";
 import { hasSeenNudge, markNudgeSeen } from "@/lib/nudges";
 import { formatCurrency } from "@/lib/utils";
@@ -53,6 +57,23 @@ export default function App() {
   // user to confirm them so reminders are accurate.
   const assumedCount = useMemo(
     () => activeSubscriptions.filter((sub) => sub.dateAssumed).length,
+    [activeSubscriptions],
+  );
+
+  // Active subs with a charge that came due since last confirmation — nudge to
+  // confirm it renewed (or was cancelled). Date-confirm takes priority.
+  const renewalCheckinCount = useMemo(
+    () =>
+      activeSubscriptions.filter(
+        (sub) =>
+          !sub.dateAssumed &&
+          pendingRenewal(
+            sub.startDate,
+            sub.billingCycle ?? "monthly",
+            sub.confirmedThrough,
+            sub.customIntervalDays,
+          ),
+      ).length,
     [activeSubscriptions],
   );
 
@@ -274,6 +295,31 @@ export default function App() {
                     <Text
                       className="text-base font-sans-bold"
                       style={{ color: "#E0952F" }}
+                    >
+                      Review ›
+                    </Text>
+                  </View>
+                </PressableScale>
+              </FadeInUp>
+            )}
+            {renewalCheckinCount > 0 && (
+              <FadeInUp>
+                <PressableScale onPress={() => router.push("/subscriptions")}>
+                  <View className="mb-4 flex-row items-center gap-3 rounded-2xl border border-accent bg-accent/10 p-4">
+                    <PulsingDot size={10} color="#ea7a53" />
+                    <View className="flex-1">
+                      <Text className="text-sm font-sans-bold text-primary">
+                        {renewalCheckinCount} subscription
+                        {renewalCheckinCount === 1 ? "" : "s"} renewed recently
+                      </Text>
+                      <Text className="mt-0.5 text-xs font-sans-medium text-muted-foreground">
+                        Confirm it renewed — or cancelled — to keep tracking
+                        accurate.
+                      </Text>
+                    </View>
+                    <Text
+                      className="text-base font-sans-bold"
+                      style={{ color: "#ea7a53" }}
                     >
                       Review ›
                     </Text>

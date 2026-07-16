@@ -1,7 +1,7 @@
 import PulsingDot from "@/components/PulsingDot";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
 import { useCurrency } from "@/context/CurrencyContext";
-import { getDaysUntilRenewal } from "@/lib/billing";
+import { getDaysUntilRenewal, pendingRenewal } from "@/lib/billing";
 import {
   formatCurrency,
   formatStatusLabel,
@@ -34,11 +34,23 @@ const SubscriptionCard = ({
   billingCycle,
   customIntervalDays,
   dateAssumed,
+  confirmedThrough,
 }: SubscriptionCardProps) => {
   const { baseCurrency } = useCurrency();
   const fallback = "Not provided";
 
   const isActive = status === "active" || status === undefined;
+  // A charge came due since the user last confirmed → "did it renew?" signal
+  // (date-confirm takes priority, so only when not still assumed).
+  const pendingCheckin =
+    isActive && !dateAssumed
+      ? pendingRenewal(
+          startDate,
+          billingCycle ?? "monthly",
+          confirmedThrough,
+          customIntervalDays,
+        )
+      : null;
   const daysLeft = isActive
     ? getDaysUntilRenewal(
         renewalDate ?? startDate,
@@ -94,6 +106,16 @@ const SubscriptionCard = ({
                   className="text-xs font-sans-semibold"
                 >
                   Confirm date
+                </Text>
+              </View>
+            ) : pendingCheckin && !expanded ? (
+              <View className="mt-1 flex-row items-center gap-1.5">
+                <PulsingDot size={7} color="#ea7a53" />
+                <Text
+                  style={{ color: "#ea7a53" }}
+                  className="text-xs font-sans-semibold"
+                >
+                  Renewed?
                 </Text>
               </View>
             ) : null}

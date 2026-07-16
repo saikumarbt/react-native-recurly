@@ -44,6 +44,8 @@ declare global {
     trialEndDate?: string;
     /** True when the renewal date was assumed by quick-add (not user-confirmed). */
     dateAssumed?: boolean;
+    /** Latest billing occurrence the user has confirmed/we've assumed (ISO). */
+    confirmedThrough?: string;
     notes?: string;
     createdAt?: string;
     updatedAt?: string;

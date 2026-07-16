@@ -7,6 +7,7 @@ import {
   softDeleteSubscription,
   updateSubscription as repoUpdate,
 } from "@/db/subscriptionsRepo";
+import { reconcileConfirmedThrough } from "@/lib/billing";
 import * as notifications from "@/lib/notifications";
 import {
   createContext,
@@ -57,19 +58,44 @@ export const SubscriptionsProvider = ({
   const subscriptionsRef = useRef(subscriptions);
   subscriptionsRef.current = subscriptions;
 
-  // Configure notifications once and reconcile scheduled reminders on launch
-  // and every time the app returns to the foreground (rolls renewals forward,
-  // drops stale ones, and stays under the OS pending-notification cap).
+  // Auto-assume renewals older than the grace window (advance confirmedThrough),
+  // so only recent charges surface a "did it renew?" check-in. Persists changes
+  // and returns the fresh list to reschedule against.
+  const reconcileRenewals = useCallback((): Subscription[] => {
+    const current = subscriptionsRef.current;
+    let changed = false;
+    for (const s of current) {
+      if (s.status !== "active") continue;
+      const advanced = reconcileConfirmedThrough(
+        s.startDate,
+        s.billingCycle ?? "monthly",
+        s.confirmedThrough,
+        s.customIntervalDays,
+      );
+      if (advanced) {
+        repoUpdate(s.id, { confirmedThrough: advanced });
+        changed = true;
+      }
+    }
+    if (!changed) return current;
+    const fresh = getAllSubscriptions();
+    setSubscriptions(fresh);
+    return fresh;
+  }, []);
+
+  // Configure notifications once, reconcile renewal check-ins, and reschedule
+  // reminders on launch and every time the app returns to the foreground (rolls
+  // renewals forward, drops stale ones, stays under the OS pending cap).
   useEffect(() => {
     void notifications.configureNotifications();
-    void notifications.rescheduleAll(subscriptionsRef.current);
+    void notifications.rescheduleAll(reconcileRenewals());
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") {
-        void notifications.rescheduleAll(subscriptionsRef.current);
+        void notifications.rescheduleAll(reconcileRenewals());
       }
     });
     return () => sub.remove();
-  }, []);
+  }, [reconcileRenewals]);
 
   const refresh = useCallback(() => {
     setSubscriptions(getAllSubscriptions());

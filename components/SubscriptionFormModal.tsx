@@ -170,6 +170,9 @@ const SubscriptionFormModal = ({
       // The user picked/confirmed the date here, so it's no longer an
       // assumption — clears any quick-add nudge flag.
       dateAssumed: false,
+      // Re-anchor the renewal check-in to the confirmed first-payment date, so
+      // charges due since then surface as "did it renew?".
+      confirmedThrough: startIso,
       isTrial,
       trialEndDate: isTrial
         ? dayjs().add(parsedTrialDays, "day").toISOString()
