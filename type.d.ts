@@ -42,6 +42,8 @@ declare global {
     color?: string;
     isTrial?: boolean;
     trialEndDate?: string;
+    /** True when the renewal date was assumed by quick-add (not user-confirmed). */
+    dateAssumed?: boolean;
     notes?: string;
     createdAt?: string;
     updatedAt?: string;
@@ -63,6 +65,8 @@ declare global {
     onSubmit: (draft: SubscriptionDraft) => void;
     /** When set, the modal is in edit mode and prefills from this. */
     subscription?: Subscription | null;
+    /** Emphasise the start-date field (opened from a "confirm date" nudge). */
+    highlightDate?: boolean;
   }
 
   interface UpcomingSubscription {

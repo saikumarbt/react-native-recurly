@@ -230,6 +230,9 @@ const Onboarding = () => {
         status: "active",
         startDate: now,
         renewalDate: resolveNextRenewal(now, cycle)?.toISOString() ?? undefined,
+        // Quick-add assumes "today" as the start; flag so we nudge the user to
+        // confirm the real renewal date for accurate reminders.
+        dateAssumed: true,
       });
       count += 1;
     }

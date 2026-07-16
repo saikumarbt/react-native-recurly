@@ -70,8 +70,94 @@ const DEFAULTS: Record<string, { price: number; category: string }> = {
 
 const FALLBACK = { price: 9.99, category: "Other" };
 
+// Category buckets inferred from a brand's title + icon keywords when it isn't
+// in DEFAULTS — so far fewer services fall back to "Other". Ordered by
+// specificity (AI first); needles are phrases/words chosen to avoid false hits.
+const CATEGORY_KEYWORDS: [string, string[]][] = [
+  [
+    "AI Tools",
+    [
+      "artificial intelligence",
+      "large language model",
+      "llm",
+      "chatbot",
+      "generative",
+      "machine learning",
+    ],
+  ],
+  ["Music", ["music", "podcast", "audiobook"]],
+  [
+    "Entertainment",
+    [
+      "streaming",
+      "video",
+      "movie",
+      "television",
+      "gaming",
+      "video game",
+      "anime",
+      "sports",
+    ],
+  ],
+  [
+    "Developer Tools",
+    [
+      "developer",
+      "version control",
+      "git",
+      "devops",
+      "hosting",
+      "deployment",
+      "continuous integration",
+      "database",
+      "programming",
+    ],
+  ],
+  ["Design", ["graphic design", "design tool", "prototyping", "photo editing"]],
+  [
+    "Cloud",
+    [
+      "cloud storage",
+      "file storage",
+      "backup",
+      "vpn",
+      "password manager",
+      "cybersecurity",
+      "file hosting",
+    ],
+  ],
+  [
+    "Productivity",
+    [
+      "productivity",
+      "note-taking",
+      "word processor",
+      "spreadsheet",
+      "online learning",
+      "e-learning",
+      "collaboration",
+      "project management",
+      "email",
+    ],
+  ],
+];
+
+const inferCategory = (icon: { title: string; keywords: string[] }): string => {
+  const haystack = [icon.title, ...icon.keywords].join(" ").toLowerCase();
+  for (const [category, needles] of CATEGORY_KEYWORDS) {
+    if (needles.some((n) => haystack.includes(n))) return category;
+  }
+  return FALLBACK.category;
+};
+
 // One tile per available brand icon, in the curated icon order (popular first).
+// Known brands use their DEFAULTS preset; the rest infer a category from
+// keywords so onboarding auto-assigns a sensible category per service.
 export const ONBOARDING_BRANDS: OnboardingBrand[] = BRAND_ICONS.map((icon) => {
-  const preset = DEFAULTS[icon.title.toLowerCase()] ?? FALLBACK;
-  return { title: icon.title, price: preset.price, category: preset.category };
+  const preset = DEFAULTS[icon.title.toLowerCase()];
+  return {
+    title: icon.title,
+    price: preset?.price ?? FALLBACK.price,
+    category: preset?.category ?? inferCategory(icon),
+  };
 });

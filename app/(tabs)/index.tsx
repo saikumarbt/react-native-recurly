@@ -1,4 +1,6 @@
 import AnimatedCounter from "@/components/AnimatedCounter";
+import { FadeInUp, PressableScale } from "@/components/motion";
+import PulsingDot from "@/components/PulsingDot";
 import ListHeading from "@/components/ListHeading";
 import SubscriptionFormModal from "@/components/SubscriptionFormModal";
 import UpcomingSubscriptionCard from "@/components/UpcomingSubscriptionCard";
@@ -45,6 +47,13 @@ export default function App() {
   const activeSubscriptions = useMemo(
     () => subscriptions.filter((sub) => sub.status === "active"),
     [subscriptions],
+  );
+
+  // Active subs whose renewal date is still an onboarding assumption — nudge the
+  // user to confirm them so reminders are accurate.
+  const assumedCount = useMemo(
+    () => activeSubscriptions.filter((sub) => sub.dateAssumed).length,
+    [activeSubscriptions],
   );
 
   // One-time first-run nudge: gently pulse the "+" until the first sub is added.
@@ -242,6 +251,36 @@ export default function App() {
                 }
               />
             </View>
+            {assumedCount > 0 && (
+              <FadeInUp>
+                <PressableScale onPress={() => router.push("/subscriptions")}>
+                  <View
+                    className="mb-4 flex-row items-center gap-3 rounded-2xl border p-4"
+                    style={{
+                      borderColor: "#E0952F",
+                      backgroundColor: "rgba(224,149,47,0.08)",
+                    }}
+                  >
+                    <PulsingDot size={10} />
+                    <View className="flex-1">
+                      <Text className="text-sm font-sans-bold text-primary">
+                        {assumedCount} subscription
+                        {assumedCount === 1 ? "" : "s"} need a renewal date
+                      </Text>
+                      <Text className="mt-0.5 text-xs font-sans-medium text-muted-foreground">
+                        Confirm them so reminders land on the right day.
+                      </Text>
+                    </View>
+                    <Text
+                      className="text-base font-sans-bold"
+                      style={{ color: "#E0952F" }}
+                    >
+                      Review ›
+                    </Text>
+                  </View>
+                </PressableScale>
+              </FadeInUp>
+            )}
             {subscriptions.length === 0 ? (
               <View className="items-center py-6">
                 <Text className="home-empty-state">

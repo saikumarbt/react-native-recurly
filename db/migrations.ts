@@ -48,4 +48,14 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    // Flags subs whose renewal date was assumed by quick-add onboarding (so we
+    // can nudge the user to confirm it for accurate reminders). Additive and
+    // non-destructive: existing rows default to 0 (not flagged).
+    version: 2,
+    sql: `
+      ALTER TABLE subscriptions
+      ADD COLUMN date_assumed INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ];

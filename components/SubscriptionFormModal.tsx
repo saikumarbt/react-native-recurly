@@ -61,6 +61,7 @@ const SubscriptionFormModal = ({
   onClose,
   onSubmit,
   subscription,
+  highlightDate,
 }: SubscriptionFormModalProps) => {
   const isEdit = !!subscription;
   const { baseCurrency } = useCurrency();
@@ -166,6 +167,9 @@ const SubscriptionFormModal = ({
       startDate: startIso,
       renewalDate:
         nextRenewal?.toISOString() ?? dayjs().add(1, "month").toISOString(),
+      // The user picked/confirmed the date here, so it's no longer an
+      // assumption — clears any quick-add nudge flag.
+      dateAssumed: false,
       isTrial,
       trialEndDate: isTrial
         ? dayjs().add(parsedTrialDays, "day").toISOString()
@@ -290,7 +294,7 @@ const SubscriptionFormModal = ({
               </View>
 
               <View className="auth-field">
-                <Text className="auth-label">Payment</Text>
+                <Text className="auth-label">Payment (optional)</Text>
                 <TextInput
                   className="auth-input"
                   value={paymentMethod}
@@ -301,7 +305,20 @@ const SubscriptionFormModal = ({
                 />
               </View>
 
-              <View className="auth-field">
+              <View
+                className="auth-field"
+                style={
+                  highlightDate
+                    ? {
+                        borderWidth: 1.5,
+                        borderColor: "#E0952F",
+                        borderRadius: 16,
+                        padding: 12,
+                        backgroundColor: "rgba(224,149,47,0.06)",
+                      }
+                    : undefined
+                }
+              >
                 <Text className="auth-label">Started on</Text>
                 {Platform.OS === "ios" ? (
                   // Compact themed pill: opens a popover and dismisses itself
@@ -338,9 +355,13 @@ const SubscriptionFormModal = ({
                     )}
                   </>
                 )}
-                <Text className="auth-helper">
-                  When you first subscribed. We use it to work out your next
-                  renewal.
+                <Text
+                  className="auth-helper"
+                  style={highlightDate ? { color: "#E0952F" } : undefined}
+                >
+                  {highlightDate
+                    ? "Set the real date this renews so your reminder is accurate."
+                    : "When you first subscribed. We use it to work out your next renewal."}
                 </Text>
               </View>
 
