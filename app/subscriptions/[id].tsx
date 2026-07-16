@@ -7,7 +7,12 @@ import { success } from "@/lib/haptics";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
-import { getCycleLabel, getNextRenewal, pendingRenewal } from "@/lib/billing";
+import {
+  addInterval,
+  getCycleLabel,
+  getNextRenewal,
+  pendingRenewal,
+} from "@/lib/billing";
 import { duplicateActiveNames, normalizeName } from "@/lib/duplicates";
 import {
   formatCurrency,
@@ -158,8 +163,16 @@ const SubscriptionDetail = () => {
 
   const handleRenewed = () => {
     if (!pending) return;
+    // Advance BOTH: mark this occurrence confirmed, and move the next-renewal
+    // date to the following cycle so the detail shows the real next date.
+    const next = addInterval(
+      pending,
+      subscription.billingCycle ?? "monthly",
+      subscription.customIntervalDays,
+    );
     updateSubscription(subscription.id, {
       confirmedThrough: pending.toISOString(),
+      renewalDate: next.toISOString(),
     });
     captureStatus("renewal_confirmed");
     success();
