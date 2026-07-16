@@ -167,9 +167,19 @@ describe("next renewal across all cycles (existing sub, started in the past)", (
   it("monthly rolls past the passed 07-08 to 08-08", () => {
     expect(fmt("monthly")).toBe("2026-08-08");
   });
-  it("weekly rolls to the next future weekly hit", () => {
-    // Jun 8 + 7*n: …Jul 6, Jul 13(=today, not after)→ Jul 20
-    expect(fmt("weekly")).toBe("2026-07-20");
+  it("weekly: a hit that lands on today stays today (not silently rolled)", () => {
+    // Jun 8 + 7n: … Jul 6, Jul 13 (= today). Due today — we don't assume it was
+    // paid (no payment link), so it stays today rather than rolling to Jul 20.
+    expect(fmt("weekly")).toBe("2026-07-13");
+  });
+
+  it("monthly: a charge due today shows as today, not next month", () => {
+    // start Jun 13, today Jul 13 → the Jul 13 charge is due today.
+    expect(
+      resolveNextRenewal("2026-06-13T00:00:00.000Z", "monthly")?.format(
+        "YYYY-MM-DD",
+      ),
+    ).toBe("2026-07-13");
   });
   it("biweekly", () => {
     // Jun 8, Jun 22, Jul 6, Jul 20

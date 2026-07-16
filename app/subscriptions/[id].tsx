@@ -1,6 +1,9 @@
+import { FadeInUp, PressableScale } from "@/components/motion";
+import PulsingDot from "@/components/PulsingDot";
 import SubscriptionFormModal from "@/components/SubscriptionFormModal";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
 import { icons } from "@/constants/icons";
+import { success } from "@/lib/haptics";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
@@ -38,6 +41,7 @@ const SubscriptionDetail = () => {
   const posthog = usePostHog();
   const { baseCurrency } = useCurrency();
   const {
+    subscriptions,
     getSubscription,
     updateSubscription,
     deleteSubscription,
@@ -46,6 +50,8 @@ const SubscriptionDetail = () => {
     cancelSubscription,
   } = useSubscriptions();
   const [isEditVisible, setEditVisible] = useState(false);
+  const [highlightDate, setHighlightDate] = useState(false);
+  const [justCompleted, setJustCompleted] = useState(false);
 
   const goBack = () => {
     if (router.canGoBack()) {
@@ -113,8 +119,22 @@ const SubscriptionDetail = () => {
     posthog.capture(event, { subscription_id: subscription.id });
 
   const handleEdit = (draft: SubscriptionDraft) => {
+    const wasAssumed = !!subscription.dateAssumed;
     updateSubscription(subscription.id, draft);
     captureStatus("subscription_updated");
+    // Confirming a quick-add date is a small win; celebrate, and if it was the
+    // last one still assumed, mark the whole set as accurate.
+    if (wasAssumed && draft.dateAssumed === false) {
+      success();
+      const remaining = subscriptions.filter(
+        (s) =>
+          s.status === "active" && s.dateAssumed && s.id !== subscription.id,
+      ).length;
+      if (remaining === 0) {
+        setJustCompleted(true);
+        setTimeout(() => setJustCompleted(false), 2600);
+      }
+    }
   };
 
   const handlePauseResume = () => {
@@ -176,6 +196,17 @@ const SubscriptionDetail = () => {
         contentContainerClassName="p-5 pb-30"
         showsVerticalScrollIndicator={false}
       >
+        {justCompleted && (
+          <FadeInUp>
+            <View className="mb-5 flex-row items-center gap-3 rounded-2xl border border-success bg-success/10 p-4">
+              <Text className="text-lg text-success">✓</Text>
+              <Text className="flex-1 text-sm font-sans-bold text-primary">
+                All set — your reminders are now accurate.
+              </Text>
+            </View>
+          </FadeInUp>
+        )}
+
         {/* Hero */}
         <View
           className="sub-card mb-5"
@@ -211,6 +242,42 @@ const SubscriptionDetail = () => {
             </Text>
           )}
         </View>
+
+        {subscription.dateAssumed && isActive && (
+          <FadeInUp>
+            <PressableScale
+              onPress={() => {
+                setHighlightDate(true);
+                setEditVisible(true);
+              }}
+            >
+              <View
+                className="mb-5 flex-row items-center gap-3 rounded-2xl border p-4"
+                style={{
+                  borderColor: "#E0952F",
+                  backgroundColor: "rgba(224,149,47,0.08)",
+                }}
+              >
+                <PulsingDot size={10} />
+                <View className="flex-1">
+                  <Text className="text-sm font-sans-bold text-primary">
+                    Confirm your renewal date
+                  </Text>
+                  <Text className="mt-0.5 text-xs font-sans-medium text-muted-foreground">
+                    So reminders land on the right day. Add a payment method too
+                    (optional).
+                  </Text>
+                </View>
+                <Text
+                  className="text-base font-sans-bold"
+                  style={{ color: "#E0952F" }}
+                >
+                  Fix ›
+                </Text>
+              </View>
+            </PressableScale>
+          </FadeInUp>
+        )}
 
         {/* Details */}
         <View className="sub-card bg-card mb-5">
@@ -259,7 +326,10 @@ const SubscriptionDetail = () => {
         <View className="gap-3">
           <Pressable
             className="auth-button"
-            onPress={() => setEditVisible(true)}
+            onPress={() => {
+              setHighlightDate(false);
+              setEditVisible(true);
+            }}
           >
             <Text className="auth-button-text">Edit</Text>
           </Pressable>
@@ -300,9 +370,13 @@ const SubscriptionDetail = () => {
 
       <SubscriptionFormModal
         visible={isEditVisible}
-        onClose={() => setEditVisible(false)}
+        onClose={() => {
+          setEditVisible(false);
+          setHighlightDate(false);
+        }}
         onSubmit={handleEdit}
         subscription={subscription}
+        highlightDate={highlightDate}
       />
     </SafeAreaView>
   );

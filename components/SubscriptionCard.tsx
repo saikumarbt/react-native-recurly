@@ -1,3 +1,4 @@
+import PulsingDot from "@/components/PulsingDot";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
 import { useCurrency } from "@/context/CurrencyContext";
 import { getDaysUntilRenewal } from "@/lib/billing";
@@ -32,6 +33,7 @@ const SubscriptionCard = ({
   status,
   billingCycle,
   customIntervalDays,
+  dateAssumed,
 }: SubscriptionCardProps) => {
   const { baseCurrency } = useCurrency();
   const fallback = "Not provided";
@@ -84,6 +86,17 @@ const SubscriptionCard = ({
             >
               {metaText}
             </Text>
+            {dateAssumed && isActive && !expanded ? (
+              <View className="mt-1 flex-row items-center gap-1.5">
+                <PulsingDot size={7} />
+                <Text
+                  style={{ color: "#E0952F" }}
+                  className="text-xs font-sans-semibold"
+                >
+                  Confirm date
+                </Text>
+              </View>
+            ) : null}
           </View>
         </View>
         <View className="sub-price-box">

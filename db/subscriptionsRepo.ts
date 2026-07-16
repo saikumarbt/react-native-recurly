@@ -19,6 +19,7 @@ export interface SubscriptionRow {
   billing_cycle: string;
   custom_interval_days: number | null;
   is_trial: number;
+  date_assumed: number;
   trial_end_date: string | null;
   start_date: string | null;
   next_renewal_date: string | null;
@@ -50,6 +51,7 @@ export const rowToSubscription = (row: SubscriptionRow): Subscription => {
     customIntervalDays: row.custom_interval_days ?? undefined,
     billing: getCycleLabel(billingCycle, row.custom_interval_days ?? undefined),
     isTrial: row.is_trial === 1,
+    dateAssumed: row.date_assumed === 1,
     trialEndDate: row.trial_end_date ?? undefined,
     startDate: row.start_date ?? undefined,
     renewalDate: row.next_renewal_date ?? undefined,
@@ -86,9 +88,9 @@ export const insertSubscription = (input: NewSubscription): Subscription => {
     `INSERT INTO subscriptions (
       id, name, color, plan, category, payment_method, notes,
       status, price, currency, billing_cycle, custom_interval_days,
-      is_trial, trial_end_date, start_date, next_renewal_date,
+      is_trial, date_assumed, trial_end_date, start_date, next_renewal_date,
       created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       input.name,
@@ -103,6 +105,7 @@ export const insertSubscription = (input: NewSubscription): Subscription => {
       billingCycle,
       input.customIntervalDays ?? null,
       input.isTrial ? 1 : 0,
+      input.dateAssumed ? 1 : 0,
       input.trialEndDate ?? null,
       input.startDate ?? null,
       input.renewalDate ?? null,
@@ -128,6 +131,7 @@ const PATCH_COLUMNS: Record<string, string> = {
   billingCycle: "billing_cycle",
   customIntervalDays: "custom_interval_days",
   isTrial: "is_trial",
+  dateAssumed: "date_assumed",
   trialEndDate: "trial_end_date",
   startDate: "start_date",
   renewalDate: "next_renewal_date",
@@ -146,7 +150,7 @@ export const updateSubscription = (
     if (!(key in patch)) continue;
     const raw = (patch as Record<string, unknown>)[key];
     assignments.push(`${column} = ?`);
-    if (key === "isTrial") {
+    if (key === "isTrial" || key === "dateAssumed") {
       values.push(raw ? 1 : 0);
     } else {
       values.push((raw as string | number | null | undefined) ?? null);

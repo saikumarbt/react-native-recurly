@@ -85,8 +85,10 @@ export const getNextRenewal = (
  * Resolves the next renewal date from a subscription's START (first billing)
  * date, honoring what the user actually entered:
  * - Future start date → the first charge is that start date itself.
- * - Today or past start date → the first occurrence strictly after today
- *   (a sub started today renews one interval out; an old sub rolls forward).
+ * - Today or past start date → the start is a charge that already happened, so
+ *   the next charge is one interval on, rolled forward past any dates strictly
+ *   before today. A charge due **today stays today** — we don't link to
+ *   payments, so we can't assume today's charge was taken; we surface it.
  *
  * This is what the form stores as `renewalDate`; `getNextRenewal` is the
  * lighter primitive used elsewhere to keep a stored date fresh over time.
@@ -103,8 +105,8 @@ export const resolveNextRenewal = (
   const today = dayjs().startOf("day");
   if (start.isAfter(today)) return start;
 
-  let next = start;
-  while (!next.isAfter(today)) {
+  let next = addInterval(start, cycle, customIntervalDays);
+  while (next.isBefore(today)) {
     next = addInterval(next, cycle, customIntervalDays);
   }
   return next;
