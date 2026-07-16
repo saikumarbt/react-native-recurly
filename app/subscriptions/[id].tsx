@@ -254,8 +254,14 @@ const SubscriptionDetail = () => {
                 this one was added by mistake, remove it.
               </Text>
               <PressableScale onPress={handleDelete}>
-                <View className="mt-3 self-start rounded-xl bg-destructive px-4 py-2">
-                  <Text className="text-sm font-sans-bold text-white">
+                <View
+                  className="mt-3 self-start rounded-xl px-4 py-2"
+                  style={{ backgroundColor: "#dc2626" }}
+                >
+                  <Text
+                    className="text-sm font-sans-bold"
+                    style={{ color: "#ffffff" }}
+                  >
                     Delete this one
                   </Text>
                 </View>

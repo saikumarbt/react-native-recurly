@@ -3,9 +3,9 @@ import SubscriptionCard from "@/components/SubscriptionCard";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
 import { duplicateActiveNames, normalizeName } from "@/lib/duplicates";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { styled } from "nativewind";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import {
   FlatList,
@@ -21,9 +21,16 @@ const SafeAreaView = styled(RNSafeAreaView) as any;
 const StyledKeyboardAvoidingView = styled(KeyboardAvoidingView) as any;
 
 const Subscriptions = () => {
-  const { subscriptions } = useSubscriptions();
+  const { subscriptions, refresh } = useSubscriptions();
   const router = useRouter();
   const [query, setQuery] = useState("");
+
+  // Reflect actions taken on the detail screen (delete, cancel, confirm).
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
 
   const duplicateNames = useMemo(
     () => duplicateActiveNames(subscriptions),

@@ -22,7 +22,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useClerk, useUser } from "@clerk/expo";
 import { styled } from "nativewind";
 import { usePostHog } from "posthog-react-native";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Animated,
   FlatList,
@@ -32,7 +32,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 const SafeAreaView = styled(RNSafeAreaView) as any;
@@ -40,7 +40,15 @@ const SafeAreaView = styled(RNSafeAreaView) as any;
 export default function App() {
   const { user, isSignedIn } = useUser();
   const { signOut } = useClerk();
-  const { subscriptions, addSubscription } = useSubscriptions();
+  const { subscriptions, addSubscription, refresh } = useSubscriptions();
+
+  // Re-pull from the DB whenever Home regains focus, so nudge counts reflect
+  // actions taken on the detail screen (confirm renewal, delete duplicate, etc).
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
   const { baseCurrency } = useCurrency();
   const posthog = usePostHog();
   const router = useRouter();
