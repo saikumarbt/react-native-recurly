@@ -150,7 +150,7 @@ const SubscriptionFormModal = ({
     customIntervalDays,
   );
 
-  const commit = () => {
+  const commit = (acknowledgeDuplicate = false) => {
     const startIso = startDate.toISOString();
     const nextRenewal = resolveNextRenewal(
       startIso,
@@ -182,6 +182,13 @@ const SubscriptionFormModal = ({
         : undefined,
       color: category ? CATEGORY_COLORS[category] : DEFAULT_COLOR,
     };
+
+    // "Add it anyway" past the duplicate warning = an explicit decision, so mark
+    // it acknowledged (never re-flagged as a duplicate). Only set on that path
+    // so normal adds/edits don't disturb an existing flag.
+    if (acknowledgeDuplicate) {
+      draft.duplicateAcknowledged = true;
+    }
 
     onSubmit(draft);
     // Edits close immediately; a new add offers "add another" to keep momentum.
@@ -264,24 +271,25 @@ const SubscriptionFormModal = ({
                 </Text>
                 <Text className="auth-helper text-center">
                   Some people have more than one — a partner&apos;s or a
-                  child&apos;s, say. Add another anyway? Tip: rename it (e.g.
-                  “{trimmedName} for Sally”) so you can tell them apart.
+                  child&apos;s, say. Renaming it (e.g. “{trimmedName} for Sally”)
+                  keeps them easy to tell apart. Or add it anyway — we won&apos;t
+                  flag it again.
                 </Text>
                 <Pressable
                   className="auth-button w-full"
-                  onPress={() => {
-                    setShowDuplicatePrompt(false);
-                    commit();
-                  }}
+                  onPress={() => setShowDuplicatePrompt(false)}
                 >
-                  <Text className="auth-button-text">Add anyway</Text>
+                  <Text className="auth-button-text">Rename it</Text>
                 </Pressable>
                 <Pressable
                   className="items-center py-2"
-                  onPress={() => setShowDuplicatePrompt(false)}
+                  onPress={() => {
+                    setShowDuplicatePrompt(false);
+                    commit(true);
+                  }}
                 >
                   <Text className="text-sm font-sans-semibold text-muted-foreground">
-                    Go back &amp; rename
+                    Add it anyway
                   </Text>
                 </Pressable>
               </View>
