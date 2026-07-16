@@ -1,8 +1,10 @@
 import "@/global.css";
+import { icons } from "@/constants/icons";
+import { Asset } from "expo-asset";
 import { useFonts } from "expo-font";
 import * as Notifications from "expo-notifications";
 import { SplashScreen, Stack, useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { ClerkProvider, useUser } from "@clerk/expo";
@@ -93,19 +95,31 @@ function RootLayoutContent() {
     "sans-light": require("../assets/fonts/PlusJakartaSans-Light.ttf"),
   });
 
+  // Preload the tab-bar icons so the whole bar paints at once. Otherwise the
+  // white glyphs decode a frame after the navy bar, and only the active Home
+  // pill shows first — a visible "pop-in" of the rest of the menu.
+  const [iconsLoaded, setIconsLoaded] = useState(false);
+  useEffect(() => {
+    Asset.loadAsync(Object.values(icons))
+      .catch(() => {})
+      .finally(() => setIconsLoaded(true));
+  }, []);
+
+  const ready = fontsLoaded && iconsLoaded;
+
   useEffect(() => {
     if (fontError) {
       throw fontError;
     }
-    // Guest-first: reveal the UI as soon as fonts are ready — don't wait on
-    // Clerk auth (it resolves in the background; screens show the guest state
-    // and update when it loads). Avoids a visible startup delay.
-    if (fontsLoaded) {
+    // Guest-first: reveal the UI as soon as fonts + tab icons are ready — don't
+    // wait on Clerk auth (it resolves in the background; screens show the guest
+    // state and update when it loads). Avoids a visible startup delay.
+    if (ready) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [ready, fontError]);
 
-  if (!fontsLoaded) {
+  if (!ready) {
     return null;
   }
 

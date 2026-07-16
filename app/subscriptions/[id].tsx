@@ -267,10 +267,10 @@ const SubscriptionDetail = () => {
                 Possible duplicate
               </Text>
               <Text className="mt-0.5 text-xs font-sans-medium text-muted-foreground">
-                You already track another active “{subscription.name}”. If it&apos;s
-                a separate one — a partner&apos;s or child&apos;s, say — keep it
-                and rename it (e.g. “{subscription.name} for Sally”) to tell them
-                apart. If it was a mistake, delete it.
+                You already track another active “{subscription.name}”. If this
+                one&apos;s meant to be separate — a different plan or account —
+                keep it and rename it (e.g. “{subscription.name} – work”) so you
+                can tell them apart. If it was a mistake, delete it.
               </Text>
               <View className="mt-3 flex-row gap-2">
                 <PressableScale onPress={handleKeepDuplicate}>

@@ -270,10 +270,10 @@ const SubscriptionFormModal = ({
                   You already track {trimmedName}
                 </Text>
                 <Text className="auth-helper text-center">
-                  Some people have more than one — a partner&apos;s or a
-                  child&apos;s, say. Renaming it (e.g. “{trimmedName} for Sally”)
-                  keeps them easy to tell apart. Or add it anyway — we won&apos;t
-                  flag it again.
+                  If this one&apos;s meant to be separate — a different plan or
+                  account — rename it (e.g. “{trimmedName} – work”) so they&apos;re
+                  easy to tell apart. Or add it anyway — we won&apos;t flag it
+                  again.
                 </Text>
                 <Pressable
                   className="auth-button w-full"
