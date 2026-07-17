@@ -1,3 +1,4 @@
+import CancelCelebration from "@/components/CancelCelebration";
 import { FadeInUp, PressableScale } from "@/components/motion";
 import PulsingDot from "@/components/PulsingDot";
 import SubscriptionFormModal from "@/components/SubscriptionFormModal";
@@ -10,6 +11,7 @@ import "@/global.css";
 import {
   addInterval,
   getCycleLabel,
+  getMonthlyEquivalent,
   getNextRenewal,
   pendingRenewal,
 } from "@/lib/billing";
@@ -60,6 +62,12 @@ const SubscriptionDetail = () => {
   const [highlightDate, setHighlightDate] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
   const [checkinSnoozed, setCheckinSnoozed] = useState(false);
+  // Snapshot of the just-cancelled sub so the celebration survives the status
+  // change (and any re-render) while the overlay is up.
+  const [celebration, setCelebration] = useState<{
+    name: string;
+    monthlySaved: number;
+  } | null>(null);
 
   const goBack = () => {
     if (router.canGoBack()) {
@@ -179,9 +187,23 @@ const SubscriptionDetail = () => {
     success();
   };
 
-  const handleRenewalCancelled = () => {
+  // Cancel + celebrate: capture the monthly saving before the status flips,
+  // then reveal the "you just saved" moment (celebrate not spending).
+  const cancelAndCelebrate = () => {
+    setCelebration({
+      name: subscription.name,
+      monthlySaved: getMonthlyEquivalent(
+        subscription.price,
+        subscription.billingCycle ?? "monthly",
+        subscription.customIntervalDays,
+      ),
+    });
     cancelSubscription(subscription.id);
     captureStatus("subscription_cancelled");
+  };
+
+  const handleRenewalCancelled = () => {
+    cancelAndCelebrate();
   };
 
   const handleKeepDuplicate = () => {
@@ -214,10 +236,7 @@ const SubscriptionDetail = () => {
         {
           text: "Cancel subscription",
           style: "destructive",
-          onPress: () => {
-            cancelSubscription(subscription.id);
-            captureStatus("subscription_cancelled");
-          },
+          onPress: cancelAndCelebrate,
         },
       ],
     );
@@ -510,6 +529,14 @@ const SubscriptionDetail = () => {
         onSubmit={handleEdit}
         subscription={subscription}
         highlightDate={highlightDate}
+      />
+
+      <CancelCelebration
+        visible={celebration !== null}
+        name={celebration?.name ?? ""}
+        monthlySaved={celebration?.monthlySaved ?? 0}
+        currency={baseCurrency}
+        onClose={() => setCelebration(null)}
       />
     </SafeAreaView>
   );
