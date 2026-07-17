@@ -383,11 +383,11 @@ export default function App() {
                       {activeSubscriptions.slice(0, 4).map((sub, i) => (
                         <View
                           key={sub.id}
+                          className="border-card"
                           style={{
                             marginLeft: i === 0 ? 0 : -12,
                             borderRadius: 12,
                             borderWidth: 2,
-                            borderColor: "#fff8e7",
                           }}
                         >
                           <SubscriptionIcon name={sub.name} size={36} />

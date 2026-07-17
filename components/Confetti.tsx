@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Dimensions, View } from "react-native";
 import Animated, {
   Easing,
@@ -48,10 +48,15 @@ const buildPieces = (count: number): Piece[] =>
 
 const ConfettiPiece = ({ piece, duration }: { piece: Piece; duration: number }) => {
   const progress = useSharedValue(0);
-  progress.value = withDelay(
-    piece.delay,
-    withTiming(1, { duration, easing: Easing.out(Easing.quad) }),
-  );
+  // Start the fall once, on mount — assigning during render would restart the
+  // animation on every re-render.
+  useEffect(() => {
+    progress.value = withDelay(
+      piece.delay,
+      withTiming(1, { duration, easing: Easing.out(Easing.quad) }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const style = useAnimatedStyle(() => {
     const p = progress.value;

@@ -188,6 +188,15 @@ const SubscriptionFormModal = ({
     // so normal adds/edits don't disturb an existing flag.
     if (acknowledgeDuplicate) {
       draft.duplicateAcknowledged = true;
+    } else if (
+      isEdit &&
+      subscription &&
+      normalizeName(subscription.name) !== normalizeName(trimmedName)
+    ) {
+      // A prior acknowledgement was granted for the old name. Renaming may
+      // collide with a different sub, so clear it and let the new name be
+      // re-evaluated for duplicates.
+      draft.duplicateAcknowledged = false;
     }
 
     onSubmit(draft);

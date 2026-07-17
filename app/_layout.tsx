@@ -67,16 +67,18 @@ function PostHogUserIdentifier() {
 function RootLayoutContent() {
   const router = useRouter();
 
-  // Tapping a reminder deep-links to that subscription. Only the live listener
-  // (fires while the app is running, navigator mounted) — navigation is
-  // deferred a tick so we never push before the router is ready.
+  // Tapping a reminder deep-links to that subscription. The response can arrive
+  // before the navigator is mounted (a cold start launched by the tap), so we
+  // buffer the route and flush it once `ready` — never push before the router
+  // has a mounted navigator.
+  const [pendingSubId, setPendingSubId] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
     const sub = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         const id = response?.notification.request.content.data?.subscriptionId;
         if (active && typeof id === "string") {
-          setTimeout(() => router.push(`/subscriptions/${id}`), 0);
+          setPendingSubId(id);
         }
       },
     );
@@ -84,7 +86,7 @@ function RootLayoutContent() {
       active = false;
       sub.remove();
     };
-  }, [router]);
+  }, []);
 
   const [fontsLoaded, fontError] = useFonts({
     "sans-regular": require("../assets/fonts/PlusJakartaSans-Regular.ttf"),
@@ -118,6 +120,14 @@ function RootLayoutContent() {
       SplashScreen.hideAsync();
     }
   }, [ready, fontError]);
+
+  // Flush a buffered notification deep-link once the navigator is mounted.
+  useEffect(() => {
+    if (ready && pendingSubId) {
+      router.push(`/subscriptions/${pendingSubId}`);
+      setPendingSubId(null);
+    }
+  }, [ready, pendingSubId, router]);
 
   if (!ready) {
     return null;
