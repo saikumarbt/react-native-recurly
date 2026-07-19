@@ -14,6 +14,7 @@ import {
   getMonthlyEquivalent,
   getNextRenewal,
   pendingRenewal,
+  trialPendingConversion,
 } from "@/lib/billing";
 import { cardTint } from "@/lib/brand";
 import { duplicateActiveNames, normalizeName } from "@/lib/duplicates";
@@ -62,6 +63,7 @@ const SubscriptionDetail = () => {
   const [highlightDate, setHighlightDate] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
   const [checkinSnoozed, setCheckinSnoozed] = useState(false);
+  const [trialSnoozed, setTrialSnoozed] = useState(false);
   // Snapshot of the just-cancelled sub so the celebration survives the status
   // change (and any re-render) while the overlay is up.
   const [celebration, setCelebration] = useState<{
@@ -130,10 +132,16 @@ const SubscriptionDetail = () => {
   const isPaused = subscription.status === "paused";
   const isCancelled = subscription.status === "cancelled";
 
+  // A free trial that's reached its end date needs a keep-or-cancel decision.
+  // Takes priority over the renewal check-in (the trial IS the first charge).
+  const showTrialConversion =
+    isActive && trialPendingConversion(subscription) && !trialSnoozed;
+
   // A charge that has come due since the user last confirmed a renewal — drives
-  // the "did it renew?" check-in. Date-confirm (dateAssumed) takes priority.
+  // the "did it renew?" check-in. Date-confirm (dateAssumed) takes priority;
+  // trials use the conversion check-in above instead.
   const pending =
-    isActive && !subscription.dateAssumed
+    isActive && !subscription.dateAssumed && !subscription.isTrial
       ? pendingRenewal(
           subscription.startDate,
           subscription.billingCycle ?? "monthly",
@@ -204,6 +212,28 @@ const SubscriptionDetail = () => {
 
   const handleRenewalCancelled = () => {
     cancelAndCelebrate();
+  };
+
+  // Trial converted to paid: it's now a normal subscription. The trial end was
+  // the first charge, so confirm through it and set the next renewal one cycle
+  // on. Clearing isTrial makes it count toward spend.
+  const handleTrialConvert = () => {
+    const end = subscription.trialEndDate
+      ? dayjs(subscription.trialEndDate)
+      : dayjs();
+    const next = addInterval(
+      end,
+      subscription.billingCycle ?? "monthly",
+      subscription.customIntervalDays,
+    );
+    updateSubscription(subscription.id, {
+      isTrial: false,
+      trialEndDate: undefined,
+      confirmedThrough: end.toISOString(),
+      renewalDate: next.toISOString(),
+    });
+    captureStatus("trial_converted");
+    success();
   };
 
   const handleKeepDuplicate = () => {
@@ -386,6 +416,48 @@ const SubscriptionDetail = () => {
                 </Text>
               </View>
             </PressableScale>
+          </FadeInUp>
+        )}
+
+        {showTrialConversion && (
+          <FadeInUp>
+            <View className="mb-5 rounded-2xl border border-accent bg-accent/10 p-4">
+              <Text className="text-sm font-sans-bold text-primary">
+                Did your {subscription.name} trial convert to paid?
+              </Text>
+              <Text className="mt-0.5 text-xs font-sans-medium text-muted-foreground">
+                The trial ended{" "}
+                {subscription.trialEndDate
+                  ? dayjs(subscription.trialEndDate).format("MMM D")
+                  : ""}
+                . Keep it if you&apos;re now paying, or cancel to stop tracking
+                it.
+              </Text>
+              <View className="mt-3 flex-row items-center gap-2">
+                <PressableScale onPress={handleTrialConvert}>
+                  <View className="rounded-xl bg-accent px-4 py-2">
+                    <Text className="text-sm font-sans-bold text-primary">
+                      Yes, keep it
+                    </Text>
+                  </View>
+                </PressableScale>
+                <PressableScale onPress={cancelAndCelebrate}>
+                  <View className="rounded-xl border border-border bg-card px-4 py-2">
+                    <Text className="text-sm font-sans-semibold text-primary">
+                      No, I cancelled
+                    </Text>
+                  </View>
+                </PressableScale>
+                <Pressable
+                  onPress={() => setTrialSnoozed(true)}
+                  className="px-2 py-2"
+                >
+                  <Text className="text-sm font-sans-semibold text-muted-foreground">
+                    Not yet
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
           </FadeInUp>
         )}
 

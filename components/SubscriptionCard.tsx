@@ -9,6 +9,7 @@ import {
   formatSubscriptionDateTime,
 } from "@/lib/utils";
 import clsx from "clsx";
+import dayjs from "dayjs";
 import { Pressable, Text, View } from "react-native";
 
 /** Human renewal countdown for active subs. */
@@ -36,15 +37,26 @@ const SubscriptionCard = ({
   dateAssumed,
   confirmedThrough,
   isDuplicate,
+  isTrial,
+  trialEndDate,
 }: SubscriptionCardProps) => {
   const { baseCurrency } = useCurrency();
   const fallback = "Not provided";
 
   const isActive = status === "active" || status === undefined;
+
+  // Trial state: whole days to the trial end, and whether it has ended (needs a
+  // keep-or-cancel decision). A trial's "renewal" IS the conversion date.
+  const onTrial = isActive && !!isTrial && !!trialEndDate;
+  const trialDaysLeft = onTrial
+    ? dayjs(trialEndDate).startOf("day").diff(dayjs().startOf("day"), "day")
+    : null;
+  const trialEnded = onTrial && trialDaysLeft !== null && trialDaysLeft <= 0;
+
   // A charge came due since the user last confirmed → "did it renew?" signal
-  // (date-confirm takes priority, so only when not still assumed).
+  // (date-confirm takes priority; trials use the conversion signal instead).
   const pendingCheckin =
-    isActive && !dateAssumed
+    isActive && !dateAssumed && !isTrial
       ? pendingRenewal(
           startDate,
           billingCycle ?? "monthly",
@@ -59,15 +71,27 @@ const SubscriptionCard = ({
         customIntervalDays,
       )
     : null;
-  const isDueSoon = daysLeft !== null && daysLeft <= 3;
+  const isDueSoon = !onTrial && daysLeft !== null && daysLeft <= 3;
 
-  // Meta line: status for paused/cancelled, renewal countdown for active.
+  const trialCountdown =
+    trialDaysLeft === null
+      ? ""
+      : trialDaysLeft <= 0
+        ? "Trial ends today"
+        : trialDaysLeft === 1
+          ? "Trial ends tomorrow"
+          : `Trial ends in ${trialDaysLeft} days`;
+
+  // Meta line: status for paused/cancelled, trial countdown while on trial,
+  // else the renewal countdown.
   const metaText =
     status === "paused"
       ? "Paused"
       : status === "cancelled"
         ? "Cancelled"
-        : renewalCountdown(daysLeft);
+        : onTrial
+          ? trialCountdown
+          : renewalCountdown(daysLeft);
 
   // Each card gets a soft, unique wash of its brand colour so the list is
   // scannable and memorable (colour-coding). A coloured left edge makes cards
@@ -78,7 +102,7 @@ const SubscriptionCard = ({
     ? "#dc2626"
     : dateAssumed && isActive
       ? "#E0952F"
-      : pendingCheckin
+      : trialEnded || pendingCheckin
         ? "#EA7A53"
         : null;
 
@@ -133,6 +157,25 @@ const SubscriptionCard = ({
                   className="text-xs font-sans-semibold"
                 >
                   Confirm date
+                </Text>
+              </View>
+            ) : trialEnded && !expanded ? (
+              <View className="mt-1 flex-row items-center gap-1.5">
+                <PulsingDot size={7} color="#ea7a53" />
+                <Text
+                  style={{ color: "#ea7a53" }}
+                  className="text-xs font-sans-semibold"
+                >
+                  Convert?
+                </Text>
+              </View>
+            ) : onTrial && !expanded ? (
+              <View className="mt-1 flex-row items-center gap-1.5">
+                <Text
+                  style={{ color: "#7DA7F4" }}
+                  className="text-xs font-sans-semibold"
+                >
+                  Free trial
                 </Text>
               </View>
             ) : pendingCheckin && !expanded ? (

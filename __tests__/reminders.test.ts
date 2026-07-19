@@ -46,18 +46,23 @@ describe("buildReminders", () => {
     ]);
   });
 
-  it("adds T-2 and T-0 trial reminders for trials", () => {
+  it("adds T-2 and T-0 trial reminders and suppresses renewal ones during a trial", () => {
     const reminders = buildReminders(
       baseSub({
         isTrial: true,
         trialEndDate: "2026-07-16T10:00:00.000Z",
-        renewalDate: "2026-09-01T10:00:00.000Z",
+        renewalDate: "2026-07-16T10:00:00.000Z",
       }),
       "USD",
     );
     const ids = reminders.map((r) => r.id);
     expect(ids).toContain("sub1::trial_2");
     expect(ids).toContain("sub1::trial_0");
+    // On a trial we rely on the trial reminders + in-app conversion check-in,
+    // not the generic renewal reminders — otherwise they'd cluster on one day.
+    expect(ids).not.toContain("sub1::renewal_3");
+    expect(ids).not.toContain("sub1::renewal_1");
+    expect(ids).not.toContain("sub1::checkin");
   });
 
   it("returns nothing for non-active subscriptions", () => {

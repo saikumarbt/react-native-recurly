@@ -68,6 +68,9 @@ export const SubscriptionsProvider = ({
     let changed = false;
     for (const s of current) {
       if (s.status !== "active") continue;
+      // Trials aren't charged until they convert — don't auto-assume renewals;
+      // the in-app trial check-in resolves them instead.
+      if (s.isTrial) continue;
       const advanced = reconcileConfirmedThrough(
         s.startDate,
         s.billingCycle ?? "monthly",

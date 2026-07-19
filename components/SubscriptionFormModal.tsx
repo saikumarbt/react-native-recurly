@@ -142,8 +142,14 @@ const SubscriptionFormModal = ({
 
   const commit = (acknowledgeDuplicate = false) => {
     const startIso = startDate.toISOString();
+    const trialEndIso = isTrial
+      ? dayjs().add(parsedTrialDays, "day").toISOString()
+      : undefined;
+    // The first charge lands at the trial end (conversion) for a trial,
+    // otherwise at the start date — so the renewal we track is that date, not
+    // start + one cycle.
     const nextRenewal = resolveNextRenewal(
-      startIso,
+      trialEndIso ?? startIso,
       billingCycle,
       customIntervalDays,
     );
@@ -162,13 +168,12 @@ const SubscriptionFormModal = ({
       // The user picked/confirmed the date here, so it's no longer an
       // assumption — clears any quick-add nudge flag.
       dateAssumed: false,
-      // Re-anchor the renewal check-in to the confirmed first-payment date, so
-      // charges due since then surface as "did it renew?".
-      confirmedThrough: startIso,
+      // Non-trial: the start is the confirmed first payment, so charges due
+      // since then surface as "did it renew?". Trial: nothing is charged yet —
+      // leave it unset until the user confirms the trial converted.
+      confirmedThrough: isTrial ? undefined : startIso,
       isTrial,
-      trialEndDate: isTrial
-        ? dayjs().add(parsedTrialDays, "day").toISOString()
-        : undefined,
+      trialEndDate: trialEndIso,
       color: category ? CATEGORY_COLORS[category] : DEFAULT_COLOR,
     };
 

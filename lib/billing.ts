@@ -126,6 +126,35 @@ export const getDaysUntilRenewal = (
   return next.diff(dayjs().startOf("day"), "day");
 };
 
+/**
+ * A subscription's first real charge date: the trial-end date while it's on a
+ * free trial (the charge lands when the trial converts), otherwise the start
+ * date. Anything that anchors billing (renewal display, reminders) uses this so
+ * a trial's "renewal" is the conversion date, not start + one cycle.
+ */
+export const firstChargeDate = (sub: Subscription): string | undefined =>
+  sub.isTrial && sub.trialEndDate ? sub.trialEndDate : sub.startDate;
+
+/**
+ * True once a free trial has reached or passed its end date and needs a
+ * keep-or-cancel decision — we can't detect the conversion charge, so we ask.
+ */
+export const trialPendingConversion = (
+  sub: Subscription,
+  now: dayjs.Dayjs = dayjs(),
+): boolean => {
+  if (!sub.isTrial || !sub.trialEndDate) return false;
+  const end = dayjs(sub.trialEndDate).startOf("day");
+  return end.isValid() && !end.isAfter(now.startOf("day"));
+};
+
+/**
+ * Whether a subscription's price counts toward current spend. Active non-trial
+ * subs count; a free trial costs nothing until the user confirms it converted.
+ */
+export const countsTowardSpend = (sub: Subscription): boolean =>
+  (sub.status === "active" || sub.status === undefined) && !sub.isTrial;
+
 /** Days after a renewal before the reconciler auto-assumes it renewed. */
 export const RENEWAL_GRACE_DAYS = 4;
 

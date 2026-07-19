@@ -123,18 +123,22 @@ export default function App() {
 
   // Real monthly outflow across mixed billing cycles (annual/quarterly/etc.
   // are normalized to a per-month average, so the total reflects everything).
+  // Free trials cost nothing until they convert, so they don't count toward
+  // current spend (they surface as a conversion check-in instead).
   const monthlyTotal = useMemo(
     () =>
-      activeSubscriptions.reduce(
-        (total, sub) =>
-          total +
-          getMonthlyEquivalent(
-            sub.price,
-            sub.billingCycle ?? "monthly",
-            sub.customIntervalDays,
-          ),
-        0,
-      ),
+      activeSubscriptions
+        .filter((sub) => !sub.isTrial)
+        .reduce(
+          (total, sub) =>
+            total +
+            getMonthlyEquivalent(
+              sub.price,
+              sub.billingCycle ?? "monthly",
+              sub.customIntervalDays,
+            ),
+          0,
+        ),
     [activeSubscriptions],
   );
   const yearlyTotal = monthlyTotal * 12;

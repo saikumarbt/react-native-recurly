@@ -53,19 +53,21 @@ const Insights = () => {
     const paused = subscriptions.filter((s) => s.status === "paused");
     const cancelled = subscriptions.filter((s) => s.status === "cancelled");
 
-    // Spend matches Home: all active subs (incl. those on trial, disclosed
-    // below). Savings = the recurring value of what the user has cancelled.
-    const monthlyTotal = active.reduce((sum, s) => sum + monthlyOf(s), 0);
+    // Spend matches Home: active subs that are actually being charged. Free
+    // trials cost nothing until they convert, so they're excluded (surfaced as
+    // the trial count below). Savings = recurring value of what was cancelled.
+    const paying = active.filter((s) => !s.isTrial);
+    const monthlyTotal = paying.reduce((sum, s) => sum + monthlyOf(s), 0);
     const savedMonthly = cancelled.reduce((sum, s) => sum + monthlyOf(s), 0);
 
     // Mutually-exclusive portfolio buckets that reconcile with the History
     // list: paying + onTrial + paused + cancelled === subscriptions.length.
-    const trialCount = active.filter((s) => s.isTrial).length;
-    const payingCount = active.length - trialCount;
+    const trialCount = active.length - paying.length;
+    const payingCount = paying.length;
 
-    // Top subscriptions by monthly-equivalent cost — each bar is a real active
+    // Top subscriptions by monthly-equivalent cost — each bar is a paying
     // subscription, so the chart reconciles with the list and the Home total.
-    const chart = active
+    const chart = paying
       .map((sub) => ({ label: sub.name, amount: monthlyOf(sub) }))
       .sort((a, b) => b.amount - a.amount)
       .slice(0, MAX_BARS);
@@ -121,8 +123,8 @@ const Insights = () => {
         </View>
         {stats.trialCount > 0 && (
           <Text className="-mt-3 text-xs font-sans-medium text-muted-foreground">
-            Includes {stats.trialCount} on a free trial — billing hasn&apos;t
-            started yet.
+            Excludes {stats.trialCount} on a free trial — not billed until they
+            convert.
           </Text>
         )}
 
