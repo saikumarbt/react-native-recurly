@@ -80,6 +80,61 @@ const SIMPLE_WANT = [
   { slug: "skillshare" },
   { slug: "icloud", keywords: ["apple icloud", "icloud+"] },
   { slug: "google" },
+
+  // --- Health & fitness -----------------------------------------------------
+  { slug: "peloton", keywords: ["peloton app"] },
+  { slug: "strava" },
+  { slug: "fitbit", keywords: ["fitbit premium"] },
+  { slug: "headspace" },
+
+  // --- Food & delivery ------------------------------------------------------
+  { slug: "hellofresh", keywords: ["hello fresh", "meal kit"] },
+  { slug: "doordash", keywords: ["dashpass", "door dash"] },
+  { slug: "ubereats", keywords: ["uber one", "uber eats"] },
+  { slug: "deliveroo", keywords: ["deliveroo plus"] },
+  { slug: "instacart", keywords: ["instacart+"] },
+  { slug: "justeat", keywords: ["just eat"] },
+  { slug: "zomato", keywords: ["zomato gold"] },
+  { slug: "swiggy", keywords: ["swiggy one"] },
+
+  // --- Shopping / household -------------------------------------------------
+  { slug: "target", keywords: ["target circle", "circle 360"] },
+
+  // --- More streaming (that still ship a logo) ------------------------------
+  { slug: "appletv", keywords: ["apple tv", "apple tv+", "apple tv plus"] },
+  { slug: "plex", keywords: ["plex pass"] },
+  { slug: "mubi" },
+  { slug: "fubo", keywords: ["fubotv", "fubo tv"] },
+
+  // --- News & reading -------------------------------------------------------
+  { slug: "newyorktimes", keywords: ["nyt", "ny times", "new york times"] },
+  { slug: "theguardian", keywords: ["guardian"] },
+
+  // --- More music -----------------------------------------------------------
+  { slug: "pandora" },
+  { slug: "iheartradio", keywords: ["iheart", "iheart radio"] },
+
+  // --- Cloud & security -----------------------------------------------------
+  { slug: "lastpass", keywords: ["last pass"] },
+  { slug: "bitwarden" },
+  { slug: "backblaze" },
+  { slug: "mega" },
+  { slug: "surfshark", keywords: ["surf shark", "vpn"] },
+  { slug: "mullvad", keywords: ["mullvad vpn"] },
+  { slug: "box", keywords: ["box.com"] },
+  { slug: "proton", keywords: ["proton mail", "proton drive", "proton unlimited"] },
+
+  // --- Gaming ---------------------------------------------------------------
+  { slug: "ea", keywords: ["ea play", "ea sports"] },
+  { slug: "ubisoft", keywords: ["ubisoft+", "ubisoft plus"] },
+  { slug: "nvidia", keywords: ["geforce now", "geforce"] },
+  { slug: "humblebundle", keywords: ["humble choice", "humble bundle"] },
+
+  // --- Bills / phone / internet ---------------------------------------------
+  { slug: "verizon" },
+  { slug: "vodafone" },
+  { slug: "o2" },
+  { slug: "spectrum" },
 ];
 
 // --- Lobe: AI-tool brands (mono SVG, no brand hex → name-derived tile) -------
