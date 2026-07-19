@@ -9,7 +9,7 @@ import logoGlow from "@/assets/images/logo-glow.png";
 import { CURRENCY_CODES, currencyName } from "@/constants/currencies";
 import {
   ONBOARDING_BRANDS,
-  ONBOARDING_CATEGORY_ORDER,
+  groupOnboardingBrands,
 } from "@/constants/onboardingBrands";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
@@ -147,29 +147,12 @@ const Onboarding = () => {
   const cycleFor = (title: string): BillingCycle => cycles[title] ?? "monthly";
 
   // Brands grouped under category headings (ordered), filtered by the search
-  // box — so the picker reads as tidy sections instead of one long wall, and a
-  // user can jump straight to what they pay for.
-  const brandGroups = useMemo(() => {
-    const q = brandQuery.trim().toLowerCase();
-    const matches = q
-      ? ONBOARDING_BRANDS.filter((b) => b.title.toLowerCase().includes(q))
-      : ONBOARDING_BRANDS;
-
-    const byCategory = new Map<string, typeof ONBOARDING_BRANDS>();
-    for (const brand of matches) {
-      const list = byCategory.get(brand.category) ?? [];
-      list.push(brand);
-      byCategory.set(brand.category, list);
-    }
-
-    const rank = (category: string) => {
-      const i = ONBOARDING_CATEGORY_ORDER.indexOf(category);
-      return i === -1 ? ONBOARDING_CATEGORY_ORDER.length : i;
-    };
-    return Array.from(byCategory.entries())
-      .sort((a, b) => rank(a[0]) - rank(b[0]))
-      .map(([category, brands]) => ({ category, brands }));
-  }, [brandQuery]);
+  // box — so the picker reads as tidy sections instead of one long wall. Shared
+  // with the add-subscription sheet via groupOnboardingBrands.
+  const brandGroups = useMemo(
+    () => groupOnboardingBrands(brandQuery),
+    [brandQuery],
+  );
 
   // The "analyzing" anticipation beat: cycle lines, then reveal the celebration.
   useEffect(() => {

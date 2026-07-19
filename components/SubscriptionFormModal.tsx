@@ -1,6 +1,6 @@
-import PickerSheet, { type PickerItem } from "@/components/PickerSheet";
+import BrandPickerSheet from "@/components/BrandPickerSheet";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
-import { BRAND_ICONS } from "@/constants/brandIcons";
+import { ONBOARDING_CATEGORY_ORDER } from "@/constants/onboardingBrands";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
 import {
@@ -27,35 +27,27 @@ import {
   View,
 } from "react-native";
 
-const CATEGORIES = [
-  "Entertainment",
-  "AI Tools",
-  "Developer Tools",
-  "Design",
-  "Productivity",
-  "Cloud",
-  "Music",
-  "Other",
-] as const;
+// Same category taxonomy (and order) as the onboarding picker, for uniformity.
+const CATEGORIES = ONBOARDING_CATEGORY_ORDER;
 
 const CATEGORY_COLORS: Record<string, string> = {
   Entertainment: "#f5c542",
+  Gaming: "#d8c7f0",
+  Music: "#f5d5b8",
   "AI Tools": "#b8d4e3",
+  Productivity: "#b8e8d0",
   "Developer Tools": "#e8def8",
   Design: "#f7c8d0",
-  Productivity: "#b8e8d0",
+  "Health & Fitness": "#f6c3b0",
+  "Food & Delivery": "#c3ecc9",
+  "News & Reading": "#cfe0f5",
+  Shopping: "#f0d8b0",
   Cloud: "#c8d8f0",
-  Music: "#f5d5b8",
+  "Bills & Utilities": "#f6e0b0",
   Other: "#e5e0d0",
 };
 
 const DEFAULT_COLOR = "#e8def8";
-
-const BRAND_ITEMS: PickerItem[] = BRAND_ICONS.map((brand) => ({
-  value: brand.title,
-  label: brand.title,
-  keywords: brand.keywords.join(" "),
-}));
 
 const SubscriptionFormModal = ({
   visible,
@@ -554,15 +546,11 @@ const SubscriptionFormModal = ({
         </View>
       </KeyboardAvoidingView>
 
-      <PickerSheet
+      <BrandPickerSheet
         visible={showBrandPicker}
-        title="Choose brand"
-        items={BRAND_ITEMS}
         selected={trimmedName}
-        placeholder="Search brands"
         onSelect={setName}
         onClose={() => setShowBrandPicker(false)}
-        renderLeading={(item) => <SubscriptionIcon name={item.value} size={36} />}
       />
     </Modal>
   );

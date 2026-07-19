@@ -297,3 +297,35 @@ export const ONBOARDING_BRANDS: OnboardingBrand[] = BRAND_ICONS.map((icon) => {
     category: preset?.category ?? inferCategory(icon),
   };
 });
+
+export interface OnboardingBrandGroup {
+  category: string;
+  brands: OnboardingBrand[];
+}
+
+/**
+ * Brands grouped under category headings in display order, optionally filtered
+ * by a search query (title match). Shared by the onboarding picker and the
+ * add-subscription "browse brands" sheet so both present brands identically.
+ */
+export const groupOnboardingBrands = (query = ""): OnboardingBrandGroup[] => {
+  const q = query.trim().toLowerCase();
+  const matches = q
+    ? ONBOARDING_BRANDS.filter((b) => b.title.toLowerCase().includes(q))
+    : ONBOARDING_BRANDS;
+
+  const byCategory = new Map<string, OnboardingBrand[]>();
+  for (const brand of matches) {
+    const list = byCategory.get(brand.category);
+    if (list) list.push(brand);
+    else byCategory.set(brand.category, [brand]);
+  }
+
+  const rank = (category: string) => {
+    const i = ONBOARDING_CATEGORY_ORDER.indexOf(category);
+    return i === -1 ? ONBOARDING_CATEGORY_ORDER.length : i;
+  };
+  return Array.from(byCategory.entries())
+    .sort((a, b) => rank(a[0]) - rank(b[0]))
+    .map(([category, brands]) => ({ category, brands }));
+};
