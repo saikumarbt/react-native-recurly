@@ -1,7 +1,6 @@
 import PickerSheet, { type PickerItem } from "@/components/PickerSheet";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
 import { BRAND_ICONS } from "@/constants/brandIcons";
-import { useCurrency } from "@/context/CurrencyContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
 import {
@@ -66,7 +65,6 @@ const SubscriptionFormModal = ({
   highlightDate,
 }: SubscriptionFormModalProps) => {
   const isEdit = !!subscription;
-  const { baseCurrency } = useCurrency();
   const { subscriptions } = useSubscriptions();
 
   const [name, setName] = useState("");
@@ -161,7 +159,6 @@ const SubscriptionFormModal = ({
     const draft: SubscriptionDraft = {
       name: trimmedName,
       price: parsedPrice,
-      currency: baseCurrency,
       paymentMethod: paymentMethod.trim() || undefined,
       billingCycle,
       customIntervalDays,

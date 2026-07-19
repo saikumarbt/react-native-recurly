@@ -15,7 +15,6 @@ export interface SubscriptionRow {
   notes: string | null;
   status: string;
   price: number;
-  currency: string;
   billing_cycle: string;
   custom_interval_days: number | null;
   is_trial: number;
@@ -48,7 +47,6 @@ export const rowToSubscription = (row: SubscriptionRow): Subscription => {
     notes: row.notes ?? undefined,
     status: row.status,
     price: row.price,
-    currency: row.currency,
     billingCycle,
     customIntervalDays: row.custom_interval_days ?? undefined,
     billing: getCycleLabel(billingCycle, row.custom_interval_days ?? undefined),
@@ -88,13 +86,15 @@ export const insertSubscription = (input: NewSubscription): Subscription => {
   const timestamp = nowIso();
   const billingCycle = input.billingCycle ?? "monthly";
 
+  // The `currency` column is retained in the schema (dormant, defaults to
+  // 'USD') but not written: all amounts use the single app-wide base currency.
   getDatabase().runSync(
     `INSERT INTO subscriptions (
       id, name, color, plan, category, payment_method, notes,
-      status, price, currency, billing_cycle, custom_interval_days,
+      status, price, billing_cycle, custom_interval_days,
       is_trial, date_assumed, confirmed_through, duplicate_acknowledged,
       trial_end_date, start_date, next_renewal_date, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       input.name,
@@ -105,7 +105,6 @@ export const insertSubscription = (input: NewSubscription): Subscription => {
       input.notes ?? null,
       input.status ?? "active",
       input.price,
-      input.currency ?? "USD",
       billingCycle,
       input.customIntervalDays ?? null,
       input.isTrial ? 1 : 0,
@@ -133,7 +132,6 @@ const PATCH_COLUMNS: Record<string, string> = {
   notes: "notes",
   status: "status",
   price: "price",
-  currency: "currency",
   billingCycle: "billing_cycle",
   customIntervalDays: "custom_interval_days",
   isTrial: "is_trial",

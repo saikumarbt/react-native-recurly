@@ -29,7 +29,8 @@ declare global {
     status?: SubscriptionStatus | string;
     startDate?: string;
     price: number;
-    currency?: string;
+    // No per-sub currency: all amounts are entered and shown in the single
+    // app-wide base currency (see CurrencyContext). No FX/conversion.
     /** Display label derived from billingCycle (e.g. "Monthly"). */
     billing: string;
     /** Source of truth for renewal math. */
@@ -79,7 +80,6 @@ declare global {
     id: string;
     name: string;
     price: number;
-    currency?: string;
     daysLeft: number;
   }
 

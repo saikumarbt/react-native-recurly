@@ -224,7 +224,6 @@ const Onboarding = () => {
       addSubscription({
         name: brand.title,
         price,
-        currency: baseCurrency,
         billingCycle: cycle,
         category: brand.category,
         status: "active",

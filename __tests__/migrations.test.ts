@@ -97,7 +97,6 @@ describe("rowToSubscription date_assumed mapping", () => {
     notes: null,
     status: "active",
     price: 15.49,
-    currency: "USD",
     billing_cycle: "monthly",
     custom_interval_days: null,
     is_trial: 0,

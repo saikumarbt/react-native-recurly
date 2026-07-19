@@ -146,7 +146,6 @@ export default function App() {
           id: subscription.id,
           name: subscription.name,
           price: subscription.price,
-          currency: subscription.currency,
           daysLeft:
             getDaysUntilRenewal(
               subscription.renewalDate ?? subscription.startDate,
