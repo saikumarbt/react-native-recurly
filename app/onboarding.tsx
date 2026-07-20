@@ -294,7 +294,7 @@ const Onboarding = () => {
                     resizeMode="contain"
                   />
                   <View className="items-center">
-                    <Text className="auth-wordmark">Recurrly</Text>
+                    <Text className="auth-wordmark">myrev</Text>
                     <Text className="auth-wordmark-sub">SMART BILLING</Text>
                   </View>
                 </View>

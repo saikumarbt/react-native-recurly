@@ -24,5 +24,5 @@ export const tabs: AppTab[] = [
 ];
 
 export const HOME_USER = {
-  name: "S.ai | Recurrly",
+  name: "myrev",
 };

@@ -162,7 +162,7 @@ export default function SignUp() {
                   <Text className="auth-logo-mark-text">R</Text>
                 </View>
                 <View>
-                  <Text className="auth-wordmark">Recurrly</Text>
+                  <Text className="auth-wordmark">myrev</Text>
                   <Text className="auth-wordmark-sub">SMART BILLING</Text>
                 </View>
               </View>
