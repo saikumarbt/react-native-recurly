@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext";
 import { useSignUp } from "@clerk/expo";
 import { Link, useRouter } from "expo-router";
 import { styled } from "nativewind";
@@ -18,6 +19,7 @@ const SafeAreaView = styled(RNSafeAreaView) as any;
 
 export default function SignUp() {
   const { signUp, errors, fetchStatus } = useSignUp();
+  const { palette } = useTheme();
   const router = useRouter();
   const posthog = usePostHog();
 
@@ -96,7 +98,7 @@ export default function SignUp() {
                   className="auth-input"
                   value={code}
                   placeholder="Enter your verification code"
-                  placeholderTextColor="#666666"
+                  placeholderTextColor={palette.mutedForeground}
                   onChangeText={(code) => setCode(code)}
                   keyboardType="numeric"
                 />
@@ -179,7 +181,7 @@ export default function SignUp() {
                     autoCapitalize="none"
                     value={emailAddress}
                     placeholder="Enter email"
-                    placeholderTextColor="#666666"
+                    placeholderTextColor={palette.mutedForeground}
                     onChangeText={(emailAddress) =>
                       setEmailAddress(emailAddress)
                     }
@@ -198,7 +200,7 @@ export default function SignUp() {
                     className="auth-input"
                     value={password}
                     placeholder="Enter password"
-                    placeholderTextColor="#666666"
+                    placeholderTextColor={palette.mutedForeground}
                     secureTextEntry={true}
                     onChangeText={(password) => setPassword(password)}
                   />

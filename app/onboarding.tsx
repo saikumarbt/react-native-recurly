@@ -13,6 +13,7 @@ import {
 } from "@/constants/onboardingBrands";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
+import { useTheme } from "@/context/ThemeContext";
 import "@/global.css";
 import {
   BILLING_CYCLE_KEYS,
@@ -111,8 +112,8 @@ const Spinner = () => {
         height: 48,
         borderRadius: 24,
         borderWidth: 4,
-        borderColor: "rgba(0,0,0,0.1)",
-        borderTopColor: "#ea7a53",
+        borderColor: "rgba(127,127,127,0.18)",
+        borderTopColor: "#6e5be4",
         transform: [
           {
             rotate: spin.interpolate({
@@ -131,6 +132,7 @@ const Onboarding = () => {
   const posthog = usePostHog();
   const { baseCurrency, setBaseCurrency } = useCurrency();
   const { addSubscription } = useSubscriptions();
+  const { palette } = useTheme();
 
   const [step, setStep] = useState<Step>("intro");
   const [goal, setGoal] = useState<string | null>(null);
@@ -389,7 +391,7 @@ const Onboarding = () => {
               value={brandQuery}
               onChangeText={setBrandQuery}
               placeholder="Search subscriptions"
-              placeholderTextColor="rgba(0, 0, 0, 0.6)"
+              placeholderTextColor={palette.mutedForeground}
               autoCapitalize="none"
               autoCorrect={false}
               clearButtonMode="while-editing"
@@ -517,7 +519,7 @@ const Onboarding = () => {
                     setPrices((p) => ({ ...p, [brand.title]: v }))
                   }
                   placeholder="0.00"
-                  placeholderTextColor="#666666"
+                  placeholderTextColor={palette.mutedForeground}
                 />
               </View>
             ))}

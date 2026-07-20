@@ -36,7 +36,7 @@ const BrandPickerSheet = ({
   onClose,
 }: BrandPickerSheetProps) => {
   const [query, setQuery] = useState("");
-  const { varStyle } = useTheme();
+  const { varStyle, palette } = useTheme();
   const groups = useMemo(() => groupOnboardingBrands(query), [query]);
 
   const handleClose = () => {
@@ -80,7 +80,7 @@ const BrandPickerSheet = ({
                 value={query}
                 onChangeText={setQuery}
                 placeholder="Search subscriptions"
-                placeholderTextColor="#666666"
+                placeholderTextColor={palette.mutedForeground}
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoFocus

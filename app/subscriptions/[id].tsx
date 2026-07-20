@@ -7,6 +7,7 @@ import { icons } from "@/constants/icons";
 import { success } from "@/lib/haptics";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
+import { useTheme } from "@/context/ThemeContext";
 import "@/global.css";
 import {
   addInterval,
@@ -32,7 +33,6 @@ import { Alert, Image, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 
 const SafeAreaView = styled(RNSafeAreaView) as any;
-const PRIMARY = "#081126";
 
 const DetailRow = ({ label, value }: { label: string; value: string }) => (
   <View className="sub-row">
@@ -50,6 +50,7 @@ const SubscriptionDetail = () => {
   const router = useRouter();
   const posthog = usePostHog();
   const { baseCurrency } = useCurrency();
+  const { palette, scheme } = useTheme();
   const {
     subscriptions,
     getSubscription,
@@ -93,7 +94,7 @@ const SubscriptionDetail = () => {
         <Image
           source={icons.back}
           resizeMode="contain"
-          tintColor={PRIMARY}
+          tintColor={palette.foreground}
           className="insights-icon-glyph"
         />
       </Pressable>
@@ -332,11 +333,11 @@ const SubscriptionDetail = () => {
                 <PressableScale onPress={handleDelete}>
                   <View
                     className="rounded-xl px-4 py-2"
-                    style={{ backgroundColor: "#dc2626" }}
+                    style={{ backgroundColor: palette.destructive }}
                   >
                     <Text
                       className="text-sm font-sans-bold"
-                      style={{ color: "#ffffff" }}
+                      style={{ color: palette.onAccent }}
                     >
                       Delete this one
                     </Text>
@@ -350,7 +351,7 @@ const SubscriptionDetail = () => {
         {/* Hero */}
         <View
           className="sub-card mb-5"
-          style={{ backgroundColor: cardTint(subscription.name) }}
+          style={{ backgroundColor: cardTint(subscription.name, scheme) }}
         >
           <View className="sub-head">
             <View className="sub-main">
@@ -391,14 +392,8 @@ const SubscriptionDetail = () => {
                 setEditVisible(true);
               }}
             >
-              <View
-                className="mb-5 flex-row items-center gap-3 rounded-2xl border p-4"
-                style={{
-                  borderColor: "#E0952F",
-                  backgroundColor: "rgba(224,149,47,0.08)",
-                }}
-              >
-                <PulsingDot size={10} />
+              <View className="mb-5 flex-row items-center gap-3 rounded-2xl border border-warning bg-warning/10 p-4">
+                <PulsingDot size={10} color={palette.warning} />
                 <View className="flex-1">
                   <Text className="text-sm font-sans-bold text-primary">
                     Confirm your renewal date
@@ -408,10 +403,7 @@ const SubscriptionDetail = () => {
                     (optional).
                   </Text>
                 </View>
-                <Text
-                  className="text-base font-sans-bold"
-                  style={{ color: "#E0952F" }}
-                >
+                <Text className="text-base font-sans-bold text-warning">
                   Fix ›
                 </Text>
               </View>

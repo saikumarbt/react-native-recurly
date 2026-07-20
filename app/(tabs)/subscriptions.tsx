@@ -1,6 +1,7 @@
 import ListHeading from "@/components/ListHeading";
 import SubscriptionCard from "@/components/SubscriptionCard";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
+import { useTheme } from "@/context/ThemeContext";
 import "@/global.css";
 import { getDaysUntilRenewal, getMonthlyEquivalent } from "@/lib/billing";
 import { duplicateActiveNames, normalizeName } from "@/lib/duplicates";
@@ -95,6 +96,7 @@ const Chip = ({
 
 const Subscriptions = () => {
   const { subscriptions, refresh } = useSubscriptions();
+  const { palette } = useTheme();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("renewal");
@@ -192,7 +194,7 @@ const Subscriptions = () => {
                 value={query}
                 onChangeText={setQuery}
                 placeholder="Search subscriptions"
-                placeholderTextColor="rgba(0, 0, 0, 0.6)"
+                placeholderTextColor={palette.mutedForeground}
                 autoCapitalize="none"
                 autoCorrect={false}
                 clearButtonMode="while-editing"

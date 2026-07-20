@@ -109,21 +109,34 @@ export const getIconVisual = (name: string): IconVisual => {
   };
 };
 
-/** Mixes a hex toward white by `whiteMix` (0–1) — for soft, tinted panels. */
-export const tintColor = (hex: string, whiteMix = 0.85): string => {
+/** Mixes a 6-digit hex toward a target hex by `amount` (0–1). */
+const mixHex = (hex: string, target: string, amount: number): string => {
   const clean = hex.replace("#", "");
-  if (clean.length !== 6) return hex;
-  const ch = (i: number) => parseInt(clean.slice(i, i + 2), 16);
-  const mix = (c: number) => Math.round(c + (255 - c) * whiteMix);
+  const t = target.replace("#", "");
+  if (clean.length !== 6 || t.length !== 6) return hex;
+  const ch = (s: string, i: number) => parseInt(s.slice(i, i + 2), 16);
+  const mix = (i: number) =>
+    Math.round(ch(clean, i) + (ch(t, i) - ch(clean, i)) * amount);
   const toHex = (v: number) => v.toString(16).padStart(2, "0");
-  return `#${toHex(mix(ch(0)))}${toHex(mix(ch(2)))}${toHex(mix(ch(4)))}`;
+  return `#${toHex(mix(0))}${toHex(mix(2))}${toHex(mix(4))}`;
 };
 
+/** Mixes a hex toward white by `whiteMix` (0–1) — kept for back-compat. */
+export const tintColor = (hex: string, whiteMix = 0.85): string =>
+  mixHex(hex, "#ffffff", whiteMix);
+
 /**
- * A soft, distinct panel tint for a subscription — a light wash of its brand
- * color. Gives every card its own recognisable color (Netflix pink-ish,
- * Spotify green-ish), which aids scanning and recall (colour-coding), while
- * staying subtle enough to read text on.
+ * A soft, distinct panel tint for a subscription so every card keeps its own
+ * recognisable colour (aids scanning/recall). Theme-aware: a light wash toward
+ * white in light mode, or a subtle brand-tinted dark surface in dark mode
+ * (mixed toward the raised token) so cards never turn near-white on dark.
  */
-export const cardTint = (name: string): string =>
-  tintColor(getIconVisual(name).background);
+export const cardTint = (
+  name: string,
+  scheme: "light" | "dark" = "light",
+): string => {
+  const bg = getIconVisual(name).background;
+  return scheme === "dark"
+    ? mixHex(bg, "#221d34", 0.82)
+    : mixHex(bg, "#ffffff", 0.85);
+};

@@ -59,7 +59,7 @@ const SubscriptionFormModal = ({
 }: SubscriptionFormModalProps) => {
   const isEdit = !!subscription;
   const { subscriptions } = useSubscriptions();
-  const { varStyle } = useTheme();
+  const { varStyle, palette, scheme } = useTheme();
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
@@ -348,7 +348,7 @@ const SubscriptionFormModal = ({
                     value={name}
                     onChangeText={setName}
                     placeholder="e.g. Netflix"
-                    placeholderTextColor="#666666"
+                    placeholderTextColor={palette.mutedForeground}
                     autoCapitalize="words"
                   />
                 </View>
@@ -361,7 +361,7 @@ const SubscriptionFormModal = ({
                   value={price}
                   onChangeText={setPrice}
                   placeholder="0.00"
-                  placeholderTextColor="#666666"
+                  placeholderTextColor={palette.mutedForeground}
                   keyboardType="decimal-pad"
                 />
               </View>
@@ -373,7 +373,7 @@ const SubscriptionFormModal = ({
                   value={paymentMethod}
                   onChangeText={setPaymentMethod}
                   placeholder="e.g. Visa ending in 4242"
-                  placeholderTextColor="#666666"
+                  placeholderTextColor={palette.mutedForeground}
                   autoCapitalize="words"
                 />
               </View>
@@ -384,10 +384,10 @@ const SubscriptionFormModal = ({
                   highlightDate
                     ? {
                         borderWidth: 1.5,
-                        borderColor: "#E0952F",
+                        borderColor: palette.warning,
                         borderRadius: 16,
                         padding: 12,
-                        backgroundColor: "rgba(224,149,47,0.06)",
+                        backgroundColor: `${palette.warning}14`,
                       }
                     : undefined
                 }
@@ -401,8 +401,8 @@ const SubscriptionFormModal = ({
                       value={startDate}
                       mode="date"
                       display="compact"
-                      themeVariant="light"
-                      accentColor="#ea7a53"
+                      themeVariant={scheme}
+                      accentColor={palette.accent}
                       maximumDate={new Date()}
                       onChange={onDateChange}
                     />
@@ -430,7 +430,7 @@ const SubscriptionFormModal = ({
                 )}
                 <Text
                   className="auth-helper"
-                  style={highlightDate ? { color: "#E0952F" } : undefined}
+                  style={highlightDate ? { color: palette.warning } : undefined}
                 >
                   {highlightDate
                     ? "Set the real date this renews so your reminder is accurate."
@@ -470,7 +470,7 @@ const SubscriptionFormModal = ({
                     value={customDays}
                     onChangeText={setCustomDays}
                     placeholder="Interval in days, e.g. 45"
-                    placeholderTextColor="#666666"
+                    placeholderTextColor={palette.mutedForeground}
                     keyboardType="number-pad"
                   />
                 )}
@@ -529,7 +529,7 @@ const SubscriptionFormModal = ({
                     value={trialDays}
                     onChangeText={setTrialDays}
                     placeholder="Days until trial ends, e.g. 7"
-                    placeholderTextColor="#666666"
+                    placeholderTextColor={palette.mutedForeground}
                     keyboardType="number-pad"
                   />
                 )}

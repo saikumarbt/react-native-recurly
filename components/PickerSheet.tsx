@@ -44,7 +44,7 @@ const PickerSheet = ({
   renderLeading,
 }: PickerSheetProps) => {
   const [query, setQuery] = useState("");
-  const { varStyle } = useTheme();
+  const { varStyle, palette } = useTheme();
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -92,7 +92,7 @@ const PickerSheet = ({
                 value={query}
                 onChangeText={setQuery}
                 placeholder={placeholder}
-                placeholderTextColor="#666666"
+                placeholderTextColor={palette.mutedForeground}
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoFocus

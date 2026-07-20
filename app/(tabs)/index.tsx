@@ -9,6 +9,7 @@ import { icons } from "@/constants/icons";
 import images from "@/constants/images";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
+import { useTheme } from "@/context/ThemeContext";
 import "@/global.css";
 import { priceBucket } from "@/lib/analytics";
 import { duplicateActiveNames, normalizeName } from "@/lib/duplicates";
@@ -51,6 +52,7 @@ export default function App() {
     }, [refresh]),
   );
   const { baseCurrency } = useCurrency();
+  const { palette } = useTheme();
   const posthog = usePostHog();
   const router = useRouter();
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
@@ -296,14 +298,8 @@ export default function App() {
             {assumedCount > 0 && (
               <FadeInUp>
                 <PressableScale onPress={() => router.push("/subscriptions")}>
-                  <View
-                    className="mb-4 flex-row items-center gap-3 rounded-2xl border p-4"
-                    style={{
-                      borderColor: "#E0952F",
-                      backgroundColor: "rgba(224,149,47,0.08)",
-                    }}
-                  >
-                    <PulsingDot size={10} />
+                  <View className="mb-4 flex-row items-center gap-3 rounded-2xl border border-warning bg-warning/10 p-4">
+                    <PulsingDot size={10} color={palette.warning} />
                     <View className="flex-1">
                       <Text className="text-sm font-sans-bold text-primary">
                         {assumedCount} subscription
@@ -313,10 +309,7 @@ export default function App() {
                         Confirm them so reminders land on the right day.
                       </Text>
                     </View>
-                    <Text
-                      className="text-base font-sans-bold"
-                      style={{ color: "#E0952F" }}
-                    >
+                    <Text className="text-base font-sans-bold text-warning">
                       Review ›
                     </Text>
                   </View>
@@ -327,7 +320,7 @@ export default function App() {
               <FadeInUp>
                 <PressableScale onPress={() => router.push("/subscriptions")}>
                   <View className="mb-4 flex-row items-center gap-3 rounded-2xl border border-accent bg-accent/10 p-4">
-                    <PulsingDot size={10} color="#ea7a53" />
+                    <PulsingDot size={10} color={palette.accent} />
                     <View className="flex-1">
                       <Text className="text-sm font-sans-bold text-primary">
                         {renewalCheckinCount} subscription
@@ -338,10 +331,7 @@ export default function App() {
                         accurate.
                       </Text>
                     </View>
-                    <Text
-                      className="text-base font-sans-bold"
-                      style={{ color: "#ea7a53" }}
-                    >
+                    <Text className="text-base font-sans-bold text-accent">
                       Review ›
                     </Text>
                   </View>
@@ -352,7 +342,7 @@ export default function App() {
               <FadeInUp>
                 <PressableScale onPress={() => router.push("/subscriptions")}>
                   <View className="mb-4 flex-row items-center gap-3 rounded-2xl border border-destructive bg-destructive/10 p-4">
-                    <PulsingDot size={10} color="#dc2626" />
+                    <PulsingDot size={10} color={palette.destructive} />
                     <View className="flex-1">
                       <Text className="text-sm font-sans-bold text-primary">
                         Possible duplicate subscriptions
@@ -362,10 +352,7 @@ export default function App() {
                         remove any extras.
                       </Text>
                     </View>
-                    <Text
-                      className="text-base font-sans-bold"
-                      style={{ color: "#dc2626" }}
-                    >
+                    <Text className="text-base font-sans-bold text-destructive">
                       Review ›
                     </Text>
                   </View>
