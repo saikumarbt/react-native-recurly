@@ -15,12 +15,12 @@ export interface SubscriptionRow {
   notes: string | null;
   status: string;
   price: number;
-  currency: string;
   billing_cycle: string;
   custom_interval_days: number | null;
   is_trial: number;
   date_assumed: number;
   confirmed_through: string | null;
+  duplicate_acknowledged: number;
   trial_end_date: string | null;
   start_date: string | null;
   next_renewal_date: string | null;
@@ -47,13 +47,13 @@ export const rowToSubscription = (row: SubscriptionRow): Subscription => {
     notes: row.notes ?? undefined,
     status: row.status,
     price: row.price,
-    currency: row.currency,
     billingCycle,
     customIntervalDays: row.custom_interval_days ?? undefined,
     billing: getCycleLabel(billingCycle, row.custom_interval_days ?? undefined),
     isTrial: row.is_trial === 1,
     dateAssumed: row.date_assumed === 1,
     confirmedThrough: row.confirmed_through ?? undefined,
+    duplicateAcknowledged: row.duplicate_acknowledged === 1,
     trialEndDate: row.trial_end_date ?? undefined,
     startDate: row.start_date ?? undefined,
     renewalDate: row.next_renewal_date ?? undefined,
@@ -86,12 +86,14 @@ export const insertSubscription = (input: NewSubscription): Subscription => {
   const timestamp = nowIso();
   const billingCycle = input.billingCycle ?? "monthly";
 
+  // The `currency` column is retained in the schema (dormant, defaults to
+  // 'USD') but not written: all amounts use the single app-wide base currency.
   getDatabase().runSync(
     `INSERT INTO subscriptions (
       id, name, color, plan, category, payment_method, notes,
-      status, price, currency, billing_cycle, custom_interval_days,
-      is_trial, date_assumed, confirmed_through, trial_end_date, start_date,
-      next_renewal_date, created_at, updated_at
+      status, price, billing_cycle, custom_interval_days,
+      is_trial, date_assumed, confirmed_through, duplicate_acknowledged,
+      trial_end_date, start_date, next_renewal_date, created_at, updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
@@ -103,12 +105,12 @@ export const insertSubscription = (input: NewSubscription): Subscription => {
       input.notes ?? null,
       input.status ?? "active",
       input.price,
-      input.currency ?? "USD",
       billingCycle,
       input.customIntervalDays ?? null,
       input.isTrial ? 1 : 0,
       input.dateAssumed ? 1 : 0,
       input.confirmedThrough ?? null,
+      input.duplicateAcknowledged ? 1 : 0,
       input.trialEndDate ?? null,
       input.startDate ?? null,
       input.renewalDate ?? null,
@@ -130,12 +132,12 @@ const PATCH_COLUMNS: Record<string, string> = {
   notes: "notes",
   status: "status",
   price: "price",
-  currency: "currency",
   billingCycle: "billing_cycle",
   customIntervalDays: "custom_interval_days",
   isTrial: "is_trial",
   dateAssumed: "date_assumed",
   confirmedThrough: "confirmed_through",
+  duplicateAcknowledged: "duplicate_acknowledged",
   trialEndDate: "trial_end_date",
   startDate: "start_date",
   renewalDate: "next_renewal_date",
@@ -154,7 +156,11 @@ export const updateSubscription = (
     if (!(key in patch)) continue;
     const raw = (patch as Record<string, unknown>)[key];
     assignments.push(`${column} = ?`);
-    if (key === "isTrial" || key === "dateAssumed") {
+    if (
+      key === "isTrial" ||
+      key === "dateAssumed" ||
+      key === "duplicateAcknowledged"
+    ) {
       values.push(raw ? 1 : 0);
     } else {
       values.push((raw as string | number | null | undefined) ?? null);

@@ -68,4 +68,14 @@ export const MIGRATIONS: Migration[] = [
       ADD COLUMN confirmed_through TEXT;
     `,
   },
+  {
+    // Set when the user confirms a same-name sub is intentional (a partner's /
+    // child's), so we stop flagging it as a possible duplicate. Additive;
+    // existing rows default to 0 (still eligible for duplicate flagging).
+    version: 4,
+    sql: `
+      ALTER TABLE subscriptions
+      ADD COLUMN duplicate_acknowledged INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ];

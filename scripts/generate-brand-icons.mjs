@@ -80,6 +80,74 @@ const SIMPLE_WANT = [
   { slug: "skillshare" },
   { slug: "icloud", keywords: ["apple icloud", "icloud+"] },
   { slug: "google" },
+
+  // --- Health & fitness -----------------------------------------------------
+  { slug: "peloton", keywords: ["peloton app"] },
+  { slug: "strava" },
+  { slug: "fitbit", keywords: ["fitbit premium"] },
+  { slug: "headspace" },
+
+  // --- Food & delivery ------------------------------------------------------
+  { slug: "hellofresh", keywords: ["hello fresh", "meal kit"] },
+  { slug: "doordash", keywords: ["dashpass", "door dash"] },
+  { slug: "ubereats", keywords: ["uber one", "uber eats"] },
+  { slug: "deliveroo", keywords: ["deliveroo plus"] },
+  { slug: "instacart", keywords: ["instacart+"] },
+  { slug: "justeat", keywords: ["just eat"] },
+  { slug: "zomato", keywords: ["zomato gold"] },
+  { slug: "swiggy", keywords: ["swiggy one"] },
+
+  // --- Shopping / household -------------------------------------------------
+  { slug: "target", keywords: ["target circle", "circle 360"] },
+
+  // --- More streaming (that still ship a logo) ------------------------------
+  { slug: "appletv", keywords: ["apple tv", "apple tv+", "apple tv plus"] },
+  { slug: "plex", keywords: ["plex pass"] },
+  { slug: "mubi" },
+  { slug: "fubo", keywords: ["fubotv", "fubo tv"] },
+
+  // --- News & reading -------------------------------------------------------
+  { slug: "newyorktimes", keywords: ["nyt", "ny times", "new york times"] },
+  { slug: "theguardian", keywords: ["guardian"] },
+
+  // --- More music -----------------------------------------------------------
+  { slug: "pandora" },
+  { slug: "iheartradio", keywords: ["iheart", "iheart radio"] },
+
+  // --- Cloud & security -----------------------------------------------------
+  { slug: "lastpass", keywords: ["last pass"] },
+  { slug: "bitwarden" },
+  { slug: "backblaze" },
+  { slug: "mega" },
+  { slug: "surfshark", keywords: ["surf shark", "vpn"] },
+  { slug: "mullvad", keywords: ["mullvad vpn"] },
+  { slug: "box", keywords: ["box.com"] },
+  { slug: "proton", keywords: ["proton mail", "proton drive", "proton unlimited"] },
+
+  // --- Gaming ---------------------------------------------------------------
+  { slug: "ea", keywords: ["ea play", "ea sports"] },
+  { slug: "ubisoft", keywords: ["ubisoft+", "ubisoft plus"] },
+  { slug: "nvidia", keywords: ["geforce now", "geforce"] },
+  { slug: "humblebundle", keywords: ["humble choice", "humble bundle"] },
+
+  // --- Bills / phone / internet ---------------------------------------------
+  { slug: "verizon" },
+  { slug: "vodafone" },
+  { slug: "o2" },
+  { slug: "spectrum" },
+
+  // --- Cloud & hosting infra (dev/freelancer wedge) -------------------------
+  { slug: "googlecloud", keywords: ["gcp", "google cloud platform"] },
+  { slug: "hostinger" },
+  { slug: "namecheap" },
+  { slug: "godaddy" },
+  { slug: "vultr" },
+  { slug: "render" },
+  { slug: "railway" },
+  { slug: "supabase" },
+  { slug: "firebase" },
+  { slug: "mongodb", keywords: ["mongodb atlas", "atlas"] },
+  { slug: "planetscale" },
 ];
 
 // --- Lobe: AI-tool brands (mono SVG, no brand hex → name-derived tile) -------
@@ -103,7 +171,48 @@ const LOBE_WANT = [
   { slug: "pika" },
   { slug: "flux" },
   { slug: "kling" },
+  // Cloud providers simple-icons dropped (trademark) — Lobe still ships them.
+  { slug: "aws", keywords: ["amazon web services"] },
+  { slug: "azure", keywords: ["microsoft azure"] },
 ];
+
+// --- Lucide: generic category glyphs + logo-less big brands -----------------
+// Outline glyphs (currentColor) for day-to-day categories with no brand, and a
+// themed stand-in for big brands neither source ships a logo for (this
+// release). hex is the tile colour; keywords stay specific to avoid greedy
+// substring matches in the name resolver.
+const LUCIDE_DIR = join(
+  here,
+  "..",
+  "node_modules",
+  "lucide-static",
+  "icons",
+);
+
+const GLYPH_WANT = [
+  // Generic day-to-day categories (no brand identity)
+  { icon: "house", title: "Rent / Housing", hex: "E0952F", keywords: ["rent", "mortgage", "housing"] },
+  { icon: "zap", title: "Utilities", hex: "F4B860", keywords: ["utilities", "utility bill", "electricity", "energy bill"] },
+  { icon: "smartphone", title: "Mobile / Phone", hex: "7DA7F4", keywords: ["mobile plan", "phone plan", "cell plan", "carrier"] },
+  { icon: "wifi", title: "Internet", hex: "5AC8C8", keywords: ["internet", "broadband", "home wifi", "fibre plan"] },
+  { icon: "shield-check", title: "Insurance", hex: "16A34A", keywords: ["insurance", "policy"] },
+  { icon: "dumbbell", title: "Gym", hex: "EA7A53", keywords: ["gym", "fitness membership", "workout"] },
+  { icon: "bus", title: "Transport", hex: "C58AF9", keywords: ["transport pass", "commute", "transit", "metro card"] },
+  { icon: "tv", title: "Streaming", hex: "F78FB3", keywords: ["streaming"] },
+  // Big brands neither simple-icons nor Lobe ships a logo for — themed glyph.
+  { icon: "clapperboard", title: "Disney+", hex: "113CCF", keywords: ["disney", "disney plus", "disney+"] },
+  { icon: "clapperboard", title: "Hulu", hex: "1CE783", keywords: ["hulu"] },
+  { icon: "clapperboard", title: "Prime Video", hex: "00A8E1", keywords: ["prime video", "amazon prime video"] },
+  { icon: "tv", title: "Peacock", hex: "05A18F", keywords: ["peacock"] },
+  { icon: "palette", title: "Canva", hex: "00C4CC", keywords: ["canva"] },
+  { icon: "palette", title: "Adobe", hex: "FA0F00", keywords: ["adobe", "creative cloud", "photoshop"] },
+  { icon: "gamepad-2", title: "Xbox", hex: "107C10", keywords: ["xbox", "game pass"] },
+  { icon: "gamepad-2", title: "Nintendo Switch", hex: "E60012", keywords: ["nintendo", "switch online"] },
+  { icon: "package", title: "Amazon Prime", hex: "FF9900", keywords: ["amazon prime"] },
+];
+
+const slugify = (s) =>
+  s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 const bySlug = {};
 for (const value of Object.values(si)) {
@@ -148,6 +257,28 @@ for (const want of LOBE_WANT) {
     hex: null,
     svg,
     keywords: buildKeywords(title, want.slug, want.keywords),
+  });
+}
+
+for (const want of GLYPH_WANT) {
+  let raw;
+  try {
+    raw = readFileSync(join(LUCIDE_DIR, `${want.icon}.svg`), "utf8");
+  } catch {
+    missing.push(`lucide:${want.icon}`);
+    continue;
+  }
+  // Drop the license comment and collapse whitespace to a single-line SVG.
+  const svg = raw
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  entries.push({
+    slug: `glyph-${slugify(want.title)}`,
+    title: want.title,
+    hex: want.hex,
+    svg,
+    keywords: buildKeywords(want.title, `glyph-${want.icon}`, want.keywords),
   });
 }
 

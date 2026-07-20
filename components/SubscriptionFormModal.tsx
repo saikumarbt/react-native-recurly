@@ -1,7 +1,6 @@
-import PickerSheet, { type PickerItem } from "@/components/PickerSheet";
+import BrandPickerSheet from "@/components/BrandPickerSheet";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
-import { BRAND_ICONS } from "@/constants/brandIcons";
-import { useCurrency } from "@/context/CurrencyContext";
+import { ONBOARDING_CATEGORY_ORDER } from "@/constants/onboardingBrands";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
 import {
@@ -28,35 +27,27 @@ import {
   View,
 } from "react-native";
 
-const CATEGORIES = [
-  "Entertainment",
-  "AI Tools",
-  "Developer Tools",
-  "Design",
-  "Productivity",
-  "Cloud",
-  "Music",
-  "Other",
-] as const;
+// Same category taxonomy (and order) as the onboarding picker, for uniformity.
+const CATEGORIES = ONBOARDING_CATEGORY_ORDER;
 
 const CATEGORY_COLORS: Record<string, string> = {
   Entertainment: "#f5c542",
+  Gaming: "#d8c7f0",
+  Music: "#f5d5b8",
   "AI Tools": "#b8d4e3",
+  Productivity: "#b8e8d0",
   "Developer Tools": "#e8def8",
   Design: "#f7c8d0",
-  Productivity: "#b8e8d0",
+  "Health & Fitness": "#f6c3b0",
+  "Food & Delivery": "#c3ecc9",
+  "News & Reading": "#cfe0f5",
+  Shopping: "#f0d8b0",
   Cloud: "#c8d8f0",
-  Music: "#f5d5b8",
+  "Bills & Utilities": "#f6e0b0",
   Other: "#e5e0d0",
 };
 
 const DEFAULT_COLOR = "#e8def8";
-
-const BRAND_ITEMS: PickerItem[] = BRAND_ICONS.map((brand) => ({
-  value: brand.title,
-  label: brand.title,
-  keywords: brand.keywords.join(" "),
-}));
 
 const SubscriptionFormModal = ({
   visible,
@@ -66,7 +57,6 @@ const SubscriptionFormModal = ({
   highlightDate,
 }: SubscriptionFormModalProps) => {
   const isEdit = !!subscription;
-  const { baseCurrency } = useCurrency();
   const { subscriptions } = useSubscriptions();
 
   const [name, setName] = useState("");
@@ -150,10 +140,16 @@ const SubscriptionFormModal = ({
     customIntervalDays,
   );
 
-  const commit = () => {
+  const commit = (acknowledgeDuplicate = false) => {
     const startIso = startDate.toISOString();
+    const trialEndIso = isTrial
+      ? dayjs().add(parsedTrialDays, "day").toISOString()
+      : undefined;
+    // The first charge lands at the trial end (conversion) for a trial,
+    // otherwise at the start date — so the renewal we track is that date, not
+    // start + one cycle.
     const nextRenewal = resolveNextRenewal(
-      startIso,
+      trialEndIso ?? startIso,
       billingCycle,
       customIntervalDays,
     );
@@ -161,7 +157,6 @@ const SubscriptionFormModal = ({
     const draft: SubscriptionDraft = {
       name: trimmedName,
       price: parsedPrice,
-      currency: baseCurrency,
       paymentMethod: paymentMethod.trim() || undefined,
       billingCycle,
       customIntervalDays,
@@ -173,15 +168,30 @@ const SubscriptionFormModal = ({
       // The user picked/confirmed the date here, so it's no longer an
       // assumption — clears any quick-add nudge flag.
       dateAssumed: false,
-      // Re-anchor the renewal check-in to the confirmed first-payment date, so
-      // charges due since then surface as "did it renew?".
-      confirmedThrough: startIso,
+      // Non-trial: the start is the confirmed first payment, so charges due
+      // since then surface as "did it renew?". Trial: nothing is charged yet —
+      // leave it unset until the user confirms the trial converted.
+      confirmedThrough: isTrial ? undefined : startIso,
       isTrial,
-      trialEndDate: isTrial
-        ? dayjs().add(parsedTrialDays, "day").toISOString()
-        : undefined,
+      trialEndDate: trialEndIso,
       color: category ? CATEGORY_COLORS[category] : DEFAULT_COLOR,
     };
+
+    // "Add it anyway" past the duplicate warning = an explicit decision, so mark
+    // it acknowledged (never re-flagged as a duplicate). Only set on that path
+    // so normal adds/edits don't disturb an existing flag.
+    if (acknowledgeDuplicate) {
+      draft.duplicateAcknowledged = true;
+    } else if (
+      isEdit &&
+      subscription &&
+      normalizeName(subscription.name) !== normalizeName(trimmedName)
+    ) {
+      // A prior acknowledgement was granted for the old name. Renaming may
+      // collide with a different sub, so clear it and let the new name be
+      // re-evaluated for duplicates.
+      draft.duplicateAcknowledged = false;
+    }
 
     onSubmit(draft);
     // Edits close immediately; a new add offers "add another" to keep momentum.
@@ -263,25 +273,26 @@ const SubscriptionFormModal = ({
                   You already track {trimmedName}
                 </Text>
                 <Text className="auth-helper text-center">
-                  Some people have more than one — a partner&apos;s or a
-                  child&apos;s, say. Add another anyway? Tip: rename it (e.g.
-                  “{trimmedName} for Sally”) so you can tell them apart.
+                  If this one&apos;s meant to be separate — a different plan or
+                  account — rename it (e.g. “{trimmedName} – work”) so they&apos;re
+                  easy to tell apart. Or add it anyway — we won&apos;t flag it
+                  again.
                 </Text>
                 <Pressable
                   className="auth-button w-full"
-                  onPress={() => {
-                    setShowDuplicatePrompt(false);
-                    commit();
-                  }}
+                  onPress={() => setShowDuplicatePrompt(false)}
                 >
-                  <Text className="auth-button-text">Add anyway</Text>
+                  <Text className="auth-button-text">Rename it</Text>
                 </Pressable>
                 <Pressable
                   className="items-center py-2"
-                  onPress={() => setShowDuplicatePrompt(false)}
+                  onPress={() => {
+                    setShowDuplicatePrompt(false);
+                    commit(true);
+                  }}
                 >
                   <Text className="text-sm font-sans-semibold text-muted-foreground">
-                    Go back &amp; rename
+                    Add it anyway
                   </Text>
                 </Pressable>
               </View>
@@ -540,15 +551,11 @@ const SubscriptionFormModal = ({
         </View>
       </KeyboardAvoidingView>
 
-      <PickerSheet
+      <BrandPickerSheet
         visible={showBrandPicker}
-        title="Choose brand"
-        items={BRAND_ITEMS}
         selected={trimmedName}
-        placeholder="Search brands"
         onSelect={setName}
         onClose={() => setShowBrandPicker(false)}
-        renderLeading={(item) => <SubscriptionIcon name={item.value} size={36} />}
       />
     </Modal>
   );

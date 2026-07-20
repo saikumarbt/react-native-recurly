@@ -1,5 +1,7 @@
 import {
   addInterval,
+  countsTowardSpend,
+  firstChargeDate,
   getCycleLabel,
   getDaysUntilRenewal,
   getMonthlyEquivalent,
@@ -8,8 +10,19 @@ import {
   pendingRenewal,
   reconcileConfirmedThrough,
   resolveNextRenewal,
+  trialPendingConversion,
 } from "@/lib/billing";
 import dayjs from "dayjs";
+
+const sub = (overrides: Partial<Subscription> = {}): Subscription => ({
+  id: "s1",
+  name: "Uber One",
+  price: 9.99,
+  billing: "Monthly",
+  billingCycle: "monthly",
+  status: "active",
+  ...overrides,
+});
 
 describe("normalizeBillingCycle", () => {
   it("maps legacy labels", () => {
@@ -287,5 +300,46 @@ describe("getCycleLabel", () => {
     expect(getCycleLabel("monthly")).toBe("Monthly");
     expect(getCycleLabel("annual")).toBe("Annual");
     expect(getCycleLabel("custom", 45)).toBe("Every 45 days");
+  });
+});
+
+describe("trial helpers", () => {
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-07-16T12:00:00Z"));
+  });
+  afterEach(() => jest.useRealTimers());
+
+  it("firstChargeDate uses trial end for a trial, else the start date", () => {
+    expect(
+      firstChargeDate(
+        sub({ isTrial: true, trialEndDate: "2026-07-23T00:00:00.000Z", startDate: "2026-07-16T00:00:00.000Z" }),
+      ),
+    ).toBe("2026-07-23T00:00:00.000Z");
+    expect(
+      firstChargeDate(sub({ isTrial: false, startDate: "2026-07-16T00:00:00.000Z" })),
+    ).toBe("2026-07-16T00:00:00.000Z");
+  });
+
+  it("trialPendingConversion is true only once the trial end has arrived", () => {
+    // ends in a week → still running.
+    expect(
+      trialPendingConversion(sub({ isTrial: true, trialEndDate: "2026-07-23T00:00:00.000Z" })),
+    ).toBe(false);
+    // ended today / in the past → needs a decision.
+    expect(
+      trialPendingConversion(sub({ isTrial: true, trialEndDate: "2026-07-16T00:00:00.000Z" })),
+    ).toBe(true);
+    expect(
+      trialPendingConversion(sub({ isTrial: true, trialEndDate: "2026-07-10T00:00:00.000Z" })),
+    ).toBe(true);
+    // not a trial → never pending.
+    expect(trialPendingConversion(sub({ isTrial: false }))).toBe(false);
+  });
+
+  it("countsTowardSpend excludes trials and inactive subs", () => {
+    expect(countsTowardSpend(sub({ isTrial: false, status: "active" }))).toBe(true);
+    expect(countsTowardSpend(sub({ isTrial: true, status: "active" }))).toBe(false);
+    expect(countsTowardSpend(sub({ isTrial: false, status: "paused" }))).toBe(false);
+    expect(countsTowardSpend(sub({ isTrial: false, status: "cancelled" }))).toBe(false);
   });
 });

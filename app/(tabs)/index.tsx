@@ -2,6 +2,7 @@ import AnimatedCounter from "@/components/AnimatedCounter";
 import { FadeInUp, PressableScale } from "@/components/motion";
 import PulsingDot from "@/components/PulsingDot";
 import ListHeading from "@/components/ListHeading";
+import SubscriptionIcon from "@/components/SubscriptionIcon";
 import SubscriptionFormModal from "@/components/SubscriptionFormModal";
 import UpcomingSubscriptionCard from "@/components/UpcomingSubscriptionCard";
 import { icons } from "@/constants/icons";
@@ -22,7 +23,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useClerk, useUser } from "@clerk/expo";
 import { styled } from "nativewind";
 import { usePostHog } from "posthog-react-native";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Animated,
   FlatList,
@@ -32,7 +33,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 const SafeAreaView = styled(RNSafeAreaView) as any;
@@ -40,7 +41,15 @@ const SafeAreaView = styled(RNSafeAreaView) as any;
 export default function App() {
   const { user, isSignedIn } = useUser();
   const { signOut } = useClerk();
-  const { subscriptions, addSubscription } = useSubscriptions();
+  const { subscriptions, addSubscription, refresh } = useSubscriptions();
+
+  // Re-pull from the DB whenever Home regains focus, so nudge counts reflect
+  // actions taken on the detail screen (confirm renewal, delete duplicate, etc).
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
   const { baseCurrency } = useCurrency();
   const posthog = usePostHog();
   const router = useRouter();
@@ -114,18 +123,22 @@ export default function App() {
 
   // Real monthly outflow across mixed billing cycles (annual/quarterly/etc.
   // are normalized to a per-month average, so the total reflects everything).
+  // Free trials cost nothing until they convert, so they don't count toward
+  // current spend (they surface as a conversion check-in instead).
   const monthlyTotal = useMemo(
     () =>
-      activeSubscriptions.reduce(
-        (total, sub) =>
-          total +
-          getMonthlyEquivalent(
-            sub.price,
-            sub.billingCycle ?? "monthly",
-            sub.customIntervalDays,
-          ),
-        0,
-      ),
+      activeSubscriptions
+        .filter((sub) => !sub.isTrial)
+        .reduce(
+          (total, sub) =>
+            total +
+            getMonthlyEquivalent(
+              sub.price,
+              sub.billingCycle ?? "monthly",
+              sub.customIntervalDays,
+            ),
+          0,
+        ),
     [activeSubscriptions],
   );
   const yearlyTotal = monthlyTotal * 12;
@@ -137,7 +150,6 @@ export default function App() {
           id: subscription.id,
           name: subscription.name,
           price: subscription.price,
-          currency: subscription.currency,
           daysLeft:
             getDaysUntilRenewal(
               subscription.renewalDate ?? subscription.startDate,
@@ -367,23 +379,42 @@ export default function App() {
                 </Text>
               </View>
             ) : (
-              <Pressable
-                onPress={() => router.push("/subscriptions")}
-                className="flex-row items-center justify-between rounded-2xl border border-border bg-card p-4"
-              >
-                <View>
-                  <Text className="text-base font-sans-semibold text-primary">
-                    Your subscriptions
-                  </Text>
-                  <Text className="mt-0.5 text-sm font-sans-medium text-muted-foreground">
-                    {activeSubscriptions.length} active · {subscriptions.length}{" "}
-                    total
+              <PressableScale onPress={() => router.push("/subscriptions")}>
+                <View className="flex-row items-center justify-between rounded-2xl border border-border bg-card p-4">
+                  <View className="min-w-0 flex-1 flex-row items-center gap-3">
+                    <View className="flex-row">
+                      {activeSubscriptions.slice(0, 4).map((sub, i) => (
+                        <View
+                          key={sub.id}
+                          className="border-card"
+                          style={{
+                            marginLeft: i === 0 ? 0 : -12,
+                            borderRadius: 12,
+                            borderWidth: 2,
+                          }}
+                        >
+                          <SubscriptionIcon name={sub.name} size={36} />
+                        </View>
+                      ))}
+                    </View>
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-base font-sans-semibold text-primary">
+                        Your subscriptions
+                      </Text>
+                      <Text
+                        numberOfLines={1}
+                        className="mt-0.5 text-sm font-sans-medium text-muted-foreground"
+                      >
+                        {activeSubscriptions.length} active ·{" "}
+                        {subscriptions.length} total
+                      </Text>
+                    </View>
+                  </View>
+                  <Text className="ml-2 text-2xl font-sans-medium text-muted-foreground">
+                    ›
                   </Text>
                 </View>
-                <Text className="text-2xl font-sans-medium text-muted-foreground">
-                  ›
-                </Text>
-              </Pressable>
+              </PressableScale>
             )}
       </ScrollView>
 

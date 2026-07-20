@@ -48,7 +48,14 @@ describe("MIGRATIONS list", () => {
   it("adds the confirmed_through column at v3", () => {
     const v3 = MIGRATIONS.find((m) => m.version === 3);
     expect(v3?.sql).toMatch(/confirmed_through/);
-    expect(latest).toBe(3);
+  });
+
+  it("adds the duplicate_acknowledged column at v4", () => {
+    const v4 = MIGRATIONS.find((m) => m.version === 4);
+    // Full column shape: a boolean-as-INTEGER that defaults to 0 so existing
+    // rows are non-acknowledged (still eligible for duplicate flagging).
+    expect(v4?.sql).toMatch(/duplicate_acknowledged\s+INTEGER\s+NOT NULL\s+DEFAULT 0/);
+    expect(latest).toBe(4);
   });
 });
 
@@ -90,12 +97,12 @@ describe("rowToSubscription date_assumed mapping", () => {
     notes: null,
     status: "active",
     price: 15.49,
-    currency: "USD",
     billing_cycle: "monthly",
     custom_interval_days: null,
     is_trial: 0,
     date_assumed: 0,
     confirmed_through: null,
+    duplicate_acknowledged: 0,
     trial_end_date: null,
     start_date: null,
     next_renewal_date: null,
@@ -111,5 +118,13 @@ describe("rowToSubscription date_assumed mapping", () => {
     expect(rowToSubscription({ ...baseRow, date_assumed: 1 }).dateAssumed).toBe(
       true,
     );
+  });
+
+  it("maps duplicate_acknowledged 0 -> false and 1 -> true", () => {
+    expect(rowToSubscription(baseRow).duplicateAcknowledged).toBe(false);
+    expect(
+      rowToSubscription({ ...baseRow, duplicate_acknowledged: 1 })
+        .duplicateAcknowledged,
+    ).toBe(true);
   });
 });

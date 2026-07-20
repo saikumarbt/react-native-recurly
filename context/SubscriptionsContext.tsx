@@ -34,6 +34,8 @@ interface SubscriptionsContextValue {
   resumeSubscription: (id: string) => Subscription | null;
   cancelSubscription: (id: string) => Subscription | null;
   getSubscription: (id: string) => Subscription | undefined;
+  /** Re-read all subscriptions from the DB (e.g. on screen focus). */
+  refresh: () => void;
   /** Wipes all subscriptions from the device (delete-all / dev reset). */
   clearAllData: () => void;
 }
@@ -66,6 +68,9 @@ export const SubscriptionsProvider = ({
     let changed = false;
     for (const s of current) {
       if (s.status !== "active") continue;
+      // Trials aren't charged until they convert — don't auto-assume renewals;
+      // the in-app trial check-in resolves them instead.
+      if (s.isTrial) continue;
       const advanced = reconcileConfirmedThrough(
         s.startDate,
         s.billingCycle ?? "monthly",
@@ -190,6 +195,7 @@ export const SubscriptionsProvider = ({
       resumeSubscription,
       cancelSubscription,
       getSubscription,
+      refresh,
       clearAllData,
     }),
     [
@@ -202,6 +208,7 @@ export const SubscriptionsProvider = ({
       resumeSubscription,
       cancelSubscription,
       getSubscription,
+      refresh,
       clearAllData,
     ],
   );

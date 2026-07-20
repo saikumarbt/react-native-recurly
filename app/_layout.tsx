@@ -1,11 +1,13 @@
 import "@/global.css";
+import { icons } from "@/constants/icons";
+import { Asset } from "expo-asset";
 import { useFonts } from "expo-font";
 import * as Notifications from "expo-notifications";
 import { SplashScreen, Stack, useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-import { ClerkProvider, useAuth, useUser } from "@clerk/expo";
+import { ClerkProvider, useUser } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { PostHogProvider, usePostHog } from "posthog-react-native";
 
@@ -63,19 +65,20 @@ function PostHogUserIdentifier() {
 }
 
 function RootLayoutContent() {
-  const { isLoaded: authLoaded } = useAuth();
   const router = useRouter();
 
-  // Tapping a reminder deep-links to that subscription. Only the live listener
-  // (fires while the app is running, navigator mounted) — navigation is
-  // deferred a tick so we never push before the router is ready.
+  // Tapping a reminder deep-links to that subscription. The response can arrive
+  // before the navigator is mounted (a cold start launched by the tap), so we
+  // buffer the route and flush it once `ready` — never push before the router
+  // has a mounted navigator.
+  const [pendingSubId, setPendingSubId] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
     const sub = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         const id = response?.notification.request.content.data?.subscriptionId;
         if (active && typeof id === "string") {
-          setTimeout(() => router.push(`/subscriptions/${id}`), 0);
+          setPendingSubId(id);
         }
       },
     );
@@ -83,7 +86,7 @@ function RootLayoutContent() {
       active = false;
       sub.remove();
     };
-  }, [router]);
+  }, []);
 
   const [fontsLoaded, fontError] = useFonts({
     "sans-regular": require("../assets/fonts/PlusJakartaSans-Regular.ttf"),
@@ -94,16 +97,39 @@ function RootLayoutContent() {
     "sans-light": require("../assets/fonts/PlusJakartaSans-Light.ttf"),
   });
 
+  // Preload the tab-bar icons so the whole bar paints at once. Otherwise the
+  // white glyphs decode a frame after the navy bar, and only the active Home
+  // pill shows first — a visible "pop-in" of the rest of the menu.
+  const [iconsLoaded, setIconsLoaded] = useState(false);
+  useEffect(() => {
+    Asset.loadAsync(Object.values(icons))
+      .catch(() => {})
+      .finally(() => setIconsLoaded(true));
+  }, []);
+
+  const ready = fontsLoaded && iconsLoaded;
+
   useEffect(() => {
     if (fontError) {
       throw fontError;
     }
-    if (fontsLoaded && authLoaded) {
+    // Guest-first: reveal the UI as soon as fonts + tab icons are ready — don't
+    // wait on Clerk auth (it resolves in the background; screens show the guest
+    // state and update when it loads). Avoids a visible startup delay.
+    if (ready) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError, authLoaded]);
+  }, [ready, fontError]);
 
-  if (!fontsLoaded) {
+  // Flush a buffered notification deep-link once the navigator is mounted.
+  useEffect(() => {
+    if (ready && pendingSubId) {
+      router.push(`/subscriptions/${pendingSubId}`);
+      setPendingSubId(null);
+    }
+  }, [ready, pendingSubId, router]);
+
+  if (!ready) {
     return null;
   }
 

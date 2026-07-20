@@ -42,13 +42,17 @@ export const buildReminders = (
 
   const reminders: PlannedReminder[] = [];
   const price = formatCurrency(sub.price, baseCurrency);
+  const onTrial = !!sub.isTrial && !!sub.trialEndDate;
 
   const nextRenewal = getNextRenewal(
     sub.renewalDate ?? sub.startDate,
     sub.billingCycle ?? "monthly",
     sub.customIntervalDays,
   );
-  if (nextRenewal) {
+  // During a free trial we rely on the trial reminders below (T-2/T-0) and the
+  // in-app conversion check-in, not the generic renewal reminders — otherwise
+  // both would cluster around the same trial-end date.
+  if (nextRenewal && !onTrial) {
     for (const lead of RENEWAL_LEAD_DAYS) {
       const fireAt = atReminderHour(nextRenewal.subtract(lead, "day"));
       if (fireAt.isAfter(now)) {
@@ -76,7 +80,7 @@ export const buildReminders = (
     }
   }
 
-  if (sub.isTrial && sub.trialEndDate) {
+  if (onTrial) {
     const trialEnd = dayjs(sub.trialEndDate);
     if (trialEnd.isValid()) {
       for (const lead of TRIAL_LEAD_DAYS) {
@@ -86,8 +90,14 @@ export const buildReminders = (
             id: `${sub.id}::trial_${lead}`,
             date: fireAt.toDate(),
             subscriptionId: sub.id,
-            title: `${sub.name} trial ends ${leadLabel(lead)}`,
-            body: `Cancel before you're charged ${price}.`,
+            title:
+              lead <= 0
+                ? `${sub.name} trial ends today`
+                : `${sub.name} trial ends ${leadLabel(lead)}`,
+            body:
+              lead <= 0
+                ? `Keep it (you'll be charged ${price}) or cancel — confirm in the app.`
+                : `Cancel before you're charged ${price}.`,
           });
         }
       }

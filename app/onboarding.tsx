@@ -7,7 +7,10 @@ import PickerSheet, { type PickerItem } from "@/components/PickerSheet";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
 import logoGlow from "@/assets/images/logo-glow.png";
 import { CURRENCY_CODES, currencyName } from "@/constants/currencies";
-import { ONBOARDING_BRANDS } from "@/constants/onboardingBrands";
+import {
+  ONBOARDING_BRANDS,
+  groupOnboardingBrands,
+} from "@/constants/onboardingBrands";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import "@/global.css";
@@ -26,7 +29,7 @@ import dayjs from "dayjs";
 import { useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { usePostHog } from "posthog-react-native";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -139,8 +142,17 @@ const Onboarding = () => {
   const [addedCount, setAddedCount] = useState(0);
   const [celebrateTotal, setCelebrateTotal] = useState(0);
   const [analyzeLine, setAnalyzeLine] = useState(0);
+  const [brandQuery, setBrandQuery] = useState("");
 
   const cycleFor = (title: string): BillingCycle => cycles[title] ?? "monthly";
+
+  // Brands grouped under category headings (ordered), filtered by the search
+  // box — so the picker reads as tidy sections instead of one long wall. Shared
+  // with the add-subscription sheet via groupOnboardingBrands.
+  const brandGroups = useMemo(
+    () => groupOnboardingBrands(brandQuery),
+    [brandQuery],
+  );
 
   // The "analyzing" anticipation beat: cycle lines, then reveal the celebration.
   useEffect(() => {
@@ -224,7 +236,6 @@ const Onboarding = () => {
       addSubscription({
         name: brand.title,
         price,
-        currency: baseCurrency,
         billingCycle: cycle,
         category: brand.category,
         status: "active",
@@ -374,32 +385,63 @@ const Onboarding = () => {
             contentContainerClassName="gap-4 p-6"
           >
             <GuideBubble text="Tap everything you pay for." />
-            <View className="flex-row flex-wrap justify-between gap-y-4">
-              {ONBOARDING_BRANDS.map((brand) => {
-                const active = !!selected[brand.title];
-                return (
-                  <Pressable
-                    key={brand.title}
-                    onPress={() => toggleBrand(brand.title)}
-                    style={{ width: "31%" }}
-                    className={clsx(
-                      "items-center gap-2 rounded-2xl border p-3",
-                      active
-                        ? "border-accent bg-accent/10"
-                        : "border-border bg-card",
-                    )}
-                  >
-                    <SubscriptionIcon name={brand.title} size={44} />
-                    <Text
-                      numberOfLines={1}
-                      className="text-xs font-sans-semibold text-primary"
-                    >
-                      {brand.title}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            <TextInput
+              value={brandQuery}
+              onChangeText={setBrandQuery}
+              placeholder="Search subscriptions"
+              placeholderTextColor="rgba(0, 0, 0, 0.6)"
+              autoCapitalize="none"
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+              className="rounded-2xl border border-border bg-card px-4 py-3 font-sans-medium text-base text-primary"
+            />
+            {brandGroups.length === 0 ? (
+              <Text className="home-empty-state">
+                No matches. Try another name — you can add it manually later.
+              </Text>
+            ) : (
+              brandGroups.map(({ category, brands }) => (
+                <View key={category} className="gap-3">
+                  <Text className="text-sm font-sans-bold uppercase tracking-[1px] text-muted-foreground">
+                    {category}
+                  </Text>
+                  <View className="flex-row flex-wrap justify-between gap-y-4">
+                    {brands.map((brand) => {
+                      const active = !!selected[brand.title];
+                      return (
+                        <Pressable
+                          key={brand.title}
+                          onPress={() => toggleBrand(brand.title)}
+                          style={{ width: "31%" }}
+                          className={clsx(
+                            "items-center gap-2 rounded-2xl border p-3",
+                            active
+                              ? "border-accent bg-accent/10"
+                              : "border-border bg-card",
+                          )}
+                        >
+                          <SubscriptionIcon name={brand.title} size={44} />
+                          <Text
+                            numberOfLines={1}
+                            className="text-xs font-sans-semibold text-primary"
+                          >
+                            {brand.title}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                    {/* Keep the last row left-aligned when a group has 3n+1/3n+2
+                        tiles (space-between would otherwise stretch them). */}
+                    {brands.length % 3 !== 0 ? (
+                      <View style={{ width: "31%" }} />
+                    ) : null}
+                    {brands.length % 3 === 1 ? (
+                      <View style={{ width: "31%" }} />
+                    ) : null}
+                  </View>
+                </View>
+              ))
+            )}
             <PressableScale onPress={afterPick}>
               <View className="auth-button mt-2">
                 <Text className="auth-button-text">
