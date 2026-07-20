@@ -1,16 +1,79 @@
-export const colors = {
-  background: "#fff9e3",
-  foreground: "#081126",
-  card: "#fff8e7",
-  muted: "#f6eecf",
-  mutedForeground: "rgba(0, 0, 0, 0.6)",
-  primary: "#081126",
-  accent: "#ea7a53",
-  border: "rgba(0, 0, 0, 0.1)",
-  success: "#16a34a",
-  destructive: "#dc2626",
-  subscription: "#8fd1bd",
-} as const;
+// myrev design tokens — one violet system, two themes (Porcelain light,
+// Violet Midnight dark). `palettes` are plain JS colors for inline styles;
+// `themeVars` are the same values as CSS custom properties for NativeWind's
+// vars(), applied at the app root so every bg-*/text-* class swaps per theme.
+
+export type ThemeName = "light" | "dark";
+
+export const palettes = {
+  light: {
+    background: "#f4f2f9",
+    foreground: "#191427",
+    card: "#ffffff",
+    raised: "#ffffff",
+    muted: "#ece9f4",
+    mutedForeground: "rgba(25, 20, 39, 0.6)",
+    faint: "rgba(25, 20, 39, 0.5)",
+    primary: "#191427", // = foreground (text); bg-primary reads as inverse surface
+    accent: "#6e5be4",
+    accentPress: "#7e6dea",
+    onAccent: "#ffffff",
+    border: "rgba(30, 22, 54, 0.09)",
+    success: "#2fbf82",
+    warning: "#d98a1f",
+    destructive: "#e0525f",
+    info: "#4f7fe0",
+    subscription: "#efeafb",
+  },
+  dark: {
+    background: "#0f0d1a",
+    foreground: "#f3f1fb",
+    card: "#191627",
+    raised: "#221d34",
+    muted: "#221d34",
+    mutedForeground: "rgba(243, 241, 251, 0.62)",
+    faint: "rgba(243, 241, 251, 0.56)",
+    primary: "#f3f1fb",
+    accent: "#6e5be4",
+    accentPress: "#7e6dea",
+    onAccent: "#ffffff",
+    border: "rgba(255, 255, 255, 0.09)",
+    success: "#34d399",
+    warning: "#f5b860",
+    destructive: "#f47174",
+    info: "#7da7f4",
+    subscription: "#251f3a",
+  },
+} as const satisfies Record<ThemeName, Record<string, string>>;
+
+export type Palette = (typeof palettes)[ThemeName];
+
+/** CSS custom-property map for NativeWind vars(), derived from a palette. */
+export const themeVars = (name: ThemeName): Record<string, string> => {
+  const p = palettes[name];
+  return {
+    "--color-background": p.background,
+    "--color-foreground": p.foreground,
+    "--color-card": p.card,
+    "--color-raised": p.raised,
+    "--color-muted": p.muted,
+    "--color-muted-foreground": p.mutedForeground,
+    "--color-faint": p.faint,
+    "--color-primary": p.primary,
+    "--color-accent": p.accent,
+    "--color-accent-press": p.accentPress,
+    "--color-on-accent": p.onAccent,
+    "--color-border": p.border,
+    "--color-success": p.success,
+    "--color-warning": p.warning,
+    "--color-destructive": p.destructive,
+    "--color-info": p.info,
+    "--color-subscription": p.subscription,
+  };
+};
+
+/** Back-compat: default (light) palette for any remaining static import. */
+export const colors = palettes.light;
 
 export const spacing = {
   0: 0,
@@ -45,7 +108,7 @@ export const components = {
 } as const;
 
 export const theme = {
-  colors,
+  palettes,
   spacing,
   components,
 } as const;

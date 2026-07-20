@@ -1,5 +1,6 @@
 import { tabs } from "@/constants/data";
-import { colors, components } from "@/constants/theme";
+import { components } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { hasOnboarded } from "@/lib/onboarding";
 import { clsx } from "clsx";
 import { Redirect, Tabs } from "expo-router";
@@ -8,16 +9,27 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const tabBar = components.tabBar;
 
-const TabIcon = ({ focused, icon }: TabIconProps) => (
-  <View className="tabs-icon">
-    <View className={clsx("tabs-pill", focused && "tabs-active")}>
-      <Image source={icon} resizeMode="contain" className="tabs-glyph" />
+const TabIcon = ({ focused, icon }: TabIconProps) => {
+  const { palette } = useTheme();
+  // Glyph PNGs are single-colour with alpha, so tint them per theme/focus:
+  // on-accent white inside the active pill, muted otherwise.
+  return (
+    <View className="tabs-icon">
+      <View className={clsx("tabs-pill", focused && "tabs-active")}>
+        <Image
+          source={icon}
+          resizeMode="contain"
+          className="tabs-glyph"
+          tintColor={focused ? palette.onAccent : palette.mutedForeground}
+        />
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 const TabLayout = () => {
   const insets = useSafeAreaInsets();
+  const { palette } = useTheme();
 
   // Guest-first: no auth wall. Onboarding runs first for everyone; signing in
   // is optional (from Settings) and only needed later for Pro/backup.
@@ -36,8 +48,10 @@ const TabLayout = () => {
           height: tabBar.height,
           marginHorizontal: tabBar.horizontalInset,
           borderRadius: tabBar.radius,
-          backgroundColor: colors.primary,
-          borderTopWidth: 0,
+          backgroundColor: palette.raised,
+          borderWidth: 1,
+          borderColor: palette.border,
+          borderTopWidth: 1,
           elevation: 0,
         },
         tabBarItemStyle: {

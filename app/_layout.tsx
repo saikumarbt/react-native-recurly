@@ -11,8 +11,11 @@ import { ClerkProvider, useUser } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { PostHogProvider, usePostHog } from "posthog-react-native";
 
+import { View } from "react-native";
+
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { SubscriptionsProvider } from "@/context/SubscriptionsContext";
+import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { getKv } from "@/db/subscriptionsRepo";
 import { ANALYTICS_OPTOUT_KEY } from "@/lib/analytics";
 
@@ -66,6 +69,7 @@ function PostHogUserIdentifier() {
 
 function RootLayoutContent() {
   const router = useRouter();
+  const { palette, varStyle } = useTheme();
 
   // Tapping a reminder deep-links to that subscription. The response can arrive
   // before the navigator is mounted (a cold start launched by the tap), so we
@@ -134,17 +138,22 @@ function RootLayoutContent() {
   }
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        gestureEnabled: true,
-        animation: "slide_from_right",
-      }}
-    >
-      <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
-      <Stack.Screen name="onboarding" options={{ animation: "fade" }} />
-      <Stack.Screen name="subscriptions/[id]" />
-    </Stack>
+    // Apply the active theme's tokens at the app root via vars(); every
+    // bg-*/text-* class resolves to the current light/dark palette.
+    <View style={[{ flex: 1, backgroundColor: palette.background }, varStyle]}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          gestureEnabled: true,
+          animation: "slide_from_right",
+          contentStyle: { backgroundColor: palette.background },
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
+        <Stack.Screen name="onboarding" options={{ animation: "fade" }} />
+        <Stack.Screen name="subscriptions/[id]" />
+      </Stack>
+    </View>
   );
 }
 
@@ -175,7 +184,9 @@ export default function RootLayout() {
           <PostHogUserIdentifier />
           <CurrencyProvider>
             <SubscriptionsProvider>
-              <RootLayoutContent />
+              <ThemeProvider>
+                <RootLayoutContent />
+              </ThemeProvider>
             </SubscriptionsProvider>
           </CurrencyProvider>
         </ClerkProvider>

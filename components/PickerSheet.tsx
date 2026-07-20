@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext";
 import "@/global.css";
 import { useMemo, useState, type ReactNode } from "react";
 import {
@@ -43,6 +44,7 @@ const PickerSheet = ({
   renderLeading,
 }: PickerSheetProps) => {
   const [query, setQuery] = useState("");
+  const { varStyle } = useTheme();
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -70,7 +72,7 @@ const PickerSheet = ({
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <View className="modal-overlay">
+        <View className="modal-overlay" style={varStyle}>
           <Pressable
             className="absolute inset-0"
             onPress={handleClose}

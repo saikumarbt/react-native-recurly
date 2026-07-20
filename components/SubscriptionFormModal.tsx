@@ -2,6 +2,7 @@ import BrandPickerSheet from "@/components/BrandPickerSheet";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
 import { ONBOARDING_CATEGORY_ORDER } from "@/constants/onboardingBrands";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
+import { useTheme } from "@/context/ThemeContext";
 import "@/global.css";
 import {
   BILLING_CYCLE_KEYS,
@@ -58,6 +59,7 @@ const SubscriptionFormModal = ({
 }: SubscriptionFormModalProps) => {
   const isEdit = !!subscription;
   const { subscriptions } = useSubscriptions();
+  const { varStyle } = useTheme();
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
@@ -239,7 +241,7 @@ const SubscriptionFormModal = ({
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <View className="modal-overlay">
+        <View className="modal-overlay" style={varStyle}>
           {/* Tapping the dimmed area (incl. the exposed top strip) dismisses. */}
           <Pressable
             className="absolute inset-0"

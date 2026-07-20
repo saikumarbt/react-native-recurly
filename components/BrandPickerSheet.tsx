@@ -1,5 +1,6 @@
 import SubscriptionIcon from "@/components/SubscriptionIcon";
 import { groupOnboardingBrands } from "@/constants/onboardingBrands";
+import { useTheme } from "@/context/ThemeContext";
 import "@/global.css";
 import clsx from "clsx";
 import { useMemo, useState } from "react";
@@ -35,6 +36,7 @@ const BrandPickerSheet = ({
   onClose,
 }: BrandPickerSheetProps) => {
   const [query, setQuery] = useState("");
+  const { varStyle } = useTheme();
   const groups = useMemo(() => groupOnboardingBrands(query), [query]);
 
   const handleClose = () => {
@@ -58,7 +60,7 @@ const BrandPickerSheet = ({
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <View className="modal-overlay">
+        <View className="modal-overlay" style={varStyle}>
           <Pressable
             className="absolute inset-0"
             onPress={handleClose}

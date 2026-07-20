@@ -5,17 +5,25 @@
 @import "nativewind/theme";
 
 @theme {
-  --color-background: #fff9e3;
-  --color-foreground: #081126;
-  --color-card: #fff8e7;
-  --color-muted: #f6eecf;
-  --color-muted-foreground: rgba(0, 0, 0, 0.6);
-  --color-primary: #081126;
-  --color-accent: #ea7a53;
-  --color-border: rgba(0, 0, 0, 0.1);
-  --color-success: #16a34a;
-  --color-destructive: #dc2626;
-  --color-subscription: #8fd1bd;
+  /* myrev violet system — light (Porcelain) defaults. Runtime vars() swaps
+     these per active theme (see context/ThemeContext + constants/theme). */
+  --color-background: #f4f2f9;
+  --color-foreground: #191427;
+  --color-card: #ffffff;
+  --color-raised: #ffffff;
+  --color-muted: #ece9f4;
+  --color-muted-foreground: rgba(25, 20, 39, 0.6);
+  --color-faint: rgba(25, 20, 39, 0.5);
+  --color-primary: #191427;
+  --color-accent: #6e5be4;
+  --color-accent-press: #7e6dea;
+  --color-on-accent: #ffffff;
+  --color-border: rgba(30, 22, 54, 0.09);
+  --color-success: #2fbf82;
+  --color-warning: #d98a1f;
+  --color-destructive: #e0525f;
+  --color-info: #4f7fe0;
+  --color-subscription: #efeafb;
 
   --spacing-0: 0px;
   --spacing-1: 4px;
