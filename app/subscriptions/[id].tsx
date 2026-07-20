@@ -428,7 +428,7 @@ const SubscriptionDetail = () => {
               <View className="mt-3 flex-row items-center gap-2">
                 <PressableScale onPress={handleTrialConvert}>
                   <View className="rounded-xl bg-accent px-4 py-2">
-                    <Text className="text-sm font-sans-bold text-primary">
+                    <Text className="text-sm font-sans-bold text-on-accent">
                       Yes, keep it
                     </Text>
                   </View>
@@ -470,7 +470,7 @@ const SubscriptionDetail = () => {
               <View className="mt-3 flex-row items-center gap-2">
                 <PressableScale onPress={handleRenewed}>
                   <View className="rounded-xl bg-accent px-4 py-2">
-                    <Text className="text-sm font-sans-bold text-primary">
+                    <Text className="text-sm font-sans-bold text-on-accent">
                       Yes, renewed
                     </Text>
                   </View>

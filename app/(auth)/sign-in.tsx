@@ -178,11 +178,11 @@ export default function SignIn() {
             <View className="auth-brand-block">
               <View className="auth-logo-wrap">
                 <View className="auth-logo-mark">
-                  <Text className="auth-logo-mark-text">R</Text>
+                  <Text className="auth-logo-mark-text">m</Text>
                 </View>
                 <View>
                   <Text className="auth-wordmark">myrev</Text>
-                  <Text className="auth-wordmark-sub">SMART BILLING</Text>
+                  <Text className="auth-wordmark-sub">know what renews</Text>
                 </View>
               </View>
 

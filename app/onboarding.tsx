@@ -295,13 +295,14 @@ const Onboarding = () => {
                   />
                   <View className="items-center">
                     <Text className="auth-wordmark">myrev</Text>
-                    <Text className="auth-wordmark-sub">SMART BILLING</Text>
+                    <Text className="auth-wordmark-sub">know what renews</Text>
                   </View>
                 </View>
               </FadeInUp>
               <FadeInUp delay={140}>
                 <Text className="onboarding-headline">
-                  See what you&apos;re really paying for.
+                  Track subscriptions, recurring bills, and upcoming payments in
+                  one place.
                 </Text>
               </FadeInUp>
               <FadeInUp delay={240}>
