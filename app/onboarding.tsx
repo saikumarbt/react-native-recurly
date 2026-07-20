@@ -145,6 +145,12 @@ const Onboarding = () => {
   const [celebrateTotal, setCelebrateTotal] = useState(0);
   const [analyzeLine, setAnalyzeLine] = useState(0);
   const [brandQuery, setBrandQuery] = useState("");
+  // Accordion for the brand picker: one category open at a time so the user
+  // jumps to a section instead of scrolling the whole catalog. `undefined` =
+  // default (first open), null = all collapsed, string = that category.
+  const [openCategory, setOpenCategory] = useState<string | null | undefined>(
+    undefined,
+  );
 
   const cycleFor = (title: string): BillingCycle => cycles[title] ?? "monthly";
 
@@ -403,47 +409,86 @@ const Onboarding = () => {
                 No matches. Try another name — you can add it manually later.
               </Text>
             ) : (
-              brandGroups.map(({ category, brands }) => (
-                <View key={category} className="gap-3">
-                  <Text className="text-sm font-sans-bold uppercase tracking-[1px] text-muted-foreground">
-                    {category}
-                  </Text>
-                  <View className="flex-row flex-wrap justify-between gap-y-4">
-                    {brands.map((brand) => {
-                      const active = !!selected[brand.title];
-                      return (
-                        <Pressable
-                          key={brand.title}
-                          onPress={() => toggleBrand(brand.title)}
-                          style={{ width: "31%" }}
-                          className={clsx(
-                            "items-center gap-2 rounded-2xl border p-3",
-                            active
-                              ? "border-accent bg-accent/10"
-                              : "border-border bg-card",
-                          )}
-                        >
-                          <SubscriptionIcon name={brand.title} size={44} />
-                          <Text
-                            numberOfLines={1}
-                            className="text-xs font-sans-semibold text-primary"
-                          >
-                            {brand.title}
+              brandGroups.map(({ category, brands }) => {
+                const searching = brandQuery.trim().length > 0;
+                const effectiveOpen =
+                  openCategory === undefined
+                    ? brandGroups[0]?.category
+                    : openCategory;
+                // While searching, reveal every group; otherwise accordion.
+                const expanded = searching || category === effectiveOpen;
+                const selCount = brands.filter(
+                  (b) => selected[b.title],
+                ).length;
+                return (
+                  <View
+                    key={category}
+                    className="overflow-hidden rounded-2xl border border-border bg-card"
+                  >
+                    <Pressable
+                      onPress={() =>
+                        !searching &&
+                        setOpenCategory(expanded ? null : category)
+                      }
+                      className="flex-row items-center justify-between px-4 py-3.5"
+                    >
+                      <View className="flex-row items-center gap-2">
+                        <Text className="text-sm font-sans-bold text-primary">
+                          {category}
+                        </Text>
+                        {selCount > 0 ? (
+                          <View className="rounded-full bg-accent px-2 py-0.5">
+                            <Text className="text-[11px] font-sans-bold text-on-accent">
+                              {selCount}
+                            </Text>
+                          </View>
+                        ) : (
+                          <Text className="text-xs font-sans-medium text-muted-foreground">
+                            {brands.length}
                           </Text>
-                        </Pressable>
-                      );
-                    })}
-                    {/* Keep the last row left-aligned when a group has 3n+1/3n+2
-                        tiles (space-between would otherwise stretch them). */}
-                    {brands.length % 3 !== 0 ? (
-                      <View style={{ width: "31%" }} />
-                    ) : null}
-                    {brands.length % 3 === 1 ? (
-                      <View style={{ width: "31%" }} />
+                        )}
+                      </View>
+                      <Text className="text-base font-sans-bold text-muted-foreground">
+                        {expanded ? "▾" : "▸"}
+                      </Text>
+                    </Pressable>
+                    {expanded ? (
+                      <View className="flex-row flex-wrap justify-between gap-y-4 px-4 pb-4">
+                        {brands.map((brand) => {
+                          const active = !!selected[brand.title];
+                          return (
+                            <Pressable
+                              key={brand.title}
+                              onPress={() => toggleBrand(brand.title)}
+                              style={{ width: "31%" }}
+                              className={clsx(
+                                "items-center gap-2 rounded-2xl border p-3",
+                                active
+                                  ? "border-accent bg-accent/10"
+                                  : "border-border bg-background",
+                              )}
+                            >
+                              <SubscriptionIcon name={brand.title} size={44} />
+                              <Text
+                                numberOfLines={1}
+                                className="text-xs font-sans-semibold text-primary"
+                              >
+                                {brand.title}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                        {brands.length % 3 !== 0 ? (
+                          <View style={{ width: "31%" }} />
+                        ) : null}
+                        {brands.length % 3 === 1 ? (
+                          <View style={{ width: "31%" }} />
+                        ) : null}
+                      </View>
                     ) : null}
                   </View>
-                </View>
-              ))
+                );
+              })
             )}
             <PressableScale onPress={afterPick}>
               <View className="auth-button mt-2">

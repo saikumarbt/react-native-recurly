@@ -36,6 +36,9 @@ const BrandPickerSheet = ({
   onClose,
 }: BrandPickerSheetProps) => {
   const [query, setQuery] = useState("");
+  const [openCategory, setOpenCategory] = useState<string | null | undefined>(
+    undefined,
+  );
   const { varStyle, palette } = useTheme();
   const groups = useMemo(() => groupOnboardingBrands(query), [query]);
 
@@ -97,42 +100,66 @@ const BrandPickerSheet = ({
                   No matches. Type the name to add it manually.
                 </Text>
               ) : (
-                groups.map(({ category, brands }) => (
-                  <View key={category} className="gap-3">
-                    <Text className="text-sm font-sans-bold uppercase tracking-[1px] text-muted-foreground">
-                      {category}
-                    </Text>
-                    <View className="flex-row flex-wrap justify-between gap-y-4">
-                      {brands.map((brand) => (
-                        <Pressable
-                          key={brand.title}
-                          onPress={() => pick(brand.title)}
-                          style={{ width: "31%" }}
-                          className={clsx(
-                            "items-center gap-2 rounded-2xl border p-3",
-                            brand.title === selected
-                              ? "border-accent bg-accent/10"
-                              : "border-border bg-card",
-                          )}
-                        >
-                          <SubscriptionIcon name={brand.title} size={44} />
-                          <Text
-                            numberOfLines={1}
-                            className="text-xs font-sans-semibold text-primary"
-                          >
-                            {brand.title}
-                          </Text>
-                        </Pressable>
-                      ))}
-                      {brands.length % 3 !== 0 ? (
-                        <View style={{ width: "31%" }} />
-                      ) : null}
-                      {brands.length % 3 === 1 ? (
-                        <View style={{ width: "31%" }} />
+                groups.map(({ category, brands }) => {
+                  const searching = query.trim().length > 0;
+                  const effectiveOpen =
+                    openCategory === undefined
+                      ? groups[0]?.category
+                      : openCategory;
+                  const expanded = searching || category === effectiveOpen;
+                  return (
+                    <View
+                      key={category}
+                      className="overflow-hidden rounded-2xl border border-border bg-card"
+                    >
+                      <Pressable
+                        onPress={() =>
+                          !searching &&
+                          setOpenCategory(expanded ? null : category)
+                        }
+                        className="flex-row items-center justify-between px-4 py-3.5"
+                      >
+                        <Text className="text-sm font-sans-bold text-primary">
+                          {category}
+                        </Text>
+                        <Text className="text-base font-sans-bold text-muted-foreground">
+                          {expanded ? "▾" : "▸"}
+                        </Text>
+                      </Pressable>
+                      {expanded ? (
+                        <View className="flex-row flex-wrap justify-between gap-y-4 px-4 pb-4">
+                          {brands.map((brand) => (
+                            <Pressable
+                              key={brand.title}
+                              onPress={() => pick(brand.title)}
+                              style={{ width: "31%" }}
+                              className={clsx(
+                                "items-center gap-2 rounded-2xl border p-3",
+                                brand.title === selected
+                                  ? "border-accent bg-accent/10"
+                                  : "border-border bg-background",
+                              )}
+                            >
+                              <SubscriptionIcon name={brand.title} size={44} />
+                              <Text
+                                numberOfLines={1}
+                                className="text-xs font-sans-semibold text-primary"
+                              >
+                                {brand.title}
+                              </Text>
+                            </Pressable>
+                          ))}
+                          {brands.length % 3 !== 0 ? (
+                            <View style={{ width: "31%" }} />
+                          ) : null}
+                          {brands.length % 3 === 1 ? (
+                            <View style={{ width: "31%" }} />
+                          ) : null}
+                        </View>
                       ) : null}
                     </View>
-                  </View>
-                ))
+                  );
+                })
               )}
             </ScrollView>
           </View>
