@@ -51,6 +51,9 @@
   --font-sans-semibold: sans-semibold;
   --font-sans-bold: sans-bold;
   --font-sans-extrabold: sans-extrabold;
+  /* Fraunces display face (large numerals + headlines only). */
+  --font-display-semibold: display-semibold;
+  --font-display-black: display-black;
 }
 
 @layer components {
@@ -111,7 +114,7 @@
   }
 
   .home-hero-amount {
-    @apply text-6xl font-sans-extrabold leading-tight text-white;
+    @apply text-6xl font-display-black leading-tight text-white;
   }
 
   .home-hero-year {
@@ -139,7 +142,7 @@
   }
 
   .list-title {
-    @apply text-2xl font-sans-bold text-primary;
+    @apply text-2xl font-display-semibold text-primary;
   }
 
   .list-action {
@@ -299,7 +302,7 @@
   }
 
   .auth-title {
-    @apply text-3xl font-sans-bold text-primary;
+    @apply text-3xl font-display-semibold text-primary;
   }
 
   .auth-subtitle {
@@ -467,7 +470,7 @@
   }
 
   .onboarding-headline {
-    @apply text-4xl font-sans-extrabold leading-tight text-primary;
+    @apply text-4xl font-display-semibold leading-tight text-primary;
   }
 
   .progress-row {
@@ -571,7 +574,7 @@
   }
 
   .insights-expense-amount {
-    @apply text-2xl font-sans-extrabold text-primary;
+    @apply text-2xl font-display-black text-primary;
   }
 
   .insights-expense-change {
@@ -583,7 +586,7 @@
   }
 
   .insights-stat-value {
-    @apply text-2xl font-sans-extrabold text-primary;
+    @apply text-2xl font-display-black text-primary;
   }
 
   .insights-stat-label {

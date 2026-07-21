@@ -99,6 +99,10 @@ function RootLayoutContent() {
     "sans-bold": require("../assets/fonts/PlusJakartaSans-Bold.ttf"),
     "sans-extrabold": require("../assets/fonts/PlusJakartaSans-ExtraBold.ttf"),
     "sans-light": require("../assets/fonts/PlusJakartaSans-Light.ttf"),
+    // Fraunces (72pt optical size) — editorial display face for large numerals
+    // and headlines only; body/UI stays Plus Jakarta Sans.
+    "display-semibold": require("../assets/fonts/Fraunces_72pt-SemiBold.ttf"),
+    "display-black": require("../assets/fonts/Fraunces_72pt-Black.ttf"),
   });
 
   // Preload the tab-bar icons so the whole bar paints at once. Otherwise the

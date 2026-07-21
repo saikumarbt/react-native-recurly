@@ -526,7 +526,7 @@ const Onboarding = () => {
                 value={monthlyTotal}
                 currency={baseCurrency}
                 duration={900}
-                className="mt-1 text-5xl font-sans-extrabold text-white"
+                className="mt-1 text-5xl font-display-black text-white"
               />
               <Text className="text-sm font-sans-medium text-white/80">
                 ≈ {formatCurrency(monthlyTotal * 12, baseCurrency)} a year
