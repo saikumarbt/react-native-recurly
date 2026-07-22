@@ -163,16 +163,55 @@ export default function App() {
     [activeSubscriptions],
   );
 
-  // Soonest upcoming renewal, for the hero footer.
-  const nextUp = upcomingRenewals[0] ?? null;
-  const nextUpWhen =
-    nextUp === null || !Number.isFinite(nextUp.daysLeft)
-      ? ""
-      : nextUp.daysLeft <= 0
-        ? "due today"
-        : nextUp.daysLeft === 1
-          ? "tomorrow"
-          : `in ${nextUp.daysLeft} days`;
+  // Motivational retention hook: recurring value the user has cut (cancelled
+  // subs), mirrored from Insights.
+  const savedMonthly = useMemo(
+    () =>
+      subscriptions
+        .filter((s) => s.status === "cancelled")
+        .reduce(
+          (sum, s) =>
+            sum +
+            getMonthlyEquivalent(
+              s.price,
+              s.billingCycle ?? "monthly",
+              s.customIntervalDays,
+            ),
+          0,
+        ),
+    [subscriptions],
+  );
+
+  // Top spend categories for the slim "Where it goes" glimpse (paying subs).
+  const categoryBreakdown = useMemo(() => {
+    const byCat = new Map<string, number>();
+    for (const s of activeSubscriptions) {
+      if (s.isTrial) continue;
+      const cat = s.category?.trim() || "Other";
+      byCat.set(
+        cat,
+        (byCat.get(cat) ?? 0) +
+          getMonthlyEquivalent(
+            s.price,
+            s.billingCycle ?? "monthly",
+            s.customIntervalDays,
+          ),
+      );
+    }
+    return Array.from(byCat.entries()).sort((a, b) => b[1] - a[1]);
+  }, [activeSubscriptions]);
+
+  const categoryColors = [
+    palette.accent,
+    "#9b8bef",
+    palette.success,
+    palette.warning,
+    palette.info,
+  ];
+
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   const handleCreate = (draft: SubscriptionDraft) => {
     const created = addSubscription(draft);
@@ -220,6 +259,9 @@ export default function App() {
                   className="home-avatar"
                 />
                 <View>
+                  <Text className="ml-4 text-sm font-sans-medium text-muted-foreground">
+                    {greeting}
+                  </Text>
                   <Text className="home-user-name">{displayName}</Text>
                   {isSignedIn && (
                     <Pressable onPress={() => signOut()} className="ml-4 mt-1">
@@ -237,49 +279,104 @@ export default function App() {
               </Pressable>
             </View>
 
-            <View className="home-hero">
-              <View className="home-hero-top">
-                <Text className="home-hero-label">Spend per month</Text>
-                <View className="home-hero-badge">
-                  <Text className="home-hero-badge-text">
-                    {activeSubscriptions.length} active
-                  </Text>
-                </View>
-              </View>
-
+            {/* FEEL — spend, the emotional hero */}
+            <View className="mb-4 rounded-3xl border border-border bg-card p-6">
+              <Text className="text-xs font-sans-bold uppercase tracking-[2px] text-muted-foreground">
+                You&apos;re spending
+              </Text>
               <AnimatedCounter
                 value={monthlyTotal}
                 currency={baseCurrency}
-                className="home-hero-amount"
+                className="mt-1 text-6xl font-display-black text-primary"
                 numberOfLines={1}
                 adjustsFontSizeToFit
               />
-              <Text className="home-hero-year">
-                ≈ {formatCurrency(yearlyTotal, baseCurrency)} / year
+              <Text className="mt-1 text-sm font-sans-medium text-muted-foreground">
+                a month · ≈ {formatCurrency(yearlyTotal, baseCurrency)} / year ·{" "}
+                {activeSubscriptions.length} active
               </Text>
-
-              <View className="home-hero-divider" />
-
-              <View className="home-hero-foot">
-                <View className="min-w-0 flex-1">
-                  <Text className="home-hero-foot-label">Next renewal</Text>
-                  <Text className="home-hero-foot-value" numberOfLines={1}>
-                    {nextUp ? nextUp.name : "Nothing upcoming"}
-                  </Text>
-                </View>
-                {nextUp ? (
-                  <View className="items-end">
-                    <Text className="home-hero-foot-value">
-                      {formatCurrency(nextUp.price, baseCurrency)}
-                    </Text>
-                    <Text className="home-hero-foot-label">{nextUpWhen}</Text>
-                  </View>
-                ) : null}
-              </View>
             </View>
 
+            {/* Where it goes — slim glimpse into Insights */}
+            {categoryBreakdown.length > 0 && (
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-center justify-between">
+                  <Text className="text-xs font-sans-bold uppercase tracking-[1px] text-muted-foreground">
+                    Where it goes
+                  </Text>
+                  <PressableScale onPress={() => router.push("/insights")}>
+                    <Text className="text-xs font-sans-bold text-accent">
+                      Details ›
+                    </Text>
+                  </PressableScale>
+                </View>
+                <View
+                  className="h-2.5 flex-row overflow-hidden rounded-full"
+                  style={{ gap: 2 }}
+                >
+                  {categoryBreakdown.slice(0, 5).map(([cat, amt], i) => (
+                    <View
+                      key={cat}
+                      style={{
+                        flexGrow: amt,
+                        backgroundColor:
+                          categoryColors[i % categoryColors.length],
+                      }}
+                    />
+                  ))}
+                </View>
+                <View className="mt-2 flex-row flex-wrap items-center gap-x-3 gap-y-1">
+                  {categoryBreakdown.slice(0, 3).map(([cat], i) => (
+                    <View key={cat} className="flex-row items-center gap-1.5">
+                      <View
+                        style={{
+                          width: 7,
+                          height: 7,
+                          borderRadius: 99,
+                          backgroundColor:
+                            categoryColors[i % categoryColors.length],
+                        }}
+                      />
+                      <Text className="text-[11px] font-sans-medium text-muted-foreground">
+                        {cat}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Motivational — what you've saved */}
+            {savedMonthly > 0 && (
+              <FadeInUp>
+                <View className="mb-4 flex-row items-center gap-3 rounded-2xl border border-success/30 bg-success/10 p-3.5">
+                  <View
+                    className="size-9 items-center justify-center rounded-xl"
+                    style={{ backgroundColor: palette.success }}
+                  >
+                    <Text
+                      className="font-sans-bold"
+                      style={{ color: "#04130c", fontSize: 16 }}
+                    >
+                      ↓
+                    </Text>
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-sm font-sans-bold text-primary">
+                      You&apos;ve saved{" "}
+                      {formatCurrency(savedMonthly, baseCurrency)}/mo
+                    </Text>
+                    <Text className="mt-0.5 text-xs font-sans-medium text-muted-foreground">
+                      {formatCurrency(savedMonthly * 12, baseCurrency)} a year
+                      back 🎉
+                    </Text>
+                  </View>
+                </View>
+              </FadeInUp>
+            )}
+
             <View className="mb-5">
-              <ListHeading title="Upcoming" />
+              <ListHeading title="Next up" />
               <FlatList
                 horizontal
                 showsHorizontalScrollIndicator={false}
