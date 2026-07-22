@@ -70,6 +70,7 @@ const BrandPickerSheet = ({
             accessibilityLabel="Close"
           />
           <View className="modal-container">
+            <View className="sheet-handle" />
             <View className="modal-header">
               <Text className="modal-title">Choose subscription</Text>
               <Pressable className="modal-close" onPress={handleClose}>

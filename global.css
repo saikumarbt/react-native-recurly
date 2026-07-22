@@ -390,7 +390,11 @@
   }
 
   .modal-container {
-    @apply mt-auto max-h-[85%] rounded-t-3xl bg-background;
+    @apply mt-auto max-h-[85%] rounded-t-3xl border border-border bg-background;
+  }
+
+  .sheet-handle {
+    @apply mx-auto mb-1 mt-3 h-1 w-10 rounded-full bg-primary/20;
   }
 
   .modal-header {

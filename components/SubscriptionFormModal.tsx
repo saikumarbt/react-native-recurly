@@ -249,6 +249,7 @@ const SubscriptionFormModal = ({
             accessibilityLabel="Close"
           />
           <View className="modal-container">
+            <View className="sheet-handle" />
             <View className="modal-header">
               <Text className="modal-title">
                 {showDuplicatePrompt
