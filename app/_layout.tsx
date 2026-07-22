@@ -13,6 +13,7 @@ import { PostHogProvider, usePostHog } from "posthog-react-native";
 
 import { View } from "react-native";
 
+import AnimatedSplash from "@/components/AnimatedSplash";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { SubscriptionsProvider } from "@/context/SubscriptionsContext";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
@@ -70,6 +71,7 @@ function PostHogUserIdentifier() {
 function RootLayoutContent() {
   const router = useRouter();
   const { palette, varStyle } = useTheme();
+  const [splashDone, setSplashDone] = useState(false);
 
   // Tapping a reminder deep-links to that subscription. The response can arrive
   // before the navigator is mounted (a cold start launched by the tap), so we
@@ -157,6 +159,9 @@ function RootLayoutContent() {
         <Stack.Screen name="onboarding" options={{ animation: "fade" }} />
         <Stack.Screen name="subscriptions/[id]" />
       </Stack>
+      {!splashDone ? (
+        <AnimatedSplash onFinish={() => setSplashDone(true)} />
+      ) : null}
     </View>
   );
 }
