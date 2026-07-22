@@ -2,7 +2,29 @@
 
 ## ⚠️ CURRENT DECISIONS & STATUS (read first — supersedes anything below that conflicts)
 
-_Last updated: Jul 2026. This section is the source of truth; older prose below is retained for rationale but the calls here win._
+_Last updated: Jul 2026 (myrev redesign in progress). This section is the source of truth; older prose below is retained for rationale but the calls here win._
+
+### App name: **myrev** — "know what renews" (was Recurrly)
+
+Renamed 2026-07. Positioning: _Track subscriptions, recurring bills, and upcoming payments in one place._ Sits under the **Zerohaus** studio umbrella (product site `getmyrev.app`; studio `zerohaus.io`; "by Zerohaus" endorser lockup). Trademark: only USPTO "MYREV" record is dead/abandoned and the finance MyRev.com is dormant → cleared to proceed (reserve store name + optional intent-to-use filing). Code identifiers (`app.json` slug/scheme/bundle id, `package.json`) still say `recurrly` — migrate as one coordinated step once the name is fully locked (EAS/store/deep-link coupling).
+
+### myrev redesign — design system, IA & conversion (in progress on `myrev-redesign`)
+
+- **Design system (finalized):** violet accent `#6E5BE4`; adaptive **Porcelain light `#F4F2F9` / Violet Midnight dark `#0F0D1A`** — one token set (`constants/theme.ts` + runtime NativeWind `vars()` in `context/ThemeContext`); semantic set (success/warning/destructive/info) kept separate from the accent; **Fraunces** (72pt) display face for large numerals + headlines, Plus Jakarta Sans for body. Supersedes the old cream/navy/orange look and the "Midnight Ledger" working name — same dark-first intent, finalized as the violet system.
+- **IA: 4 tabs + a center ＋ FAB** (Home · Subscriptions · Insights · Settings). **Calendar cut** — its value (what renews when) is covered by Home "This week" / "Next up" + reminders; revisit only metric-gated. Add = a **full-height sheet** launched from the FAB, reachable from any tab.
+- **Home: 3-beat** — Feel (greeting + big-number count-up hero + slim "Where it goes" glimpse + mint "You've saved" hook) → Act (this-week check-ins) → Browse (Next up). Full category/chart breakdown lives in Insights.
+- **Sheet grammar:** drag-handle bottom sheets (pickers), full-height Add, expanding detail. The `@gorhom/bottom-sheet` gesture/detent upgrade + detail-as-expanding-sheet are deferred to a **dev build** (they change keyboard/gesture/deep-link behaviour that must be tested on-device). Motion: animated splash, count-ups, celebration/confetti, PressableScale — Reanimated + RN Animated only (no new anim libs), reduce-motion aware.
+- **Retention hooks:** savings **milestones** (celebrate each $ threshold once) + a weekly **audit streak** chip.
+- **Conversion — "myrev Found"** (full detail in the `conversion-strategy` memory): the assistant surfaces the **savings number for free** (deterministic math), and gates the **plan** (AI narrative, cancellation drafts, forecasts, backup) behind Pro. Triggers are **contextual, capped, dismissible** — post-reveal paywall, tapping a locked "Found" detail, milestones, a monthly "myrev found $X" value push — **never nag popups** (that's what Rocket Money is punished for). 3-day full-Pro trial; login required before checkout (captures the lead).
+- **UX standards:** consistent 20px screen padding, 8pt spacing rhythm, the type scale, ≥44px touch targets. Content screens scroll with bottom clearance for the floating bar + FAB (lists may grow); short/terminal screens (auth, empty, confirmations) center vertically.
+- **Screens still to redesign** (3–4 concepts each → pick → build in RN): Onboarding, Subscriptions, **Insights** (direction: "Ledger" base + a "myrev Found" card; graphs must be **insightful/actionable** — biggest category, priciest sub, price hikes — not decorative), Settings.
+
+### Decision log (living — append strategic calls here for closure)
+
+- **2026-07-19** — Cancel celebration + shareable savings card; duplicate resolution + renewal/trial check-in flows shipped.
+- **2026-07-20** — Rename → **myrev** ("know what renews"); violet design system chosen; adaptive light+dark; per-sub currency removed (single base currency stands).
+- **2026-07-21** — Home **3-beat** redesign; Fraunces display face wired; retention hooks (streak + milestone).
+- **2026-07-22** — **Calendar cut** (→ 4 tabs); **center ＋ FAB**; **full-height Add sheet**; **"myrev Found"** conversion strategy adopted (assistant-led, no nag popups); Insights direction = Ledger + "myrev Found" card; app-wide standardization pass; graphs must be insightful.
 
 ### Shipped so far (on `main` + open `onboarding` branch)
 
@@ -93,7 +115,11 @@ The app started as a course-built prototype (Clerk auth, PostHog, in-memory mock
 
 ---
 
-## 4. New Design System: "Midnight Ledger" (replaces course template)
+## 4. Design System — _SUPERSEDED_
+
+> **Superseded by the finalized myrev violet system** (see "myrev redesign" in CURRENT DECISIONS: Porcelain light `#F4F2F9` / Violet Midnight dark `#0F0D1A`, violet accent `#6E5BE4`, Fraunces display). The original "Midnight Ledger" proposal below is retained for rationale only.
+
+### (original) "Midnight Ledger" (replaces course template)
 
 **Why replace:** the current system ships in hundreds of course clones — zero brand ownership, store-reviewer déjà vu, and it reads "tutorial," not "trust me with your money."
 
@@ -194,7 +220,7 @@ Pin NativeWind 5-preview exact (NW4 fallback documented) · verify release build
 
 ### Phase 1 — Launch (~4–6 wks)
 
-- **Rebrand PR**: new name (30–40 candidates → USPTO/EUIPO class 9/42 knockout + domain + store + handles; criteria ≤2 syllables, evokes recurrence/money; seeds: Subwise, Duesday, Outflow, Kept) + **Midnight Ledger token/component swap** + icon/splash.
+- **Rebrand PR**: name **chosen — myrev** ("know what renews"), cleared (only USPTO "MYREV" record is dead/abandoned). Remaining: reserve App Store/Play name, optional intent-to-use filing, and migrate code identifiers (slug/scheme/bundle id). Violet token/component swap + icon/splash — in progress on `myrev-redesign`.
 - **Onboarding (SHIPPED, guest-first):** value panes → base-currency pick → brand grid (all available brands) → confirm/edit prices → **bulk-add** → into the app as a guest. Clerk account only asked later (Settings, or at trial/purchase). _Still to add:_ the trial paywall at the reveal (with RevenueCat) + optional "email me my monthly summary" opt-in.
 - **Notifications & reminders** (`expo-notifications` — all **local/scheduled on-device**, no push server needed, consistent with zero-backend):
   - _Renewal reminders (the core promise):_ per subscription, next-occurrence-only, **T-3 + T-1 at 9:00 local** (free tier: T-1 fixed; Pro: configurable lead times globally + per-subscription). Notification IDs stored on the row; cancel+reschedule on every edit/pause/cancel/delete; foreground reconciler (AppState) rolls past renewals forward and reschedules — this is how we stay under iOS's 64-pending cap and never miss.
@@ -243,7 +269,7 @@ Pin NativeWind 5-preview exact (NW4 fallback documented) · verify release build
 
 All of these ride on the existing SQLite + design system + report/share infrastructure:
 
-- **Calendar view** of upcoming renewals (month grid — data already materialized in `next_renewal_date`) + **"add renewals to device calendar"** via `expo-calendar` (Pro).
+- ~~**Calendar view** of upcoming renewals~~ — **CUT as a tab (2026-07)**; value covered by Home "This week"/"Next up" + reminders. Only a metric-gated future add-on if users ask; data (`next_renewal_date`) already exists if revived.
 - **CSV import** (not just export) — one-tap switching path for TrackMySubs/spreadsheet users; a competitor-conversion feature that costs a parser.
 - **"Year in Subscriptions" Wrapped** (December seasonal): shareable animated recap built entirely from the existing report + share-card systems — annual viral moment.
 - **Tags / spaces** (personal vs business vs family labels): one column + filter UI; unlocks the freelancer/B2B wedge with zero rework.
