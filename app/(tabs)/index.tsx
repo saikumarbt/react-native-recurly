@@ -257,10 +257,10 @@ export default function App() {
     "Guest";
 
   return (
-    <SafeAreaView className="flex-1  bg-background p-5">
+    <SafeAreaView className="flex-1 bg-background">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerClassName="pb-30"
+        contentContainerClassName="grow p-5 pb-32"
       >
         <View className="home-header">
               <View className="home-user">

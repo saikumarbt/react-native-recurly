@@ -75,7 +75,7 @@ const Settings = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <ScrollView contentContainerClassName="p-5 pb-30 flex-grow">
+      <ScrollView contentContainerClassName="grow p-5 pb-32">
         <View className="list-head">
           <Text className="list-title">Settings</Text>
         </View>

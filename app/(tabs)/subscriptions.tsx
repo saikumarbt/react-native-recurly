@@ -181,7 +181,7 @@ const Subscriptions = () => {
   const arrow = sortDir === "asc" ? " ↑" : " ↓";
 
   return (
-    <SafeAreaView className="flex-1 bg-background p-5">
+    <SafeAreaView className="flex-1 bg-background">
       <StyledKeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -264,7 +264,7 @@ const Subscriptions = () => {
               No subscriptions match your filters.
             </Text>
           }
-          contentContainerClassName="pb-30"
+          contentContainerClassName="grow p-5 pb-32"
         />
       </StyledKeyboardAvoidingView>
     </SafeAreaView>

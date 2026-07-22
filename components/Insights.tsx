@@ -107,7 +107,7 @@ const Insights = () => {
       </View>
 
       <ScrollView
-        contentContainerClassName="gap-5 p-5 pb-30"
+        contentContainerClassName="grow gap-5 p-5 pb-32"
         showsVerticalScrollIndicator={false}
       >
         {/* Spend */}
