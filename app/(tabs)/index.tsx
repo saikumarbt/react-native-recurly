@@ -1,4 +1,5 @@
 import AnimatedCounter from "@/components/AnimatedCounter";
+import MilestoneCelebration from "@/components/MilestoneCelebration";
 import { FadeInUp, PressableScale } from "@/components/motion";
 import PulsingDot from "@/components/PulsingDot";
 import ListHeading from "@/components/ListHeading";
@@ -13,6 +14,7 @@ import { useTheme } from "@/context/ThemeContext";
 import "@/global.css";
 import { priceBucket } from "@/lib/analytics";
 import { duplicateActiveNames, normalizeName } from "@/lib/duplicates";
+import { checkSavingsMilestone, recordWeeklyOpen } from "@/lib/retention";
 import {
   getDaysUntilRenewal,
   getMonthlyEquivalent,
@@ -59,6 +61,8 @@ export default function App() {
   const [showAddNudge, setShowAddNudge] = useState(
     () => !hasSeenNudge("add_first"),
   );
+  const [streak, setStreak] = useState(0);
+  const [milestone, setMilestone] = useState<number | null>(null);
 
   const activeSubscriptions = useMemo(
     () => subscriptions.filter((sub) => sub.status === "active"),
@@ -213,6 +217,17 @@ export default function App() {
   const greeting =
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
+  // Weekly "audit" streak — recorded once per open.
+  useEffect(() => {
+    setStreak(recordWeeklyOpen());
+  }, []);
+
+  // Celebrate when cancellation savings cross a new annual milestone.
+  useEffect(() => {
+    const reached = checkSavingsMilestone(savedMonthly * 12);
+    if (reached !== null) setMilestone(reached);
+  }, [savedMonthly]);
+
   const handleCreate = (draft: SubscriptionDraft) => {
     const created = addSubscription(draft);
     success();
@@ -263,6 +278,13 @@ export default function App() {
                     {greeting}
                   </Text>
                   <Text className="home-user-name">{displayName}</Text>
+                  {streak >= 2 && (
+                    <View className="ml-4 mt-1 self-start rounded-full bg-warning/10 px-2.5 py-1">
+                      <Text className="text-[11px] font-sans-bold text-warning">
+                        🔥 {streak}-week streak
+                      </Text>
+                    </View>
+                  )}
                   {isSignedIn && (
                     <Pressable onPress={() => signOut()} className="ml-4 mt-1">
                       <Text className="text-sm font-sans-medium text-destructive">
@@ -506,6 +528,13 @@ export default function App() {
         visible={isCreateModalVisible}
         onClose={() => setCreateModalVisible(false)}
         onSubmit={handleCreate}
+      />
+
+      <MilestoneCelebration
+        visible={milestone !== null}
+        amount={milestone ?? 0}
+        currency={baseCurrency}
+        onClose={() => setMilestone(null)}
       />
     </SafeAreaView>
   );
