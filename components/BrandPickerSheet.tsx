@@ -1,3 +1,4 @@
+import SheetBackdrop from "@/components/SheetBackdrop";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
 import { groupOnboardingBrands } from "@/constants/onboardingBrands";
 import { useTheme } from "@/context/ThemeContext";
@@ -39,8 +40,13 @@ const BrandPickerSheet = ({
   const [openCategory, setOpenCategory] = useState<string | null | undefined>(
     undefined,
   );
-  const { varStyle, palette } = useTheme();
+  const { varStyle, palette, scheme } = useTheme();
   const groups = useMemo(() => groupOnboardingBrands(query), [query]);
+  const trimmedQuery = query.trim();
+  const hasExactMatch = useMemo(() => {
+    const q = trimmedQuery.toLowerCase();
+    return groups.some((g) => g.brands.some((b) => b.title.toLowerCase() === q));
+  }, [groups, trimmedQuery]);
 
   const handleClose = () => {
     setQuery("");
@@ -64,6 +70,7 @@ const BrandPickerSheet = ({
         style={{ flex: 1 }}
       >
         <View className="modal-overlay" style={varStyle}>
+          <SheetBackdrop scheme={scheme} />
           <Pressable
             className="absolute inset-0"
             onPress={handleClose}
@@ -96,10 +103,34 @@ const BrandPickerSheet = ({
               showsVerticalScrollIndicator={false}
               contentContainerClassName="gap-4 px-5 py-4"
             >
+              {/* Add exactly what was typed — so a service not in the catalog is
+                  never a dead end. Hidden when it already matches a brand below. */}
+              {trimmedQuery.length > 0 && !hasExactMatch && (
+                <Pressable
+                  onPress={() => pick(trimmedQuery)}
+                  className="flex-row items-center gap-3 rounded-2xl border border-accent bg-accent/10 p-4"
+                >
+                  <SubscriptionIcon name={trimmedQuery} size={40} />
+                  <View className="flex-1">
+                    <Text
+                      numberOfLines={1}
+                      className="text-sm font-sans-bold text-primary"
+                    >
+                      Use &ldquo;{trimmedQuery}&rdquo;
+                    </Text>
+                    <Text className="text-xs font-sans-medium text-muted-foreground">
+                      Add it as a custom subscription
+                    </Text>
+                  </View>
+                  <Text className="text-lg font-sans-bold text-accent">＋</Text>
+                </Pressable>
+              )}
               {groups.length === 0 ? (
-                <Text className="home-empty-state">
-                  No matches. Type the name to add it manually.
-                </Text>
+                trimmedQuery.length > 0 ? null : (
+                  <Text className="home-empty-state">
+                    Start typing to find a subscription.
+                  </Text>
+                )
               ) : (
                 groups.map(({ category, brands }) => {
                   const searching = query.trim().length > 0;

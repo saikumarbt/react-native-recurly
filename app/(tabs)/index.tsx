@@ -4,31 +4,29 @@ import { FadeInUp, PressableScale } from "@/components/motion";
 import PulsingDot from "@/components/PulsingDot";
 import ListHeading from "@/components/ListHeading";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
-import SubscriptionFormModal from "@/components/SubscriptionFormModal";
 import UpcomingSubscriptionCard from "@/components/UpcomingSubscriptionCard";
-import { icons } from "@/constants/icons";
 import images from "@/constants/images";
 import { useCurrency } from "@/context/CurrencyContext";
+import { useEntitlement } from "@/context/EntitlementsContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import { useTheme } from "@/context/ThemeContext";
 import "@/global.css";
-import { priceBucket } from "@/lib/analytics";
 import { duplicateActiveNames, normalizeName } from "@/lib/duplicates";
+import { computeFound } from "@/lib/found";
+import { getKeptSubIds } from "@/lib/foundKept";
 import { checkSavingsMilestone, recordWeeklyOpen } from "@/lib/retention";
+import { maybeRequestReview } from "@/lib/review";
 import {
   getDaysUntilRenewal,
   getMonthlyEquivalent,
   pendingRenewal,
 } from "@/lib/billing";
-import { success } from "@/lib/haptics";
-import { hasSeenNudge, markNudgeSeen } from "@/lib/nudges";
 import { formatCurrency } from "@/lib/utils";
 import { useClerk, useUser } from "@clerk/expo";
 import { styled } from "nativewind";
 import { usePostHog } from "posthog-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Animated,
   FlatList,
   Image,
   Pressable,
@@ -44,7 +42,7 @@ const SafeAreaView = styled(RNSafeAreaView) as any;
 export default function App() {
   const { user, isSignedIn } = useUser();
   const { signOut } = useClerk();
-  const { subscriptions, addSubscription, refresh } = useSubscriptions();
+  const { subscriptions, refresh } = useSubscriptions();
 
   // Re-pull from the DB whenever Home regains focus, so nudge counts reflect
   // actions taken on the detail screen (confirm renewal, delete duplicate, etc).
@@ -55,12 +53,9 @@ export default function App() {
   );
   const { baseCurrency } = useCurrency();
   const { palette } = useTheme();
+  const { isPro } = useEntitlement();
   const posthog = usePostHog();
   const router = useRouter();
-  const [isCreateModalVisible, setCreateModalVisible] = useState(false);
-  const [showAddNudge, setShowAddNudge] = useState(
-    () => !hasSeenNudge("add_first"),
-  );
   const [streak, setStreak] = useState(0);
   const [milestone, setMilestone] = useState<number | null>(null);
 
@@ -101,31 +96,6 @@ export default function App() {
     ).length;
   }, [subscriptions, activeSubscriptions]);
 
-  // One-time first-run nudge: gently pulse the "+" until the first sub is added.
-  const [addPulse] = useState(() => new Animated.Value(1));
-  const nudgeActive = showAddNudge && activeSubscriptions.length === 0;
-  useEffect(() => {
-    if (!nudgeActive) {
-      addPulse.setValue(1);
-      return;
-    }
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(addPulse, {
-          toValue: 1.15,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.timing(addPulse, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [nudgeActive, addPulse]);
 
   // Real monthly outflow across mixed billing cycles (annual/quarterly/etc.
   // are normalized to a per-month average, so the total reflects everything).
@@ -186,6 +156,17 @@ export default function App() {
     [subscriptions],
   );
 
+  // Deterministic "myrev Found" — number always; findings gated to Pro.
+  const found = useMemo(
+    () => computeFound(subscriptions, getKeptSubIds()),
+    [subscriptions],
+  );
+
+  // A cancellation the user started but never confirmed — nudge to close the loop.
+  const pendingCancel = subscriptions.find(
+    (s) => (s.status ?? "active") === "active" && s.cancelPendingAt,
+  );
+
   // Top spend categories for the slim "Where it goes" glimpse (paying subs).
   const categoryBreakdown = useMemo(() => {
     const byCat = new Map<string, number>();
@@ -228,29 +209,6 @@ export default function App() {
     if (reached !== null) setMilestone(reached);
   }, [savedMonthly]);
 
-  const handleCreate = (draft: SubscriptionDraft) => {
-    const created = addSubscription(draft);
-    success();
-    if (showAddNudge) {
-      markNudgeSeen("add_first");
-      setShowAddNudge(false);
-    }
-    // Non-identifying signal only: no name, no exact price, no currency.
-    posthog.capture("subscription_created", {
-      subscription_id: created.id,
-      billing_cycle: created.billingCycle ?? "monthly",
-      category: created.category ?? "Uncategorized",
-      is_trial: !!created.isTrial,
-      price_bucket: priceBucket(
-        getMonthlyEquivalent(
-          created.price,
-          created.billingCycle ?? "monthly",
-          created.customIntervalDays,
-        ),
-      ),
-    });
-  };
-
   const displayName =
     user?.firstName ||
     user?.emailAddresses[0]?.emailAddress?.split("@")[0] ||
@@ -265,11 +223,9 @@ export default function App() {
         <View className="home-header">
               <View className="home-user">
                 <Image
-                  source={{
-                    uri:
-                      user?.imageUrl ||
-                      Image.resolveAssetSource(images.avatar).uri,
-                  }}
+                  // Static require = instant; only the remote photo needs a uri.
+                  source={user?.imageUrl ? { uri: user.imageUrl } : images.avatar}
+                  defaultSource={images.avatar}
                   resizeMode="contain"
                   className="home-avatar"
                 />
@@ -294,12 +250,10 @@ export default function App() {
                   )}
                 </View>
               </View>
-              <Pressable onPress={() => setCreateModalVisible(true)}>
-                <Animated.View style={{ transform: [{ scale: addPulse }] }}>
-                  <Image source={icons.add} className="home-add-icon" />
-                </Animated.View>
-              </Pressable>
             </View>
+
+            {/* Add lives in the centre ＋ FAB on the tab bar (reachable from any
+                tab), so Home has no separate add button. */}
 
             {/* FEEL — spend, the emotional hero */}
             <View className="mb-4 rounded-3xl border border-border bg-card p-6">
@@ -394,6 +348,70 @@ export default function App() {
                     </Text>
                   </View>
                 </View>
+              </FadeInUp>
+            )}
+
+            {/* Reconciliation nudge: close the loop on a started cancellation. */}
+            {pendingCancel && (
+              <FadeInUp>
+                <Pressable
+                  onPress={() =>
+                    router.push(`/subscriptions/${pendingCancel.id}`)
+                  }
+                  className="mb-4 flex-row items-center gap-3 rounded-2xl border border-accent bg-accent/10 p-3.5"
+                >
+                  <Text className="text-base text-accent">↩</Text>
+                  <View className="flex-1">
+                    <Text className="text-sm font-sans-bold text-primary">
+                      Did you cancel {pendingCancel.name}?
+                    </Text>
+                    <Text className="mt-0.5 text-xs font-sans-medium text-muted-foreground">
+                      Tap to confirm so your tracker stays right
+                    </Text>
+                  </View>
+                  <Text className="text-lg font-sans-bold text-accent">›</Text>
+                </Pressable>
+              </FadeInUp>
+            )}
+
+            {/* myrev Found hook: number always shown; free links to the teaser,
+                Pro shows the top opportunity inline. Deep-links to Insights. */}
+            {found.count > 0 && (
+              <FadeInUp>
+                <Pressable
+                  onPress={() =>
+                    isPro
+                      ? router.push("/found")
+                      : router.push("/paywall?source=home_found")
+                  }
+                  className="mb-4 rounded-2xl border border-accent bg-accent/5 p-3.5"
+                  style={{ borderStyle: isPro ? "solid" : "dashed" }}
+                >
+                  <View className="flex-row items-center gap-3">
+                    <Text className="text-base text-accent">✦</Text>
+                    <View className="flex-1">
+                      <Text className="text-sm font-sans-bold text-accent">
+                        myrev found up to{" "}
+                        {formatCurrency(found.annualSavings, baseCurrency)}/yr
+                        to cut
+                      </Text>
+                      <Text className="mt-0.5 text-xs font-sans-medium text-muted-foreground">
+                        {!isPro
+                          ? `${found.count} to review — tap to unlock`
+                          : found.groups[0]
+                            ? `${found.groups[0].members.length} ${found.groups[0].category} tools do similar things`
+                            : (found.findings[0]?.detail ?? "")}
+                      </Text>
+                    </View>
+                    {!isPro && (
+                      <View className="rounded-full bg-accent px-3 py-1.5">
+                        <Text className="text-xs font-sans-bold text-on-accent">
+                          Unlock
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </Pressable>
               </FadeInUp>
             )}
 
@@ -524,17 +542,16 @@ export default function App() {
             )}
       </ScrollView>
 
-      <SubscriptionFormModal
-        visible={isCreateModalVisible}
-        onClose={() => setCreateModalVisible(false)}
-        onSubmit={handleCreate}
-      />
-
       <MilestoneCelebration
         visible={milestone !== null}
         amount={milestone ?? 0}
         currency={baseCurrency}
-        onClose={() => setMilestone(null)}
+        onClose={() => {
+          setMilestone(null);
+          // A celebrated savings milestone is the peak positive moment — the
+          // right (and only) time to ask for a store rating. Self rate-limited.
+          void maybeRequestReview();
+        }}
       />
     </SafeAreaView>
   );

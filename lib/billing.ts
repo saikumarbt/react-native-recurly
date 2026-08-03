@@ -127,6 +127,23 @@ export const getDaysUntilRenewal = (
 };
 
 /**
+ * Trial end = the chosen START date plus `trialDays` days — NOT "now" (that bug
+ * pinned every trial to today + N regardless of the start date). Returns an ISO
+ * string, or undefined when the inputs are invalid (missing/invalid start, or a
+ * non-positive/NaN day count).
+ */
+export const computeTrialEnd = (
+  startDate: string | Date | undefined,
+  trialDays: number,
+): string | undefined => {
+  if (startDate === undefined) return undefined;
+  if (!Number.isFinite(trialDays) || trialDays <= 0) return undefined;
+  const start = dayjs(startDate);
+  if (!start.isValid()) return undefined;
+  return start.add(trialDays, "day").toISOString();
+};
+
+/**
  * A subscription's first real charge date: the trial-end date while it's on a
  * free trial (the charge lands when the trial converts), otherwise the start
  * date. Anything that anchors billing (renewal display, reminders) uses this so

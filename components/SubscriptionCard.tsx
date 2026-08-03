@@ -40,6 +40,7 @@ const SubscriptionCard = ({
   isDuplicate,
   isTrial,
   trialEndDate,
+  foundFlag,
 }: SubscriptionCardProps) => {
   const { baseCurrency } = useCurrency();
   const { palette, scheme } = useTheme();
@@ -173,6 +174,16 @@ const SubscriptionCard = ({
                 <PulsingDot size={7} color={palette.accent} />
                 <Text className="text-xs font-sans-semibold text-accent">
                   Renewed?
+                </Text>
+              </View>
+            ) : null}
+            {foundFlag && !expanded ? (
+              <View className="mt-1 flex-row items-center gap-1">
+                <Text
+                  numberOfLines={1}
+                  className="text-xs font-sans-bold text-accent"
+                >
+                  ✦ {foundFlag}
                 </Text>
               </View>
             ) : null}

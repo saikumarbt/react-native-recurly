@@ -69,4 +69,26 @@ describe("buildReminders", () => {
     expect(buildReminders(baseSub({ status: "paused" }), "USD")).toEqual([]);
     expect(buildReminders(baseSub({ status: "cancelled" }), "USD")).toEqual([]);
   });
+
+  it("adds one reconciliation reminder ~24h after cancel intent", () => {
+    // Intent set now (Jul 13 12:00) → fires Jul 14 at 09:00, once.
+    const reminders = buildReminders(
+      baseSub({ cancelPendingAt: "2026-07-13T12:00:00.000Z" }),
+      "USD",
+    );
+    const pending = reminders.find((r) => r.id === "sub1::cancel_pending");
+    expect(pending).toBeTruthy();
+    expect(dayjs(pending!.date).date()).toBe(14);
+    expect(dayjs(pending!.date).hour()).toBe(9);
+    expect(pending!.title).toMatch(/Did you cancel/);
+  });
+
+  it("does not re-add the reconciliation reminder once its time has passed", () => {
+    // Intent set 2 days ago → +24h fire time is in the past → not scheduled.
+    const reminders = buildReminders(
+      baseSub({ cancelPendingAt: "2026-07-11T12:00:00.000Z" }),
+      "USD",
+    );
+    expect(reminders.some((r) => r.id === "sub1::cancel_pending")).toBe(false);
+  });
 });

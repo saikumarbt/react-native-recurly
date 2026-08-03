@@ -12,6 +12,7 @@ export const REMINDER_KINDS = [
   ...RENEWAL_LEAD_DAYS.map((d) => `renewal_${d}`),
   ...TRIAL_LEAD_DAYS.map((d) => `trial_${d}`),
   "checkin",
+  "cancel_pending",
 ];
 
 export interface PlannedReminder {
@@ -101,6 +102,22 @@ export const buildReminders = (
           });
         }
       }
+    }
+  }
+
+  // Reconciliation: the user started cancelling but hasn't told myrev the
+  // outcome. One nudge ~24h later to confirm cancelled or kept, so status stays
+  // accurate. Naturally capped — once its fire time passes it isn't rescheduled.
+  if (sub.cancelPendingAt) {
+    const fireAt = atReminderHour(dayjs(sub.cancelPendingAt).add(1, "day"));
+    if (fireAt.isValid() && fireAt.isAfter(now)) {
+      reminders.push({
+        id: `${sub.id}::cancel_pending`,
+        date: fireAt.toDate(),
+        subscriptionId: sub.id,
+        title: `Did you cancel ${sub.name}?`,
+        body: "Tap to confirm so your spend and savings stay accurate.",
+      });
     }
   }
 

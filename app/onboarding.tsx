@@ -1,6 +1,5 @@
 import AnimatedCounter from "@/components/AnimatedCounter";
 import { FadeInUp, PressableScale } from "@/components/motion";
-import CelebrationOverlay from "@/components/onboarding/CelebrationOverlay";
 import GuideBubble from "@/components/onboarding/GuideBubble";
 import ProgressBar from "@/components/onboarding/ProgressBar";
 import PickerSheet, { type PickerItem } from "@/components/PickerSheet";
@@ -12,6 +11,7 @@ import {
   groupOnboardingBrands,
 } from "@/constants/onboardingBrands";
 import { useCurrency } from "@/context/CurrencyContext";
+import { useEntitlement } from "@/context/EntitlementsContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import { useTheme } from "@/context/ThemeContext";
 import "@/global.css";
@@ -23,6 +23,7 @@ import {
   type BillingCycle,
 } from "@/lib/billing";
 import { tapLight } from "@/lib/haptics";
+import { remainingSlots } from "@/lib/limits";
 import { markOnboarded } from "@/lib/onboarding";
 import { formatCurrency } from "@/lib/utils";
 import clsx from "clsx";
@@ -53,7 +54,7 @@ type Step =
   | "pick"
   | "confirm"
   | "analyzing"
-  | "done";
+  | "reveal";
 
 // Steps that show the progress bar, in order.
 const DOT_STEPS: Step[] = ["goal", "currency", "pick", "confirm"];
@@ -87,7 +88,7 @@ const CONFIRM_GUIDE: Record<string, string> = {
 
 const ANALYZING_LINES = [
   "Adding your subscriptions…",
-  "Working out your monthly total…",
+  "Working out what renews…",
 ];
 
 /** Simple ring spinner (no animation library). */
@@ -131,8 +132,9 @@ const Onboarding = () => {
   const router = useRouter();
   const posthog = usePostHog();
   const { baseCurrency, setBaseCurrency } = useCurrency();
-  const { addSubscription } = useSubscriptions();
+  const { addSubscription, subscriptions } = useSubscriptions();
   const { palette } = useTheme();
+  const { isPro } = useEntitlement();
 
   const [step, setStep] = useState<Step>("intro");
   const [goal, setGoal] = useState<string | null>(null);
@@ -170,7 +172,7 @@ const Onboarding = () => {
       () => setAnalyzeLine((i) => (i + 1) % ANALYZING_LINES.length),
       650,
     );
-    const done = setTimeout(() => setStep("done"), 1500);
+    const done = setTimeout(() => setStep("reveal"), 1400);
     return () => {
       clearInterval(cycle);
       clearTimeout(done);
@@ -209,12 +211,20 @@ const Onboarding = () => {
     [posthog, router],
   );
 
-  // Stable callback for the celebration so incidental re-renders don't restart
-  // its animation sequence.
-  const handleCelebrationDone = useCallback(
-    () => finish(addedCount),
-    [finish, addedCount],
-  );
+  // Reveal-step choices. The trial is offered once, here, at the peak "oh, that
+  // adds up" moment — never a wall. "Maybe later" drops straight into the app.
+  const completeToDashboard = () => finish(addedCount);
+  const completeToTrial = () => {
+    markOnboarded();
+    posthog.capture("onboarding_completed", {
+      subs_added: addedCount,
+      chose_trial: true,
+    });
+    // Land in the app first, then present the paywall on top — so dismissing it
+    // (without buying) drops the user onto their dashboard, not back here.
+    router.replace("/");
+    router.push("/paywall?source=onboarding");
+  };
 
   const skip = () => {
     markOnboarded();
@@ -236,8 +246,14 @@ const Onboarding = () => {
 
   const addSelected = () => {
     const now = dayjs().toISOString();
+    // Free tier caps active subscriptions, so onboarding can't seed past it.
+    // Base the allowance on slots REMAINING (accounts for any subs already
+    // tracked — e.g. if onboarding is ever re-run), not a raw count from zero.
+    // The reveal's trial offer is how a heavy tracker unlocks the rest.
+    const limit = remainingSlots(subscriptions, isPro);
     let count = 0;
     for (const brand of selectedBrands) {
+      if (count >= limit) break;
       const price = priceFor(brand.title, brand.price);
       if (price <= 0) continue;
       const cycle = cycleFor(brand.title);
@@ -299,16 +315,14 @@ const Onboarding = () => {
                     style={{ width: 132, height: 132 }}
                     resizeMode="contain"
                   />
-                  <View className="items-center">
-                    <Text className="auth-wordmark">myrev</Text>
-                    <Text className="auth-wordmark-sub">know what renews</Text>
-                  </View>
+                  <Text className="auth-wordmark">myrev</Text>
                 </View>
               </FadeInUp>
               <FadeInUp delay={140}>
-                <Text className="onboarding-headline">
-                  Track subscriptions, recurring bills, and upcoming payments in
-                  one place.
+                <Text className="onboarding-headline">Hi, I&apos;m myrev.</Text>
+                <Text className="mt-2 text-lg font-sans-medium text-muted-foreground">
+                  I keep an eye on what renews — so a charge never catches you
+                  off guard.
                 </Text>
               </FadeInUp>
               <FadeInUp delay={240}>
@@ -328,7 +342,7 @@ const Onboarding = () => {
         {step === "goal" && (
           <View className="flex-1 justify-between p-6">
             <View className="mt-4 gap-6">
-              <GuideBubble text="What brings you here?" />
+              <GuideBubble text="So I can help — what brings you here?" />
               <View className="gap-3">
                 {GOALS.map((g, i) => (
                   <FadeInUp key={g.key} delay={i * 70}>
@@ -363,7 +377,7 @@ const Onboarding = () => {
         {step === "currency" && (
           <View className="flex-1 justify-between p-6">
             <View className="mt-4 gap-6">
-              <GuideBubble text="First, what currency do you pay in?" />
+              <GuideBubble text="First — what currency do you pay in? I'll use it for every amount." />
               <Pressable
                 className="auth-input flex-row items-center justify-between"
                 onPress={() => setShowCurrencyPicker(true)}
@@ -393,7 +407,7 @@ const Onboarding = () => {
             showsVerticalScrollIndicator={false}
             contentContainerClassName="gap-4 p-6"
           >
-            <GuideBubble text="Tap everything you pay for." />
+            <GuideBubble text="Tap everything you pay for — I'll tally it up." />
             <TextInput
               value={brandQuery}
               onChangeText={setBrandQuery}
@@ -518,19 +532,17 @@ const Onboarding = () => {
           >
             <GuideBubble text={confirmGuide} />
 
-            <View className="my-2 items-center rounded-3xl bg-accent p-5">
-              <Text className="text-xs font-sans-bold uppercase tracking-[2px] text-white/70">
-                Your monthly spend
+            {/* Compact running subtotal — the full reveal comes after adding. */}
+            <View className="my-1 flex-row items-center justify-between rounded-2xl border border-border bg-card px-4 py-3">
+              <Text className="text-xs font-sans-bold uppercase tracking-[2px] text-muted-foreground">
+                Monthly so far
               </Text>
               <AnimatedCounter
                 value={monthlyTotal}
                 currency={baseCurrency}
-                duration={900}
-                className="mt-1 text-5xl font-display-black text-white"
+                duration={500}
+                className="text-xl font-display-semibold text-primary"
               />
-              <Text className="text-sm font-sans-medium text-white/80">
-                ≈ {formatCurrency(monthlyTotal * 12, baseCurrency)} a year
-              </Text>
             </View>
 
             {selectedBrands.map((brand) => (
@@ -599,15 +611,67 @@ const Onboarding = () => {
             </Text>
           </View>
         )}
-      </Reanimated.View>
 
-      {step === "done" && (
-        <CelebrationOverlay
-          title="You're all set!"
-          subtitle={`Now tracking ${formatCurrency(celebrateTotal, baseCurrency)}/mo across ${addedCount} subscription${addedCount === 1 ? "" : "s"}.`}
-          onDone={handleCelebrationDone}
-        />
-      )}
+        {step === "reveal" && (
+          // The aha moment: a big count-up to the yearly figure, assistant voice,
+          // then the trial offered once (with a real "maybe later" escape).
+          <View className="flex-1 justify-between p-6">
+            <View className="flex-1 items-center justify-center gap-3">
+              <FadeInUp delay={60}>
+                <Text className="text-center text-xs font-sans-bold uppercase tracking-[3px] text-accent">
+                  Here&apos;s what renews
+                </Text>
+              </FadeInUp>
+              <FadeInUp delay={160}>
+                <AnimatedCounter
+                  value={celebrateTotal * 12}
+                  currency={baseCurrency}
+                  duration={1500}
+                  className="text-center text-6xl font-display-black text-primary"
+                />
+              </FadeInUp>
+              <FadeInUp delay={340}>
+                <Text className="text-center text-base font-sans-medium text-muted-foreground">
+                  a year · {formatCurrency(celebrateTotal, baseCurrency)}/mo
+                  across {addedCount} subscription
+                  {addedCount === 1 ? "" : "s"}
+                </Text>
+              </FadeInUp>
+              <FadeInUp delay={560}>
+                <Text className="mt-4 text-center text-base font-sans-medium text-primary">
+                  I&apos;ll keep watch and warn you before each one renews.
+                </Text>
+              </FadeInUp>
+            </View>
+            <FadeInUp delay={780}>
+              <View className="gap-3">
+                <View className="flex-row items-center gap-2 rounded-3xl border border-accent bg-accent/10 p-4">
+                  <Text className="text-base text-accent">✦</Text>
+                  <Text className="flex-1 text-sm font-sans-medium text-muted-foreground">
+                    Want me to find savings — overlaps, zombies, cheaper plans?
+                    Try Pro free for 3 days.
+                  </Text>
+                </View>
+                <PressableScale onPress={completeToTrial}>
+                  <View className="auth-button">
+                    <Text className="auth-button-text">
+                      Start 3-day free trial
+                    </Text>
+                  </View>
+                </PressableScale>
+                <Pressable
+                  className="items-center py-2"
+                  onPress={completeToDashboard}
+                >
+                  <Text className="text-sm font-sans-semibold text-muted-foreground">
+                    Maybe later — go to my dashboard
+                  </Text>
+                </Pressable>
+              </View>
+            </FadeInUp>
+          </View>
+        )}
+      </Reanimated.View>
 
       <PickerSheet
         visible={showCurrencyPicker}

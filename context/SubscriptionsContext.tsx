@@ -1,10 +1,13 @@
 import {
   clearAllSubscriptions,
   getAllSubscriptions,
+  getLockedSubscriptionIds,
   insertSubscription,
+  lockSubscription as repoLock,
   restoreSubscription as repoRestore,
   setSubscriptionStatus,
   softDeleteSubscription,
+  unlockSubscription as repoUnlock,
   updateSubscription as repoUpdate,
 } from "@/db/subscriptionsRepo";
 import { reconcileConfirmedThrough } from "@/lib/billing";
@@ -33,6 +36,12 @@ interface SubscriptionsContextValue {
   pauseSubscription: (id: string) => Subscription | null;
   resumeSubscription: (id: string) => Subscription | null;
   cancelSubscription: (id: string) => Subscription | null;
+  /** Lock the given subs on a Pro→Free downgrade (over-cap, not kept). */
+  lockSubscriptions: (ids: string[]) => void;
+  /** Reactivate a single downgrade-locked sub (caller cap-checks first). */
+  unlockSubscription: (id: string) => Subscription | null;
+  /** Unlock every downgrade-locked sub — called on resubscribe. */
+  restoreLockedSubscriptions: () => void;
   getSubscription: (id: string) => Subscription | undefined;
   /** Re-read all subscriptions from the DB (e.g. on screen focus). */
   refresh: () => void;
@@ -139,6 +148,10 @@ export const SubscriptionsProvider = ({
     [refresh],
   );
 
+  // NOTE: restore brings back a soft-deleted sub at its prior status — which may
+  // be "active". Not wired to any UI today. If an undo-delete is ever added, the
+  // CALLER must first cap-check (canAddActive) when the restored sub is active,
+  // like resume/reactivate do, or it becomes a free-tier cap bypass.
   const restoreSubscription = useCallback(
     (id: string) => {
       const restored = repoRestore(id);
@@ -173,6 +186,34 @@ export const SubscriptionsProvider = ({
     [setStatus],
   );
 
+  const lockSubscriptions = useCallback((ids: string[]) => {
+    if (ids.length === 0) return;
+    ids.forEach((id) => repoLock(id));
+    const fresh = getAllSubscriptions();
+    setSubscriptions(fresh);
+    // Locked subs are paused → rescheduleAll drops their reminders.
+    void notifications.rescheduleAll(fresh);
+  }, []);
+
+  const unlockSubscription = useCallback(
+    (id: string) => {
+      const updated = repoUnlock(id);
+      refresh();
+      if (updated) void notifications.rescheduleForSubscription(updated);
+      return updated;
+    },
+    [refresh],
+  );
+
+  const restoreLockedSubscriptions = useCallback(() => {
+    const ids = getLockedSubscriptionIds();
+    if (ids.length === 0) return;
+    ids.forEach((id) => repoUnlock(id));
+    const fresh = getAllSubscriptions();
+    setSubscriptions(fresh);
+    void notifications.rescheduleAll(fresh);
+  }, []);
+
   const getSubscription = useCallback(
     (id: string) => subscriptions.find((sub) => sub.id === id),
     [subscriptions],
@@ -194,6 +235,9 @@ export const SubscriptionsProvider = ({
       pauseSubscription,
       resumeSubscription,
       cancelSubscription,
+      lockSubscriptions,
+      unlockSubscription,
+      restoreLockedSubscriptions,
       getSubscription,
       refresh,
       clearAllData,
@@ -207,6 +251,9 @@ export const SubscriptionsProvider = ({
       pauseSubscription,
       resumeSubscription,
       cancelSubscription,
+      lockSubscriptions,
+      unlockSubscription,
+      restoreLockedSubscriptions,
       getSubscription,
       refresh,
       clearAllData,

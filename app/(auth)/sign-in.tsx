@@ -1,6 +1,7 @@
+import BackButton from "@/components/BackButton";
 import { useTheme } from "@/context/ThemeContext";
 import { useSignIn } from "@clerk/expo";
-import { Link, useRouter } from "expo-router";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { styled } from "nativewind";
 import React from "react";
 import {
@@ -20,6 +21,10 @@ export default function SignIn() {
   const { signIn, errors, fetchStatus } = useSignIn();
   const { palette } = useTheme();
   const router = useRouter();
+  // Optional post-auth destination (e.g. the paywall resuming a trial). Falls
+  // back to the app root for a plain sign-in.
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
+  const destination = (returnTo ?? "/") as Parameters<typeof router.replace>[0];
 
   const [emailAddress, setEmailAddress] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -63,7 +68,7 @@ export default function SignIn() {
             console.log(session?.currentTask);
             return;
           }
-          router.replace("/");
+          router.replace(destination);
         },
       });
     } else if (signIn.status === "needs_client_trust") {
@@ -87,7 +92,7 @@ export default function SignIn() {
             console.log(session?.currentTask);
             return;
           }
-          router.replace("/");
+          router.replace(destination);
         },
       });
     }
@@ -97,22 +102,7 @@ export default function SignIn() {
     return (
       <SafeAreaView className="auth-screen">
         <View className="auth-content">
-          <Pressable
-            className="mb-2 flex-row items-center gap-1 self-start py-2"
-            onPress={() =>
-              router.canGoBack() ? router.back() : router.replace("/")
-            }
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Text className="text-2xl font-sans-medium text-muted-foreground">
-              ‹
-            </Text>
-            <Text className="text-sm font-sans-semibold text-muted-foreground">
-              Back
-            </Text>
-          </Pressable>
+          <BackButton />
           <Text className="auth-title">Verify your account</Text>
           <Text className="auth-subtitle">
             Enter the code sent to your email.
@@ -159,22 +149,7 @@ export default function SignIn() {
       >
         <ScrollView className="auth-scroll">
           <View className="auth-content">
-            <Pressable
-              className="mb-2 flex-row items-center gap-1 self-start py-2"
-              onPress={() =>
-                router.canGoBack() ? router.back() : router.replace("/")
-              }
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <Text className="text-2xl font-sans-medium text-muted-foreground">
-                ‹
-              </Text>
-              <Text className="text-sm font-sans-semibold text-muted-foreground">
-                Back
-              </Text>
-            </Pressable>
+            <BackButton />
             <View className="auth-brand-block">
               <View className="auth-logo-wrap">
                 <View className="auth-logo-mark">
@@ -238,7 +213,12 @@ export default function SignIn() {
 
             <View className="auth-link-row">
               <Text className="auth-link-copy">Don&apos;t have an account?</Text>
-              <Link href="/(auth)/sign-up">
+              <Link
+                href={{
+                  pathname: "/(auth)/sign-up",
+                  params: returnTo ? { returnTo } : {},
+                }}
+              >
                 <Text className="auth-link">Sign up</Text>
               </Link>
             </View>

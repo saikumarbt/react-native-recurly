@@ -55,7 +55,17 @@ describe("MIGRATIONS list", () => {
     // Full column shape: a boolean-as-INTEGER that defaults to 0 so existing
     // rows are non-acknowledged (still eligible for duplicate flagging).
     expect(v4?.sql).toMatch(/duplicate_acknowledged\s+INTEGER\s+NOT NULL\s+DEFAULT 0/);
-    expect(latest).toBe(4);
+  });
+
+  it("adds the nullable cancel_pending_at column at v5", () => {
+    const v5 = MIGRATIONS.find((m) => m.version === 5);
+    expect(v5?.sql).toMatch(/cancel_pending_at\s+TEXT/);
+  });
+
+  it("adds the nullable locked_at column at v6 (latest)", () => {
+    const v6 = MIGRATIONS.find((m) => m.version === 6);
+    expect(v6?.sql).toMatch(/locked_at\s+TEXT/);
+    expect(latest).toBe(6);
   });
 });
 
@@ -108,6 +118,8 @@ describe("rowToSubscription date_assumed mapping", () => {
     next_renewal_date: null,
     cancelled_at: null,
     paused_at: null,
+    cancel_pending_at: null,
+    locked_at: null,
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
     deleted_at: null,
@@ -118,6 +130,26 @@ describe("rowToSubscription date_assumed mapping", () => {
     expect(rowToSubscription({ ...baseRow, date_assumed: 1 }).dateAssumed).toBe(
       true,
     );
+  });
+
+  it("round-trips cancel_pending_at → cancelPendingAt", () => {
+    expect(rowToSubscription(baseRow).cancelPendingAt).toBeUndefined();
+    expect(
+      rowToSubscription({
+        ...baseRow,
+        cancel_pending_at: "2026-07-27T00:00:00.000Z",
+      }).cancelPendingAt,
+    ).toBe("2026-07-27T00:00:00.000Z");
+  });
+
+  it("round-trips locked_at → lockedAt", () => {
+    expect(rowToSubscription(baseRow).lockedAt).toBeUndefined();
+    expect(
+      rowToSubscription({
+        ...baseRow,
+        locked_at: "2026-07-28T00:00:00.000Z",
+      }).lockedAt,
+    ).toBe("2026-07-28T00:00:00.000Z");
   });
 
   it("maps duplicate_acknowledged 0 -> false and 1 -> true", () => {

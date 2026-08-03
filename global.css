@@ -56,6 +56,34 @@
   --font-display-black: display-black;
 }
 
+/* Dark theme (Violet Midnight). react-native-css re-evaluates this block when
+   the color scheme changes — driven by Appearance.setColorScheme() from
+   ThemeProvider (its colorScheme observable subscribes to Appearance). Every
+   color utility reads var(--color-...), so overriding those on :root here
+   swaps the whole app to dark. Keep values in sync with palettes.dark in
+   constants/theme.ts (used for inline styles). */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #0f0d1a;
+    --color-foreground: #f3f1fb;
+    --color-card: #191627;
+    --color-raised: #221d34;
+    --color-muted: #221d34;
+    --color-muted-foreground: rgba(243, 241, 251, 0.62);
+    --color-faint: rgba(243, 241, 251, 0.56);
+    --color-primary: #f3f1fb;
+    --color-accent: #6e5be4;
+    --color-accent-press: #7e6dea;
+    --color-on-accent: #ffffff;
+    --color-border: rgba(255, 255, 255, 0.09);
+    --color-success: #34d399;
+    --color-warning: #f5b860;
+    --color-destructive: #f47174;
+    --color-info: #7da7f4;
+    --color-subscription: #251f3a;
+  }
+}
+
 @layer components {
   .tabs-icon {
     @apply size-12 items-center justify-center;
@@ -71,6 +99,19 @@
 
   .tabs-glyph {
     @apply size-6;
+  }
+
+  /* Custom bottom bar with a raised center ＋ FAB (see components/TabBar.tsx). */
+  .tab-bar-shell {
+    @apply absolute left-0 right-0 h-[68px] flex-row items-center rounded-full border px-1.5;
+  }
+
+  .tab-fab {
+    @apply -mt-6 size-14 items-center justify-center rounded-full;
+  }
+
+  .tab-fab-glyph {
+    @apply size-7;
   }
 
   .home-header {
@@ -147,6 +188,11 @@
 
   .list-action {
     @apply rounded-full border border-black/20 px-4 py-1;
+  }
+
+  /* Uppercase group header above each Settings card (grouped-cards layout). */
+  .settings-section-label {
+    @apply mb-2 mt-5 ml-1 text-xs font-sans-bold uppercase tracking-[2px] text-muted-foreground;
   }
 
   .list-action-text {
@@ -386,11 +432,17 @@
   }
 
   .modal-overlay {
-    @apply flex-1 bg-black/50;
+    /* Backdrop tint now comes from <SheetBackdrop> (blur + dim) layered
+       inside; the overlay itself stays transparent so the blur shows. */
+    @apply flex-1;
   }
 
   .modal-container {
-    @apply mt-auto max-h-[85%] rounded-t-3xl border border-border bg-background;
+    /* Bottom sheet. max-w + self-center caps it on iPad/wide screens (RN Modals
+       render in their own full-device window, so the root column cap doesn't
+       reach here); on phones w-full keeps it edge-to-edge. Keep 600px in sync
+       with TABLET_MAX_WIDTH in app/_layout.tsx. */
+    @apply mt-auto max-h-[85%] w-full max-w-[600px] self-center rounded-t-3xl border border-border bg-background;
   }
 
   .sheet-handle {

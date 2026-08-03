@@ -10,11 +10,12 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
-import { useColorScheme } from "react-native";
+import { Appearance, useColorScheme } from "react-native";
 
 export type ThemePreference = ThemeName | "system";
 const KV_KEY = "theme_preference";
@@ -46,6 +47,15 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   const scheme: ThemeName =
     preference === "system" ? (os === "dark" ? "dark" : "light") : preference;
+
+  // Drive the ACTUAL theme switch through RN's Appearance: react-native-css's
+  // colorScheme observable subscribes to Appearance, so setting it here flips
+  // every var(--color-*) utility (via the dark :root block in global.css) AND
+  // native components. "system" (null) hands control back to the OS. This is
+  // the mechanism that works — the vars()/VariableContext path does not.
+  useEffect(() => {
+    Appearance.setColorScheme(preference === "system" ? null : preference);
+  }, [preference]);
 
   const setPreference = useCallback((next: ThemePreference) => {
     setKv(KV_KEY, next);
