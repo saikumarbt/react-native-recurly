@@ -286,7 +286,7 @@ const Insights = () => {
           <Pressable
             onPress={() =>
               isPro
-                ? router.push("/found")
+                ? router.push("/found?source=insights")
                 : router.push("/paywall?source=insights_found")
             }
             className="rounded-3xl border border-accent bg-card p-5"

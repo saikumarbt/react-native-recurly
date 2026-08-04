@@ -98,4 +98,24 @@ describe("buildReminders", () => {
     );
     expect(reminders.some((r) => r.id === "sub1::cancel_pending")).toBe(false);
   });
+
+  it("a downgrade-locked sub gets one upgrade-framed renewal nudge (T-1), not the usual reminders", () => {
+    const reminders = buildReminders(
+      baseSub({ status: "paused", lockedAt: "2026-07-01T00:00:00.000Z" }),
+      "USD",
+    );
+    expect(reminders.map((r) => r.id)).toEqual(["sub1::locked_renewal"]);
+    expect(dayjs(reminders[0].date).hour()).toBe(9);
+    // T-1 before the 20th renewal.
+    expect(
+      dayjs(reminders[0].date)
+        .startOf("day")
+        .diff(dayjs("2026-07-20T10:00:00.000Z").startOf("day"), "day"),
+    ).toBe(-1);
+    expect(reminders[0].title).toMatch(/may renew/);
+  });
+
+  it("a normal paused sub (not downgrade-locked) still gets no reminders", () => {
+    expect(buildReminders(baseSub({ status: "paused" }), "USD")).toEqual([]);
+  });
 });

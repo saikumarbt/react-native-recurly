@@ -1,4 +1,4 @@
-import { Platform } from "react-native";
+import { Linking, Platform } from "react-native";
 import Purchases, {
   LOG_LEVEL,
   type CustomerInfo,
@@ -139,6 +139,19 @@ export async function restore(): Promise<CustomerInfo | null> {
   } catch (e) {
     console.warn("[purchases] restorePurchases failed", e);
     return null;
+  }
+}
+
+/** Open the store's "manage subscriptions" page (update payment / re-enable
+ *  auto-renew) via the CustomerInfo managementURL — the action for the
+ *  grace/cancel winback banner. */
+export async function manageSubscriptions(): Promise<void> {
+  if (!configured) return;
+  try {
+    const url = (await Purchases.getCustomerInfo()).managementURL;
+    if (url) await Linking.openURL(url);
+  } catch (e) {
+    console.warn("[purchases] manageSubscriptions failed", e);
   }
 }
 

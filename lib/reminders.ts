@@ -13,6 +13,7 @@ export const REMINDER_KINDS = [
   ...TRIAL_LEAD_DAYS.map((d) => `trial_${d}`),
   "checkin",
   "cancel_pending",
+  "locked_renewal",
 ];
 
 export interface PlannedReminder {
@@ -39,6 +40,30 @@ export const buildReminders = (
   baseCurrency: string,
   now: dayjs.Dayjs = dayjs(),
 ): PlannedReminder[] => {
+  // Downgrade-locked subs (paused + lockedAt) aren't actively tracked, but a
+  // charge may still land at the service. Fire ONE upgrade-framed heads-up near
+  // the estimated next renewal — explicitly a winback prompt, not a reliable
+  // reminder. Single + self-expiring (nothing else scheduled for a locked sub).
+  if (sub.lockedAt) {
+    const next = getNextRenewal(
+      sub.renewalDate ?? sub.startDate,
+      sub.billingCycle ?? "monthly",
+      sub.customIntervalDays,
+    );
+    if (!next) return [];
+    const fireAt = atReminderHour(next.subtract(1, "day"));
+    if (!fireAt.isAfter(now)) return [];
+    return [
+      {
+        id: `${sub.id}::locked_renewal`,
+        date: fireAt.toDate(),
+        subscriptionId: sub.id,
+        title: `${sub.name} may renew ${next.format("MMM D")}`,
+        body: "You're not tracking it on free. Reactivate Pro to keep an eye on it.",
+      },
+    ];
+  }
+
   if (sub.status !== "active") return [];
 
   const reminders: PlannedReminder[] = [];

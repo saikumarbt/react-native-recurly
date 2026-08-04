@@ -1,0 +1,1175 @@
+<title>myrev · Design System</title>
+<style>
+  :root{
+    --accent:#6e5be4;--accent-press:#7e6dea;--on-accent:#fff;
+    --accent-soft:rgba(110,91,228,.14);--mint-soft:rgba(47,191,130,.14);
+    --bg:#f4f2f9;--surface:#fff;--raised:#fff;--sunken:#ece9f4;
+    --hair:rgba(30,22,54,.09);--hair2:rgba(30,22,54,.16);
+    --text:#191427;--dim:rgba(25,20,39,.62);--faint:rgba(25,20,39,.5);
+    --mint:#2fbf82;--amber:#d98a1f;--danger:#e0525f;--info:#4f7fe0;--sub:#efeafb;
+    --shadow:0 16px 36px -16px rgba(76,60,120,.28);
+    --studio:#e7e3f4;--studio2:#ddd7ef;--device:#fff;--bezel:#d6d0ea;
+    --ui:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --disp:"Fraunces","Georgia","Times New Roman",serif;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme]){color-scheme:dark;
+    --bg:#0f0d1a;--surface:#191627;--raised:#221d34;--sunken:#0a0813;
+    --hair:rgba(255,255,255,.09);--hair2:rgba(255,255,255,.16);
+    --text:#f3f1fb;--dim:rgba(243,241,251,.62);--faint:rgba(243,241,251,.56);
+    --mint:#34d399;--amber:#f5b860;--danger:#f47174;--info:#7da7f4;--sub:#251f3a;
+    --shadow:0 24px 50px -20px rgba(0,0,0,.78);--studio:#08060f;--studio2:#060409;--device:#060409;--bezel:#040308;}}
+  :root[data-theme="dark"]{color-scheme:dark;
+    --bg:#0f0d1a;--surface:#191627;--raised:#221d34;--sunken:#0a0813;
+    --hair:rgba(255,255,255,.09);--hair2:rgba(255,255,255,.16);
+    --text:#f3f1fb;--dim:rgba(243,241,251,.62);--faint:rgba(243,241,251,.56);
+    --mint:#34d399;--amber:#f5b860;--danger:#f47174;--info:#7da7f4;--sub:#251f3a;
+    --shadow:0 24px 50px -20px rgba(0,0,0,.78);--studio:#08060f;--studio2:#060409;--device:#060409;--bezel:#040308;}
+  :root[data-theme="light"]{color-scheme:light;}
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--ui);color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;line-height:1.5}
+  .top{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:14px 22px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--hair)}
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--disp);font-weight:800;font-size:18px;letter-spacing:-.02em}
+  .brand .m{width:28px;height:28px;border-radius:9px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:15px}
+  .toggle{display:flex;gap:4px;background:var(--surface);border:1px solid var(--hair);border-radius:999px;padding:4px}
+  .toggle button{border:none;background:none;color:var(--dim);font:inherit;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:999px;cursor:pointer}
+  .toggle button.on{background:var(--accent);color:#fff}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px 120px}
+  .hero{padding:56px 0 8px;max-width:70ch}
+  .kick{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);font-weight:800}
+  h1{font-family:var(--disp);font-size:clamp(34px,6vw,52px);font-weight:900;letter-spacing:-.03em;margin:10px 0 6px;line-height:1.02}
+  .hero p{color:var(--dim);font-size:16px;max-width:62ch}
+  .sec{margin-top:64px;scroll-margin-top:80px}
+  .sec-n{font-family:var(--disp);font-size:13px;font-weight:800;color:var(--accent);letter-spacing:2px;text-transform:uppercase}
+  h2{font-family:var(--disp);font-size:28px;font-weight:800;letter-spacing:-.02em;margin:4px 0 6px}
+  .sec>p.lead{color:var(--dim);max-width:64ch;margin-bottom:22px}
+  h3{font-size:15px;font-weight:800;margin:26px 0 12px;letter-spacing:-.01em}
+  .card{background:var(--surface);border:1px solid var(--hair);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:820px){.g3,.g4{grid-template-columns:repeat(2,1fr)}}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--hair);vertical-align:top}
+  th{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--faint);font-weight:800}
+  td code,code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12px;background:var(--sunken);padding:2px 6px;border-radius:6px;color:var(--text)}
+  .tok{display:flex;align-items:center;gap:10px}
+  .sw{width:34px;height:34px;border-radius:9px;border:1px solid var(--hair);flex:none}
+  .muted{color:var(--dim)}.faint{color:var(--faint)}
+  .disp{font-family:var(--disp);font-weight:800;letter-spacing:-.02em}
+  .pill{display:inline-block;font-size:11px;font-weight:800;padding:4px 9px;border-radius:999px;border:1px solid var(--hair);color:var(--dim)}
+  .note{border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 12px 12px 0;padding:12px 15px;font-size:13.5px;color:var(--text);margin:16px 0}
+
+  /* component demo primitives (mirror the app tokens) */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;font-weight:800;font-size:14px;padding:13px 18px;border:1px solid transparent;cursor:default}
+  .btn.pri{background:var(--accent);color:var(--on-accent)}
+  .btn.pri.press{background:var(--accent-press)}
+  .btn.ghost{background:var(--surface);color:var(--text);border-color:var(--hair)}
+  .btn.danger{background:transparent;color:var(--danger);border-color:color-mix(in srgb,var(--danger) 40%,transparent)}
+  .btn.dis{opacity:.4}
+  .input{background:var(--surface);border:1px solid var(--hair);border-radius:14px;padding:13px 14px;color:var(--faint);font-size:14px}
+  .input.focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);color:var(--text)}
+  .input.err{border-color:var(--danger)}
+  .chip{font-size:12.5px;font-weight:700;padding:8px 13px;border-radius:999px;border:1px solid var(--hair);color:var(--dim);display:inline-block}
+  .chip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+  .seg{display:inline-flex;background:var(--sunken);border-radius:11px;padding:3px;gap:2px}
+  .seg span{font-size:12px;font-weight:700;padding:7px 13px;border-radius:8px;color:var(--dim)}
+  .seg span.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.14)}
+  .sw-ui{width:44px;height:26px;border-radius:999px;background:var(--accent);position:relative;flex:none;display:inline-block}
+  .sw-ui::after{content:"";position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:999px;background:#fff}
+  .sw-ui.off{background:var(--hair2)}.sw-ui.off::after{right:auto;left:3px}
+  .badge{font-size:10px;font-weight:800;letter-spacing:.4px;padding:3px 8px;border-radius:999px}
+  .badge.pro{background:var(--accent);color:#fff}.badge.trial{border:1px solid var(--info);color:var(--info)}
+  .badge.save{background:var(--amber);color:#241a04}
+  .avatar{width:44px;height:44px;border-radius:999px;background:linear-gradient(135deg,var(--accent),#9b8bef);display:grid;place-items:center;color:#fff;font-family:var(--disp);font-weight:800}
+  .tile{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-weight:800;color:#fff;flex:none;font-size:15px}
+  .skel{background:linear-gradient(90deg,var(--sunken),color-mix(in srgb,var(--sunken) 55%,var(--surface)),var(--sunken));border-radius:8px}
+  .demo{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .demo .lbl{font-size:11px;color:var(--faint);font-weight:700;width:100%;margin-top:4px}
+  .toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+  .toc a{font-size:12.5px;font-weight:700;color:var(--dim);text-decoration:none;border:1px solid var(--hair);border-radius:999px;padding:6px 12px}
+  .toc a:hover{color:var(--accent);border-color:var(--accent)}
+  .rule{font-size:13px;color:var(--dim);margin:4px 0 0;padding-left:18px;position:relative}
+  .rule::before{content:"";position:absolute;left:2px;top:8px;width:6px;height:6px;border-radius:9px;background:var(--accent)}
+
+  /* phone mockups */
+  .stage{display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start;margin-top:4px}
+  .pw{width:300px;flex:none}
+  /* device-accurate frame: fixed ~9:19.3 proportions so every screen reads as the same real phone, plus a Dynamic Island */
+  .phone{width:300px;border-radius:46px;background:var(--device);border:1px solid var(--bezel);box-shadow:var(--shadow),inset 0 0 0 6px var(--bezel);padding:7px}
+  .scr{background:var(--bg);border-radius:40px;padding:32px 14px 15px;display:flex;flex-direction:column;gap:10px;position:relative;height:620px;overflow-y:auto;scrollbar-width:none}
+  .scr::-webkit-scrollbar{width:0;height:0;display:none}
+  .scr::before{content:"";position:absolute;top:11px;left:50%;transform:translateX(-50%);width:78px;height:20px;border-radius:999px;background:#050608;z-index:6}
+  .cap-s{font-size:11px;color:var(--faint);text-align:center;margin-top:9px;font-weight:700}
+  .cap-s b{color:var(--accent)}
+  .sb{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);font-weight:600}
+  .h2t{font-family:var(--disp);font-size:20px;font-weight:800;letter-spacing:-.02em}
+  .ey-s{font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:800;color:var(--faint)}
+  .between{display:flex;align-items:center;justify-content:space-between}
+  .row-s{display:flex;align-items:center;gap:9px}
+  .scard{background:var(--surface);border:1px solid var(--hair);border-radius:15px;padding:12px}
+  .glowb{position:relative}.glowb::before{content:"";position:absolute;inset:-18px;background:radial-gradient(circle at 50% 40%,var(--accent-soft),transparent 70%)}.glowb>*{position:relative}
+  .navbar{display:flex;justify-content:space-around;align-items:center;background:var(--raised);border:1px solid var(--hair);border-radius:999px;padding:7px;margin-top:12px;position:sticky;bottom:0}
+  .navbar i{width:32px;height:32px;border-radius:999px;display:grid;place-items:center;color:var(--faint);font-size:14px;font-style:normal}
+  .navbar i.on{background:var(--accent);color:#fff}
+  .navbar i.fab{width:44px;height:44px;background:var(--accent);color:#fff;font-size:21px;font-weight:800;margin-top:-17px;box-shadow:0 10px 18px -6px var(--accent-soft)}
+  .seclbl-s{font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:800;color:var(--faint);margin:5px 2px 1px}
+  .subr{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--hair)}.subr:last-child{border-bottom:none}
+  .tile-s{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-weight:800;color:#fff;flex:none;font-size:13px}
+  .flag-s{display:inline-block;font-size:9px;font-weight:800;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:999px;margin-top:2px}
+  .locked{position:relative;border-radius:13px;overflow:hidden}.locked .blr{filter:blur(3px);opacity:.5;pointer-events:none}.locked .ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+  .lockpill{background:var(--accent);color:#fff;font-weight:800;font-size:11px;padding:7px 13px;border-radius:999px}
+  /* branded assistant callout (not a stock chat bubble): glowing m mark + MYREV eyebrow + editorial line, no tail */
+  .guide{display:flex;gap:11px;align-items:flex-start}
+  .guide .av{width:36px;height:36px;border-radius:12px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;flex:none;font-family:var(--disp);font-size:17px;box-shadow:0 8px 16px -5px var(--accent-soft)}
+  .guide .bub{background:transparent;border:none;padding:2px 0;font-size:14px;font-weight:600;line-height:1.4;flex:1}
+  .guide .bub::before{content:"myrev";display:block;font-size:8.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);font-weight:800;margin-bottom:2px}
+  .plan-r{border:1.5px solid var(--hair);border-radius:13px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;position:relative}.plan-r.sel{border-color:var(--accent);background:var(--accent-soft)}
+  .big{font-family:var(--disp);font-weight:900;letter-spacing:-.03em;line-height:1}
+  .mintc{background:var(--mint-soft);border:1px solid var(--mint-soft);border-radius:15px;padding:12px}
+  .bs{display:block;text-align:center;border-radius:12px;font-weight:800;font-size:12.5px;padding:11px}
+  .bs.pri{background:var(--accent);color:#fff}.bs.gh{color:var(--dim)}
+  .barbg{height:7px;border-radius:99px;background:var(--sunken);overflow:hidden}.barbg>i{display:block;height:7px;border-radius:99px}
+  .pip{width:7px;height:7px;border-radius:9px;display:inline-block}
+  .field{background:var(--surface);border:1px solid var(--hair);border-radius:12px;padding:10px 12px;font-size:12.5px;color:var(--faint)}
+  .grid3s{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+  .brandcell{aspect-ratio:1;border-radius:12px;border:1px solid var(--hair);background:var(--surface);display:grid;place-items:center;color:#fff;font-weight:800;position:relative}
+  .brandcell.sel{outline:2px solid var(--accent);outline-offset:1px}
+  .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .stat{background:var(--surface);border:1px solid var(--hair);border-radius:13px;padding:11px;text-align:center}
+</style>
+
+<div class="top">
+  <div class="brand"><span class="m">m</span> myrev · design system</div>
+  <div class="toggle"><button id="tl">Light</button><button id="td">Dark</button><button id="ts" class="on">System</button></div>
+</div>
+
+<div class="wrap">
+  <div class="hero">
+    <div class="kick">Source of truth · v1</div>
+    <h1>Know what renews.</h1>
+    <p>One system for every myrev screen: tokens, components, and states in light and dark, for free (guest) and Pro v1. This is the reference the app and the paywall are built from. Pro v1 ships without AI; the AI layer is noted where it lands in v2.</p>
+    <div class="toc">
+      <a href="#overview">01 Overview</a>
+      <a href="#ia">02 Architecture</a>
+      <a href="#type">03 Type</a>
+      <a href="#color">04 Colour</a>
+      <a href="#space">05 Spacing & layout</a>
+      <a href="#tokens">06 Radius · elevation · blur</a>
+      <a href="#components">07 Components</a>
+      <a href="#screens">08 Screens</a>
+      <a href="#handoff">09 Handoff</a>
+      <a href="#states">10 States</a>
+      <a href="#flows">11 Flows</a>
+      <a href="#nav">12 Navigation</a>
+      <a href="#interaction">13 Interaction</a>
+      <a href="#motion">14 Motion</a>
+      <a href="#forms">15 Forms</a>
+      <a href="#a11y">16 Accessibility</a>
+      <a href="#platform">17·18 Platform</a>
+      <a href="#copy">19 Copy</a>
+      <a href="#analytics">20 Analytics</a>
+      <a href="#qa">21 QA</a>
+    </div>
+  </div>
+
+  <!-- 01 OVERVIEW -->
+  <section class="sec" id="overview">
+    <div class="sec-n">01</div><h2>Overview</h2>
+    <p class="lead">What myrev is, who it's for, and the rules the design obeys.</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3 style="margin-top:0">Product</h3>
+        <p class="rule">Track subscriptions, recurring bills, and upcoming payments in one place.</p>
+        <p class="rule">Local-first: data lives on the phone. No bank login.</p>
+        <p class="rule">Guest-first: fully usable with no account. Sign-in is optional, for backup later.</p>
+        <p class="rule">One base currency. No conversion.</p>
+        <p class="rule">Reminders fire before renewals and before free trials end.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Business rules the UI must honour</h3>
+        <p class="rule">Free tracks up to <b>5 active</b> subscriptions. Paused and cancelled don't count.</p>
+        <p class="rule">Pro is recurring only. No lifetime.</p>
+        <p class="rule">Pro v1 has <b>no AI</b>. Value is unlimited subs, backup, custom reminders, widgets, cheaper-plan finder, cancel guidance.</p>
+        <p class="rule">Trials are excluded from spend until they convert.</p>
+        <p class="rule">Base currency locks once any subscription exists.</p>
+        <p class="rule muted">Out of scope v1: AI plan / Ask myrev / forecasts (v2), calendar tab (cut), multi-currency.</p>
+      </div>
+    </div>
+    <div class="note"><b>Copy voice.</b> Write like a sharp friend. Short lines, concrete numbers, plain labels. A button says what it does, then the toast confirms it: "Cancel" then "Cancelled". The assistant speaks first person only when it's the assistant: "I found $312 you could cut."</div>
+  </section>
+
+  <!-- 02 IA -->
+  <section class="sec" id="ia">
+    <div class="sec-n">02</div><h2>Information architecture</h2>
+    <p class="lead">Four tabs, a center action, and the modal routes that sit above them.</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3 style="margin-top:0">Navigation</h3>
+        <p class="rule"><b>Tabs:</b> Home · Subscriptions · Insights · Settings</p>
+        <p class="rule"><b>Center ＋ FAB</b> → <code>/add</code> (full-height sheet, reachable from any tab)</p>
+        <p class="rule"><b>Modal routes:</b> <code>/add</code>, <code>/subscriptions/[id]</code>, paywall, cap wall</p>
+        <p class="rule"><b>Auth (optional):</b> sign-in · sign-up · forgot · reset</p>
+        <p class="rule"><b>Deep link:</b> renewal reminder → <code>/subscriptions/[id]</code></p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Settings tree</h3>
+        <p class="rule">Profile (photo, name, sign-in state)</p>
+        <p class="rule">myrev Pro (upsell when free, "Active" when Pro)</p>
+        <p class="rule">Preferences: currency · appearance · reminders</p>
+        <p class="rule">Privacy &amp; data: analytics · export · privacy · terms</p>
+        <p class="rule">Support: feature request · bug report · version</p>
+        <p class="rule">Account: sign in / out</p>
+        <p class="rule">Danger zone: clear data · delete account</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 TYPOGRAPHY -->
+  <section class="sec" id="type">
+    <div class="sec-n">03</div><h2>Typography</h2>
+    <p class="lead">Two families. Fraunces for numerals and headlines, Plus Jakarta Sans for everything else. Numbers are the hero, so they get the display face and tabular figures.</p>
+    <div class="card">
+      <table>
+        <tr><th>Role</th><th>Family</th><th>Size / line</th><th>Weight</th><th>Sample</th></tr>
+        <tr><td>Display / hero number</td><td>Fraunces</td><td>52 / 1.0</td><td>900</td><td><span class="disp" style="font-size:34px">$52.97</span></td></tr>
+        <tr><td>Screen title (H1)</td><td>Fraunces</td><td>28 / 1.1</td><td>800</td><td><span class="disp" style="font-size:22px">Subscriptions</span></td></tr>
+        <tr><td>Section (H2)</td><td>Fraunces</td><td>22 / 1.15</td><td>800</td><td><span class="disp" style="font-size:18px">Where your money goes</span></td></tr>
+        <tr><td>Body</td><td>Plus Jakarta Sans</td><td>15 / 1.5</td><td>500</td><td>Renews in 3 days</td></tr>
+        <tr><td>Label / button</td><td>Plus Jakarta Sans</td><td>14 / 1.2</td><td>700–800</td><td style="font-weight:800">Add subscription</td></tr>
+        <tr><td>Caption</td><td>Plus Jakarta Sans</td><td>12 / 1.4</td><td>500</td><td class="muted" style="font-size:12px">Used for every amount</td></tr>
+        <tr><td>Eyebrow</td><td>Plus Jakarta Sans</td><td>11 / 1.3</td><td>800</td><td class="faint" style="font-size:11px;letter-spacing:2px;text-transform:uppercase">Cut from cancellations</td></tr>
+      </table>
+      <p class="rule" style="margin-top:14px">Eyebrows use 2px letter-spacing and uppercase. Headlines use −0.02em. Amounts always use tabular figures so columns line up. Truncate names to one line; never wrap a brand name.</p>
+    </div>
+  </section>
+
+  <!-- 04 COLOUR -->
+  <section class="sec" id="color">
+    <div class="sec-n">04</div><h2>Colour</h2>
+    <p class="lead">One violet system, two themes: Porcelain (light) and Violet Midnight (dark). Semantic colours are separate from the accent and never double as it. Toggle the theme above to see both. Values mirror <code>constants/theme.ts</code>.</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3 style="margin-top:0">Brand &amp; surfaces</h3>
+        <table>
+          <tr><th>Token</th><th></th><th>Use</th></tr>
+          <tr><td><code>accent</code> #6E5BE4</td><td><div class="sw" style="background:var(--accent)"></div></td><td>primary action, focus, active</td></tr>
+          <tr><td><code>on-accent</code> #FFFFFF</td><td><div class="sw" style="background:var(--on-accent)"></div></td><td>text/icon on accent (4.9:1 ✓)</td></tr>
+          <tr><td><code>background</code></td><td><div class="sw" style="background:var(--bg)"></div></td><td>screen base</td></tr>
+          <tr><td><code>surface / card</code></td><td><div class="sw" style="background:var(--surface)"></div></td><td>cards, sheets, inputs</td></tr>
+          <tr><td><code>raised</code></td><td><div class="sw" style="background:var(--raised)"></div></td><td>tab bar, elevated card</td></tr>
+          <tr><td><code>border</code></td><td><div class="sw" style="background:var(--hair)"></div></td><td>hairlines</td></tr>
+          <tr><td><code>text / primary</code></td><td><div class="sw" style="background:var(--text)"></div></td><td>primary text</td></tr>
+          <tr><td><code>muted-foreground</code></td><td><div class="sw" style="background:var(--dim)"></div></td><td>secondary text</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Semantic</h3>
+        <table>
+          <tr><th>Token</th><th></th><th>Meaning</th></tr>
+          <tr><td><code>success / mint</code></td><td><div class="sw" style="background:var(--mint)"></div></td><td>money saved, positive</td></tr>
+          <tr><td><code>warning / amber</code></td><td><div class="sw" style="background:var(--amber)"></div></td><td>paused, confirm, projection up</td></tr>
+          <tr><td><code>destructive</code></td><td><div class="sw" style="background:var(--danger)"></div></td><td>delete, cancel, error</td></tr>
+          <tr><td><code>info</code></td><td><div class="sw" style="background:var(--info)"></div></td><td>on trial</td></tr>
+          <tr><td><code>subscription</code></td><td><div class="sw" style="background:var(--sub)"></div></td><td>brand tile wash</td></tr>
+        </table>
+        <p class="rule" style="margin-top:12px">Status is never colour alone. Every state pairs colour with a word or icon (accessibility): "On trial", "Paused". Contrast clears WCAG AA in both themes for text.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 SPACING & LAYOUT -->
+  <section class="sec" id="space">
+    <div class="sec-n">05</div><h2>Spacing &amp; layout</h2>
+    <p class="lead">A 4-based scale. Screen gutter is 20. Content scrolls with 128 bottom clearance so the floating tab bar and FAB never cover the last row.</p>
+    <div class="grid g2">
+      <div class="card"><h3 style="margin-top:0">Spacing scale (pt)</h3>
+        <table>
+          <tr><th>Token</th><th>px</th><th>Typical use</th></tr>
+          <tr><td>1</td><td>4</td><td>icon-to-text</td></tr>
+          <tr><td>2</td><td>8</td><td>text-to-text</td></tr>
+          <tr><td>3</td><td>12</td><td>inside chips</td></tr>
+          <tr><td>4</td><td>16</td><td>card padding, list gap</td></tr>
+          <tr><td>5</td><td>20</td><td>screen gutter</td></tr>
+          <tr><td>6–8</td><td>24–32</td><td>section spacing</td></tr>
+          <tr><td>32</td><td>128</td><td>scroll bottom clearance (pb-32)</td></tr>
+        </table>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Layout &amp; safe areas</h3>
+        <p class="rule">Screen gutter: <b>20</b> left/right.</p>
+        <p class="rule">Tab bar: floating pill, height <b>68</b>, inset <b>20</b>, respects bottom safe area.</p>
+        <p class="rule">Center FAB: <b>56</b>, raised <b>−22</b> above the bar.</p>
+        <p class="rule">Lists: single column, 16 gap, section headers with 20 top.</p>
+        <p class="rule">Sheets: bottom, max height <b>85%</b>, drag handle, frosted backdrop.</p>
+        <p class="rule">Content centers vertically on short screens (reveal, empty states); scrolls on long ones.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 RADIUS / ELEVATION / BLUR -->
+  <section class="sec" id="tokens">
+    <div class="sec-n">06</div><h2>Radius · elevation · blur · icons</h2>
+    <div class="grid g4">
+      <div class="card"><h3 style="margin-top:0">Radius</h3>
+        <p class="rule">Chips / pills: 999</p><p class="rule">Inputs / small cards: 14</p><p class="rule">Cards: 16–18</p><p class="rule">Sheets / hero cards: 24–30</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Elevation</h3>
+        <p class="rule">Flat: hairline only</p><p class="rule">Card: soft violet shadow</p><p class="rule">Tab bar: shadow + hairline (lifts off bg)</p><p class="rule">FAB: accent-tinted shadow</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Blur / opacity</h3>
+        <p class="rule">Sheet backdrop: BlurView + dim (24 iOS / 50 Android)</p><p class="rule">Locked Pro teaser: 2.5px blur, 50% opacity</p><p class="rule">Disabled: 40% opacity</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Icons</h3>
+        <p class="rule">Brand: simple-icons + monogram fallback</p><p class="rule">Glyphs: 24 in tab bar, 20 in rows</p><p class="rule">Brand tile: 40 (rows), 44 (grid)</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 COMPONENTS -->
+  <section class="sec" id="components">
+    <div class="sec-n">07</div><h2>Component library</h2>
+    <p class="lead">Every control, with its states. Toggle the theme to check both. Free vs Pro variations are shown where they differ.</p>
+
+    <h3>Buttons</h3>
+    <div class="card"><div class="demo">
+      <span class="btn pri">Primary</span>
+      <span class="btn pri press">Pressed</span>
+      <span class="btn ghost">Secondary</span>
+      <span class="btn danger">Delete account</span>
+      <span class="btn pri dis">Disabled</span>
+      <span class="btn pri"><span class="skel" style="width:16px;height:16px;border-radius:999px;display:inline-block"></span> Loading</span>
+      <span class="lbl">default · pressed · secondary · danger · disabled · loading · min target 44px</span>
+    </div></div>
+
+    <h3>Back button</h3>
+    <div class="card"><div class="demo">
+      <span style="width:44px;height:44px;border-radius:999px;display:grid;place-items:center;border:1px solid var(--hair);font-size:20px;color:var(--text)">‹</span>
+      <span class="lbl"><b>components/BackButton.tsx</b> — one control on every drill-in (detail, Found, auth). 44×44 target + hit-slop, chevron, accessibilityRole=button + label "Go back", pops the stack or falls back to Home. Never a bare glyph.</span>
+    </div></div>
+
+    <h3>Inputs, search &amp; selection</h3>
+    <div class="card"><div class="demo">
+      <span class="input">Search subscriptions</span>
+      <span class="input focus">Netflix|</span>
+      <span class="input err">Enter a price above 0</span>
+      <span class="lbl">text · focus · error</span>
+      <span class="chip">Renewal</span><span class="chip on">Cost ↓</span><span class="chip">Name</span>
+      <span class="seg"><span>Light</span><span>Dark</span><span class="on">System</span></span>
+      <span class="sw-ui"></span><span class="sw-ui off"></span>
+      <span class="lbl">chips · segmented (appearance) · switch on/off</span>
+    </div></div>
+
+    <h3>Badges, pills &amp; avatars</h3>
+    <div class="card"><div class="demo">
+      <span class="badge pro">✦ PRO</span>
+      <span class="badge trial">TRIAL · 2d</span>
+      <span class="badge save">SAVE 50%</span>
+      <span class="pill">8 total</span>
+      <span class="avatar">A</span>
+      <span class="tile" style="background:#e50914">N</span>
+      <span class="tile" style="background:#1db954">S</span>
+      <span class="lbl">pro · trial · save · count · avatar · brand tiles</span>
+    </div></div>
+
+    <h3>Subscription card — states</h3>
+    <div class="grid g2">
+      <div class="card" style="padding:6px 14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0">
+          <div style="display:flex;align-items:center;gap:11px"><span class="tile" style="background:#e50914">N</span><div><div style="font-weight:700;font-size:14px">Netflix</div><div class="faint" style="font-size:11.5px">Entertainment · monthly</div></div></div>
+          <div style="text-align:right"><div class="disp" style="font-size:14px">$15.49</div><div style="font-size:11px;font-weight:700;color:var(--amber)">in 3d</div></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-top:1px solid var(--hair)">
+          <div style="display:flex;align-items:center;gap:11px"><span class="tile" style="background:#000">N</span><div><div style="font-weight:700;font-size:14px">Notion</div><div style="font-size:11.5px;color:var(--info);font-weight:800">Trial · 2d left</div></div></div>
+          <span class="chip" style="border-color:var(--info);color:var(--info)">Decide</span>
+        </div>
+        <p class="lbl" style="padding:0 0 8px">active (renews soon) · on trial</p>
+      </div>
+      <div class="card" style="padding:6px 14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0">
+          <div style="display:flex;align-items:center;gap:11px"><span class="tile" style="background:#10a37f">C</span><div><div style="font-weight:700;font-size:14px">ChatGPT Plus</div><div style="font-size:11px;font-weight:800;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:999px;display:inline-block;margin-top:2px">✦ overlaps Claude · Pro</div></div></div>
+          <div class="disp" style="font-size:14px">$20.00</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-top:1px solid var(--hair);opacity:.6">
+          <div style="display:flex;align-items:center;gap:11px"><span class="tile" style="background:#8b8b8b">D</span><div><div style="font-weight:700;font-size:14px;text-decoration:line-through">Disney+</div><div class="faint" style="font-size:11.5px">Cancelled Jun 12</div></div></div>
+        </div>
+        <p class="lbl" style="padding:0 0 8px">Pro ✦ flag (v1, deterministic) · cancelled (history)</p>
+      </div>
+    </div>
+
+    <h3>Sheets, dialogs &amp; feedback</h3>
+    <div class="grid g3">
+      <div class="card"><div style="height:6px;width:40px;border-radius:9px;background:var(--hair2);margin:0 auto 12px"></div><div style="font-weight:800;font-size:14px">Bottom sheet</div><p class="muted" style="font-size:12.5px;margin-top:4px">Drag handle, 85% max, frosted backdrop. Add, pickers, cancel guidance.</p></div>
+      <div class="card"><div style="font-weight:800;font-size:14px">Delete account?</div><p class="muted" style="font-size:12.5px;margin:4px 0 10px">This removes your data. It can't be undone.</p><div class="demo"><span class="btn ghost" style="padding:9px 14px;font-size:13px">Cancel</span><span class="btn danger" style="padding:9px 14px;font-size:13px">Delete</span></div><p class="lbl">destructive dialog</p></div>
+      <div class="card" style="background:var(--text);color:var(--bg)"><div style="font-weight:800;font-size:13px">Cancelled. Saving $15.49/mo.</div><p class="lbl" style="color:var(--faint)">toast (success)</p></div>
+    </div>
+
+    <h3>Loading, empty &amp; error</h3>
+    <div class="grid g3">
+      <div class="card"><div class="skel" style="height:52px;margin-bottom:10px"></div><div class="skel" style="height:14px;width:70%;margin-bottom:6px"></div><div class="skel" style="height:14px;width:45%"></div><p class="lbl">skeleton (Insights loading)</p></div>
+      <div class="card" style="text-align:center"><div style="font-size:26px">📭</div><div style="font-weight:800;font-size:14px;margin-top:6px">No subscriptions yet</div><p class="muted" style="font-size:12.5px;margin-top:4px">Tap ＋ to add your first.</p><p class="lbl">empty (teaches next action)</p></div>
+      <div class="card" style="text-align:center"><div style="font-size:26px">⚠️</div><div style="font-weight:800;font-size:14px;margin-top:6px">Couldn't load</div><p class="muted" style="font-size:12.5px;margin-top:4px">Pull to retry.</p><p class="lbl">error / offline</p></div>
+    </div>
+  </section>
+
+  <!-- 08 SCREENS -->
+  <section class="sec" id="screens">
+    <div class="sec-n">08</div><h2>Screens</h2>
+    <p class="lead">Every screen in the shipped violet system. Toggle light/dark above. Free (guest) and Pro v1 shown where they differ. Pro v1 carries no AI; the assistant only ever states facts myrev computed on-device.</p>
+
+    <h3 id="s-onb">Onboarding &amp; auth</h3>
+    <div class="stage">
+
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="glowb" style="margin-top:20px;text-align:center"><div class="tile-s glowb" style="width:54px;height:54px;border-radius:16px;background:var(--accent);font-size:26px;margin:0 auto">m</div></div>
+        <div class="disp" style="font-size:26px;text-align:center;margin-top:6px">myrev</div>
+        <div class="disp" style="font-size:22px;text-align:center;margin-top:8px">Hi, I'm myrev.</div>
+        <div class="muted" style="font-size:13px;text-align:center">I keep an eye on what renews, so a charge never surprises you.</div>
+        <div class="faint" style="font-size:11px;text-align:center;margin-top:2px">No bank login. Your data stays on your phone.</div>
+        <div class="bs pri" style="margin-top:auto">Let's go</div>
+      </div></div><div class="cap-s">1 · Intro <b>· assistant voice</b></div></div>
+
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="guide"><div class="av">m</div><div class="bub">First, what currency do you pay in? I'll use it for every amount.</div></div>
+        <div class="field between" style="margin-top:4px"><b class="disp" style="font-size:15px;color:var(--text)">$ USD</b><span class="muted">▾</span></div>
+        <div class="scard between muted" style="padding:10px 12px"><span class="disp" style="font-size:15px">€ EUR</span><span class="faint" style="font-size:11px">Euro</span></div>
+        <div class="scard between muted" style="padding:10px 12px"><span class="disp" style="font-size:15px">£ GBP</span><span class="faint" style="font-size:11px">Pound</span></div>
+        <div class="bs pri" style="margin-top:auto">Continue</div>
+      </div></div><div class="cap-s">2 · Currency</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="guide"><div class="av">m</div><div class="bub">Tap everything you pay for. I'll tally it up.</div></div>
+        <div class="field">🔎 Search 300+ brands</div>
+        <div class="scard" style="padding:0;overflow:hidden">
+          <div class="between" style="padding:10px 12px"><span class="row-s" style="gap:6px"><span style="font-weight:800;font-size:12px">Entertainment</span><span class="badge pro" style="font-size:9px;padding:2px 7px">2</span></span><span class="faint">▾</span></div>
+          <div class="grid3s" style="padding:0 12px 12px">
+            <div class="brandcell sel" style="background:#e50914">N</div><div class="brandcell" style="background:#5865f2">D</div><div class="brandcell sel" style="background:#000">Y</div>
+          </div>
+        </div>
+        <div class="scard between" style="padding:11px 12px"><span class="row-s" style="gap:6px"><span style="font-weight:800;font-size:12px">Music</span><span class="faint" style="font-size:11px">3</span></span><span class="faint">▸</span></div>
+        <div class="scard between" style="padding:11px 12px"><span class="row-s" style="gap:6px"><span style="font-weight:800;font-size:12px">AI tools</span><span class="faint" style="font-size:11px">4</span></span><span class="faint">▸</span></div>
+        <div class="bs pri" style="margin-top:auto">Add 2 subscriptions</div>
+      </div></div><div class="cap-s">3 · Pick <b>· category accordion</b> (one open)</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="guide"><div class="av">m</div><div class="bub">Right prices? Change any.</div></div>
+        <div class="scard between" style="padding:10px 13px"><span class="ey-s">Monthly so far</span><span class="disp" style="font-size:17px">$41.47</span></div>
+        <div class="scard row-s" style="padding:9px 11px"><span class="tile-s" style="background:#e50914">N</span><div style="flex:1"><div style="font-weight:700;font-size:13px">Netflix</div><div class="faint" style="font-size:10.5px">Monthly ▾</div></div><b class="disp" style="font-size:13px">$15.49</b></div>
+        <div class="scard row-s" style="padding:9px 11px"><span class="tile-s" style="background:#1db954">S</span><div style="flex:1"><div style="font-weight:700;font-size:13px">Spotify</div><div class="faint" style="font-size:10.5px">Monthly ▾</div></div><b class="disp" style="font-size:13px">$11.99</b></div>
+        <div class="bs pri" style="margin-top:auto">Add 3 subscriptions</div>
+      </div></div><div class="cap-s">4 · Confirm prices</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr" style="justify-content:center;text-align:center;align-items:center">
+        <div class="sb" style="position:absolute;top:15px;left:13px;right:13px"><span>9:41</span><span>● ● ●</span></div>
+        <div class="ey-s" style="color:var(--accent)">Here's what renews</div>
+        <div class="glowb"><div class="big glowb" style="font-size:52px">$497</div></div>
+        <div class="muted" style="font-size:13px;margin-top:2px">a year · $41.47/mo across 3</div>
+        <div style="font-size:13px;margin-top:14px;max-width:24ch">I'll warn you before each one renews.</div>
+        <div style="position:absolute;left:13px;right:13px;bottom:15px">
+          <div class="bs pri">Start 3-day free trial</div>
+          <div class="bs gh" style="margin-top:6px">Maybe later, go to my dashboard</div>
+        </div>
+      </div></div><div class="cap-s">5 · Reveal <b>· aha, count-up</b></div></div>
+
+      <div class="pw"><div class="phone"><div class="scr glowb">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div style="text-align:center"><div class="ey-s" style="color:var(--accent)">myrev Pro</div><div class="disp" style="font-size:21px;margin-top:6px;line-height:1.1">Pay less for what you already have</div></div>
+        <div style="display:flex;flex-direction:column;gap:7px;margin-top:2px;font-size:12px">
+          <div class="row-s"><span style="color:var(--accent);font-weight:800">✓</span> Cheaper-plan &amp; bundle finder</div>
+          <div class="row-s"><span style="color:var(--accent);font-weight:800">✓</span> Track unlimited subscriptions</div>
+          <div class="row-s"><span style="color:var(--accent);font-weight:800">✓</span> Encrypted backup &amp; custom reminders</div>
+        </div>
+        <div class="plan-r sel"><span class="badge save" style="position:absolute;top:-9px;right:12px">SAVE 50%</span><div><div style="font-weight:800;font-size:13px">Annual</div><div class="faint" style="font-size:10.5px">$29.99/yr · ≈$0.58/wk</div></div><b class="disp">$29.99</b></div>
+        <div class="plan-r"><div><div style="font-weight:800;font-size:13px">Monthly</div><div class="faint" style="font-size:10.5px">$4.99/mo</div></div><b class="disp">$4.99</b></div>
+        <div class="plan-r"><div><div style="font-weight:800;font-size:13px">Weekly</div><div class="faint" style="font-size:10.5px">$2.99/wk</div></div><b class="disp">$2.99</b></div>
+        <div class="bs pri" style="margin-top:2px">Start 3-day free trial</div>
+        <div class="faint" style="font-size:10px;text-align:center">Free for 3 days, then $29.99/yr. Cancel anytime.</div>
+        <div class="gh" style="font-size:11.5px;text-align:center;font-weight:700">Continue with free tracking</div>
+        <div class="between faint" style="font-size:10px;justify-content:center;gap:14px"><span>Restore</span><span>Terms</span><span>Privacy</span></div>
+      </div></div><div class="cap-s">6 · Paywall <b>· v1, no AI</b></div></div>
+
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div style="text-align:center;margin-top:16px"><div class="tile-s" style="width:44px;height:44px;border-radius:13px;background:var(--accent);font-size:20px;margin:0 auto">m</div><div class="disp" style="font-size:22px;margin-top:8px">myrev</div><div class="ey-s" style="color:var(--accent)">know what renews</div></div>
+        <div class="field" style="margin-top:8px">Email</div>
+        <div class="field">Password</div>
+        <div class="bs pri">Sign in</div>
+        <div class="gh" style="font-size:11.5px;text-align:center;font-weight:700">Forgot password?</div>
+        <div class="gh" style="font-size:11.5px;text-align:center;font-weight:700;margin-top:auto">Continue as guest</div>
+      </div></div><div class="cap-s">7 · Sign in (optional)</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="disp" style="font-size:20px;margin-top:8px">Reset your password</div>
+        <div class="muted" style="font-size:12.5px">Enter your email and I'll send a reset link.</div>
+        <div class="field" style="margin-top:4px">you@email.com</div>
+        <div class="bs pri">Send reset link</div>
+        <div class="scard" style="background:var(--mint-soft);border-color:var(--mint-soft);font-size:12px">Check your inbox. The link expires in 30 minutes.</div>
+        <div class="gh" style="font-size:11.5px;text-align:center;font-weight:700;margin-top:auto">Back to sign in</div>
+      </div></div><div class="cap-s">8 · Forgot / reset (+ sent state)</div></div>
+
+    </div>
+
+    <h3 id="s-home">Home — free vs Pro v1</h3>
+    <div class="stage">
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="between"><span class="ey-s">Good morning</span><span class="chip" style="padding:4px 9px;font-size:10px">🔥 3-week streak</span></div>
+        <div class="glowb"><div class="big glowb" style="font-size:44px">$52.97</div></div>
+        <div class="muted" style="font-size:12px">renews this month · ≈ $635/yr</div>
+        <div class="scard"><div class="between"><span class="ey-s">Where it goes</span><span class="faint" style="font-size:11px">Details ›</span></div><div class="barbg" style="margin-top:8px"><i style="width:100%;background:var(--accent)"></i></div><div class="faint" style="font-size:10.5px;margin-top:5px">Entertainment leads at 46%</div></div>
+        <div class="mintc between"><div><div class="ey-s" style="color:var(--mint)">You've saved</div><div class="disp" style="font-size:17px;color:var(--mint)">$28.98/mo</div></div><span style="font-size:20px">🎉</span></div>
+        <div><div class="seclbl-s">Next up</div>
+          <div class="scard" style="padding:4px 12px">
+            <div class="subr"><div class="row-s"><span class="tile-s" style="background:#e50914">N</span><div><div style="font-weight:700;font-size:12.5px">Netflix</div><div class="faint" style="font-size:10px">in 3 days</div></div></div><b class="disp" style="font-size:12.5px">$15.49</b></div>
+            <div class="subr"><div class="row-s"><span class="tile-s" style="background:#0071e3">i</span><div><div style="font-weight:700;font-size:12.5px">iCloud+</div><div class="faint" style="font-size:10px">in 5 days</div></div></div><b class="disp" style="font-size:12.5px">$2.99</b></div>
+          </div>
+        </div>
+        <div class="scard row-s" style="border:1px dashed var(--accent)"><span style="color:var(--accent)">✦</span><div style="flex:1;font-size:11.5px">myrev found <b style="color:var(--accent)">$480/yr</b> to cut</div><span class="lockpill" style="font-size:10px;padding:5px 10px">Unlock</span></div>
+        <div class="navbar"><i class="on">⌂</i><i>≣</i><i class="fab">＋</i><i>▦</i><i>⚙</i></div>
+      </div></div><div class="cap-s">Home <b>· free</b> (one quiet Found hook)</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="between"><span class="ey-s">Good morning</span><span class="badge pro">✦ PRO</span></div>
+        <div class="glowb"><div class="big glowb" style="font-size:44px">$52.97</div></div>
+        <div class="muted" style="font-size:12px">renews this month · ≈ $635/yr</div>
+        <div class="scard"><div class="between"><span class="ey-s">Where it goes</span><span class="faint" style="font-size:11px">Details ›</span></div><div class="barbg" style="margin-top:8px"><i style="width:100%;background:var(--accent)"></i></div><div class="faint" style="font-size:10.5px;margin-top:5px">Entertainment leads at 46%</div></div>
+        <div class="mintc between"><div><div class="ey-s" style="color:var(--mint)">You've saved</div><div class="disp" style="font-size:17px;color:var(--mint)">$28.98/mo</div></div><span style="font-size:20px">🎉</span></div>
+        <div><div class="seclbl-s">Next up</div>
+          <div class="scard" style="padding:4px 12px">
+            <div class="subr"><div class="row-s"><span class="tile-s" style="background:#e50914">N</span><div><div style="font-weight:700;font-size:12.5px">Netflix</div><div class="faint" style="font-size:10px">in 3 days</div></div></div><b class="disp" style="font-size:12.5px">$15.49</b></div>
+          </div>
+        </div>
+        <div class="scard" style="border-color:var(--accent)"><div class="ey-s" style="color:var(--accent)">✦ myrev found · $480/yr</div><div style="font-size:11.5px;margin-top:6px" class="between"><span>Spotify → annual</span><b class="disp" style="color:var(--mint);font-size:11.5px">$24/yr</b></div><div style="font-size:11.5px;margin-top:3px" class="between"><span>Drop YouTube (have Prime)</span><b class="disp" style="color:var(--mint);font-size:11.5px">$156/yr</b></div><div class="bs pri" style="margin-top:9px;padding:8px;font-size:11.5px">Show me how</div></div>
+        <div class="navbar"><i class="on">⌂</i><i>≣</i><i class="fab">＋</i><i>▦</i><i>⚙</i></div>
+      </div></div><div class="cap-s">Home <b>· Pro v1</b> (all free content + Found unlocked)</div></div>
+    </div>
+
+    <h3 id="s-subs">Subscriptions — grouped by status (free · Pro · cap wall)</h3>
+    <div class="stage">
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="between"><div class="h2t">Subscriptions</div><span class="pill">5 total</span></div>
+        <div class="field">🔎 Search</div>
+        <div class="seclbl-s">Active · 3 · $48.47/mo</div>
+        <div class="scard" style="padding:4px 12px">
+          <div class="subr"><div class="row-s"><span class="tile-s" style="background:#e50914">N</span><div><div style="font-weight:700;font-size:12.5px">Netflix</div><div class="faint" style="font-size:10px">Entertainment</div></div></div><div style="text-align:right"><div class="disp" style="font-size:12.5px">$15.49</div><div style="font-size:9.5px;font-weight:700;color:var(--amber)">in 3d</div></div></div>
+          <div class="subr"><div class="row-s"><span class="tile-s" style="background:#10a37f">C</span><div><div style="font-weight:700;font-size:12.5px">ChatGPT</div><div class="faint" style="font-size:10px">AI tools</div></div></div><div class="disp" style="font-size:12.5px">$20.00</div></div>
+        </div>
+        <div class="seclbl-s" style="color:var(--info)">On trial · 1</div>
+        <div class="scard" style="padding:4px 12px"><div class="subr"><div class="row-s"><span class="tile-s" style="background:#000">N</span><div><div style="font-weight:700;font-size:12.5px">Notion</div><div style="font-size:10px;color:var(--info);font-weight:800">Ends in 2d</div></div></div><span class="chip" style="border-color:var(--info);color:var(--info);padding:5px 9px;font-size:10.5px">Decide</span></div></div>
+        <div class="seclbl-s" style="color:var(--mint)">Cancelled · 2 · saving $28.98/mo</div>
+        <div class="navbar"><i>⌂</i><i class="on">≣</i><i class="fab">＋</i><i>▦</i><i>⚙</i></div>
+      </div></div><div class="cap-s">Subscriptions <b>· free</b> (at 5-active cap)</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="between"><div class="h2t">Subscriptions</div><span class="badge pro">✦ PRO</span></div>
+        <div class="field">🔎 Search</div>
+        <div class="seclbl-s">Active · 6 · $71/mo</div>
+        <div class="scard" style="padding:4px 12px">
+          <div class="subr"><div class="row-s"><span class="tile-s" style="background:#10a37f">C</span><div><div style="font-weight:700;font-size:12.5px">ChatGPT</div><span class="flag-s">✦ overlaps Claude</span></div></div><div class="disp" style="font-size:12.5px">$20.00</div></div>
+          <div class="subr"><div class="row-s"><span class="tile-s" style="background:#1db954">S</span><div><div style="font-weight:700;font-size:12.5px">Spotify</div><span class="flag-s" style="color:var(--mint);background:var(--mint-soft)">✦ annual saves $24</span></div></div><div class="disp" style="font-size:12.5px">$11.99</div></div>
+          <div class="subr"><div class="row-s"><span class="tile-s" style="background:#ff0000">A</span><div><div style="font-weight:700;font-size:12.5px">Adobe</div><span class="flag-s" style="color:var(--amber);background:rgba(217,138,31,.14)">✦ zombie · 3mo idle</span></div></div><div class="disp" style="font-size:12.5px">$22.99</div></div>
+        </div>
+        <div class="seclbl-s" style="color:var(--info)">On trial · 1</div>
+        <div class="scard" style="padding:4px 12px"><div class="subr"><div class="row-s"><span class="tile-s" style="background:#000">N</span><div><div style="font-weight:700;font-size:12.5px">Notion</div><div style="font-size:10px;color:var(--info);font-weight:800">Ends in 2d</div></div></div><span class="chip" style="border-color:var(--info);color:var(--info);padding:5px 9px;font-size:10.5px">Decide</span></div></div>
+        <div class="seclbl-s" style="color:var(--mint)">Cancelled · 2 · saving $28.98/mo</div>
+        <div class="scard" style="padding:4px 12px"><div class="subr" style="opacity:.6"><div class="row-s"><span class="tile-s" style="background:#8b8b8b">D</span><div><div style="font-weight:700;font-size:12.5px;text-decoration:line-through">Disney+</div><div class="faint" style="font-size:10px">Cancelled Jun 12</div></div></div></div></div>
+        <div class="navbar"><i>⌂</i><i class="on">≣</i><i class="fab">＋</i><i>▦</i><i>⚙</i></div>
+      </div></div><div class="cap-s">Subscriptions <b>· Pro v1</b> (all free content + unlimited + ✦ flags)</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr" style="justify-content:flex-end">
+        <div class="sb" style="position:absolute;top:15px;left:13px;right:13px"><span>9:41</span><span>● ● ●</span></div>
+        <div style="position:absolute;inset:0;background:rgba(10,8,20,.35)"></div>
+        <div class="scard" style="position:relative;border-radius:22px 22px 0 0;margin:0 -13px -15px;padding:20px 15px;box-shadow:var(--shadow)">
+          <div style="height:5px;width:38px;border-radius:9px;background:var(--hair2);margin:0 auto 14px"></div>
+          <div class="row-s" style="gap:8px"><div class="av" style="width:32px;height:32px;border-radius:10px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;font-family:var(--disp)">m</div><div class="disp" style="font-size:17px">You're tracking 5.</div></div>
+          <div class="muted" style="font-size:12.5px;margin-top:8px">You're clearly on top of this. Go unlimited and I'll watch every subscription, not just five.</div>
+          <div class="bs pri" style="margin-top:14px">Go unlimited with Pro</div>
+          <div class="bs gh" style="margin-top:4px">Not now</div>
+        </div>
+      </div></div><div class="cap-s">Cap wall <b>· at 6th add</b> (data never hidden)</div></div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h4 style="margin:0 0 8px">Sort &amp; filter (within the status groups)</h4>
+      <p class="rule"><b>Sort chips</b> — Renewal · Price · Name; each <b>toggles ascending/descending</b> (tap the active chip to flip, ↑/↓ shown). Applies inside each group, not across them (Active still lists above Cancelled). Renewal picks soonest, Price priciest, Name A–Z by default.</p>
+      <p class="rule"><b>Group fallbacks under "Renewal"</b> (no upcoming date): <b>Cancelled</b> → cancellation date, most-recent first; <b>Paused</b> → Name. Price/Name sort every group uniformly.</p>
+      <p class="rule"><b>Adaptive category filter</b> — ≤6 categories render as <b>wrapping chips</b> (no horizontal scroll — a sideways affordance isn't obvious); &gt;6 collapse to a <b>"Filter · N" pill → multi-select sheet</b> (search + per-category counts + Clear all). Threshold <code>INLINE_CATEGORY_LIMIT=6</code>.</p>
+      <p class="rule"><b>Keyboard</b> dismisses on scroll (<code>keyboardDismissMode="on-drag"</code>) on the list + filter sheet. <b>Adding a sub resets search + category filter</b> so the user lands on the full collapsed list and sees what they just added.</p>
+    </div>
+
+    <h3 id="s-add">Add sheet · detail · cancel</h3>
+    <div class="stage">
+      <div class="pw"><div class="phone"><div class="scr" style="justify-content:flex-end">
+        <div class="sb" style="position:absolute;top:15px;left:13px;right:13px"><span>9:41</span><span>● ● ●</span></div>
+        <div style="position:absolute;inset:0;background:rgba(10,8,20,.3)"></div>
+        <div class="scard" style="position:relative;border-radius:22px 22px 0 0;margin:0 -13px -15px;padding:16px 14px;display:flex;flex-direction:column;gap:10px">
+          <div style="height:5px;width:38px;border-radius:9px;background:var(--hair2);margin:0 auto"></div>
+          <div class="h2t" style="font-size:17px">Add subscription</div>
+          <div class="scard row-s" style="padding:9px 11px"><span class="tile-s" style="background:#e50914">N</span><div style="flex:1;font-weight:700;font-size:13px">Netflix</div><span class="faint" style="font-size:11px">Change ›</span></div>
+          <div class="field between"><span class="faint">Price</span><b class="disp" style="color:var(--text)">$15.49</b></div>
+          <div class="row-s" style="gap:7px"><span class="chip on" style="padding:6px 11px;font-size:11px">Monthly</span><span class="chip" style="padding:6px 11px;font-size:11px">Entertainment</span></div>
+          <div class="between field"><span>Free trial</span><span class="sw-ui off" style="width:38px;height:22px"></span></div>
+          <div class="bs pri">Add subscription</div>
+        </div>
+      </div></div><div class="cap-s">Add <b>· full-height sheet</b> (frosted backdrop)</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="faint" style="font-size:12px">‹ Back</div>
+        <div class="glowb" style="text-align:center;margin-top:4px"><span class="tile-s glowb" style="width:52px;height:52px;border-radius:15px;background:#e50914;font-size:24px;margin:0 auto">N</span></div>
+        <div class="disp" style="font-size:20px;text-align:center;margin-top:6px">Netflix</div>
+        <div class="muted" style="font-size:12px;text-align:center">$15.49 / month · renews in 3 days</div>
+        <div class="scard" style="background:var(--mint-soft);border-color:var(--mint-soft);font-size:12px"><b>Is the date right?</b> Confirm so reminders are accurate. <span style="color:var(--accent);font-weight:800">Confirm ›</span></div>
+        <div class="statgrid"><div class="stat"><div class="disp" style="font-size:16px">$185.88</div><div class="faint" style="font-size:10px">per year</div></div><div class="stat"><div class="disp" style="font-size:16px">Jun 2025</div><div class="faint" style="font-size:10px">since</div></div></div>
+        <div class="row-s" style="gap:7px;margin-top:2px"><span class="bs gh" style="flex:1;border:1px solid var(--hair)">Edit</span><span class="bs gh" style="flex:1;border:1px solid var(--hair)">Pause</span><span class="bs" style="flex:1;color:var(--danger);border:1px solid color-mix(in srgb,var(--danger) 40%,transparent)">Cancel</span></div>
+      </div></div><div class="cap-s">Detail (+ date check-in)</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr" style="justify-content:center;text-align:center;align-items:center">
+        <div class="sb" style="position:absolute;top:15px;left:13px;right:13px"><span>9:41</span><span>● ● ●</span></div>
+        <div style="font-size:40px">🎉</div>
+        <div class="ey-s" style="color:var(--mint);margin-top:6px">Cancelled</div>
+        <div class="big" style="font-size:40px;color:var(--mint)">$15.49</div>
+        <div style="font-weight:700;font-size:14px;margin-top:4px">saved every month</div>
+        <div class="scard" style="margin-top:14px;width:100%"><div class="ey-s">myrev · saved this year</div><div class="disp" style="font-size:22px;color:var(--mint);margin-top:2px">$347.76</div></div>
+        <div style="position:absolute;left:13px;right:13px;bottom:15px"><div class="bs pri">Share my savings</div></div>
+      </div></div><div class="cap-s">Cancel celebration + share card</div></div>
+    </div>
+
+    <h3 id="s-ins">Insights — free vs Pro v1</h3>
+    <div class="stage">
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="between"><div class="h2t">Insights</div><span class="pill">8 total</span></div>
+        <div class="scard"><div class="ey-s">You're spending</div><div class="big" style="font-size:36px;margin-top:2px">$52.97</div><div class="muted" style="font-size:11.5px">a month · ≈ $635.64 a year</div><div class="faint" style="font-size:10.5px;margin-top:3px">Next month ~<b style="color:var(--text)">$55.20</b> <span style="color:var(--amber);font-weight:700">▲ $2.23</span></div></div>
+        <div class="scard"><div class="ey-s">Where your money goes</div>
+          <div style="margin-top:9px"><div class="between" style="font-size:11px;margin-bottom:4px"><span><span class="pip" style="background:var(--accent)"></span> Entertainment</span><span class="faint">46%</span></div><div class="barbg"><i style="width:100%;background:var(--accent)"></i></div></div>
+          <div style="margin-top:8px"><div class="between" style="font-size:11px;margin-bottom:4px"><span><span class="pip" style="background:#9b8bef"></span> AI tools</span><span class="faint">38%</span></div><div class="barbg"><i style="width:82%;background:#9b8bef"></i></div></div>
+        </div>
+        <div class="mintc between"><div><div class="ey-s" style="color:var(--mint)">Cut from cancellations</div><div class="disp" style="font-size:18px;color:var(--mint)">$28.98/mo</div></div></div>
+        <div class="scard glowb" style="border-color:var(--accent)"><div class="glowb"><div class="between"><span class="ey-s" style="color:var(--accent)">✦ myrev found</span><span class="badge trial">PRO</span></div><div class="disp" style="font-size:20px;color:var(--accent);margin-top:4px">$480/yr to cut</div><div class="locked" style="margin-top:8px"><div class="blr" style="font-size:10.5px">Spotify → annual saves $24 · drop YouTube…</div><div class="ov"><span class="lockpill">Start free trial</span></div></div></div></div>
+        <div class="seclbl-s">Your portfolio · 8</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+          <div class="stat" style="padding:9px 4px"><div class="disp" style="font-size:15px">4</div><div class="faint" style="font-size:9px">Paying</div></div>
+          <div class="stat" style="padding:9px 4px"><div class="disp" style="font-size:15px;color:var(--info)">1</div><div class="faint" style="font-size:9px">Trial</div></div>
+          <div class="stat" style="padding:9px 4px"><div class="disp" style="font-size:15px;color:var(--amber)">1</div><div class="faint" style="font-size:9px">Paused</div></div>
+          <div class="stat" style="padding:9px 4px"><div class="disp" style="font-size:15px;color:var(--mint)">2</div><div class="faint" style="font-size:9px">Cut</div></div>
+        </div>
+        <div class="navbar"><i>⌂</i><i>≣</i><i class="fab">＋</i><i class="on">▦</i><i>⚙</i></div>
+      </div></div><div class="cap-s">Insights <b>· free</b> (number shown, plan locked)</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="between"><div class="h2t">Insights</div><span class="badge pro">✦ PRO</span></div>
+        <div class="scard"><div class="ey-s">You're spending</div><div class="big" style="font-size:36px;margin-top:2px">$52.97</div><div class="muted" style="font-size:11.5px">a month · ≈ $635.64 a year</div><div class="faint" style="font-size:10.5px;margin-top:3px">Next month ~<b style="color:var(--text)">$55.20</b> <span style="color:var(--amber);font-weight:700">▲ $2.23</span></div></div>
+        <div class="scard"><div class="ey-s">Where your money goes</div>
+          <div style="margin-top:9px"><div class="between" style="font-size:11px;margin-bottom:4px"><span><span class="pip" style="background:var(--accent)"></span> Entertainment</span><span class="faint">46%</span></div><div class="barbg"><i style="width:100%;background:var(--accent)"></i></div></div>
+          <div style="margin-top:8px"><div class="between" style="font-size:11px;margin-bottom:4px"><span><span class="pip" style="background:#9b8bef"></span> AI tools</span><span class="faint">38%</span></div><div class="barbg"><i style="width:82%;background:#9b8bef"></i></div></div>
+        </div>
+        <div class="mintc between"><div><div class="ey-s" style="color:var(--mint)">Cut from cancellations</div><div class="disp" style="font-size:18px;color:var(--mint)">$28.98/mo</div></div></div>
+        <div class="scard" style="border-color:var(--accent)"><div class="ey-s" style="color:var(--accent)">✦ myrev found</div><div class="disp" style="font-size:20px;color:var(--accent);margin-top:2px">up to $480/yr</div><div class="faint" style="font-size:10.5px">across 3 ways to save</div><div class="bs pri" style="margin-top:9px;padding:9px;font-size:12px">Review &amp; save →</div></div>
+        <div class="seclbl-s">Your portfolio · 8</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+          <div class="stat" style="padding:9px 4px"><div class="disp" style="font-size:15px">4</div><div class="faint" style="font-size:9px">Paying</div></div>
+          <div class="stat" style="padding:9px 4px"><div class="disp" style="font-size:15px;color:var(--info)">1</div><div class="faint" style="font-size:9px">Trial</div></div>
+          <div class="stat" style="padding:9px 4px"><div class="disp" style="font-size:15px;color:var(--amber)">1</div><div class="faint" style="font-size:9px">Paused</div></div>
+          <div class="stat" style="padding:9px 4px"><div class="disp" style="font-size:15px;color:var(--mint)">2</div><div class="faint" style="font-size:9px">Cut</div></div>
+        </div>
+        <div class="navbar"><i>⌂</i><i>≣</i><i class="fab">＋</i><i class="on">▦</i><i>⚙</i></div>
+      </div></div><div class="cap-s">Insights <b>· Pro v1</b> (compact card → Found review)</div></div>
+    </div>
+
+    <h3 id="s-set">Settings — free vs Pro v1</h3>
+    <div class="stage">
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="h2t">Settings</div>
+        <div class="scard row-s"><div class="avatar" style="width:38px;height:38px">G</div><div style="flex:1"><div style="font-weight:800;font-size:14px">Guest</div><div class="faint" style="font-size:11px">Sign in to back up</div></div><span class="faint">›</span></div>
+        <div class="scard glowb" style="border-color:var(--accent)"><div class="glowb"><div class="between"><span class="ey-s" style="color:var(--accent)">✦ myrev Pro</span><span class="badge trial">3-day trial</span></div><div style="font-size:11.5px;margin-top:5px" class="muted">Pay less, track unlimited, back up.</div><div class="bs pri" style="margin-top:9px;padding:9px;font-size:12px">Start free trial</div></div></div>
+        <div class="seclbl-s">Preferences</div>
+        <div class="scard" style="padding:4px 12px"><div class="subr"><span style="font-size:12.5px;font-weight:600">Currency</span><span class="faint" style="font-size:12px">USD ›</span></div><div class="subr"><span style="font-size:12.5px;font-weight:600">Appearance</span><span class="seg" style="transform:scale(.85);transform-origin:right"><span>Light</span><span>Dark</span><span class="on">System</span></span></div><div class="subr"><span style="font-size:12.5px;font-weight:600">Reminders</span><span class="sw-ui" style="width:38px;height:22px"></span></div></div>
+        <div class="seclbl-s">Privacy &amp; data</div>
+        <div class="scard" style="padding:4px 12px"><div class="subr"><span style="font-size:12.5px;font-weight:600">Share analytics</span><span class="sw-ui off" style="width:38px;height:22px"></span></div><div class="subr"><span style="font-size:12.5px;font-weight:600">Export my data</span><span class="faint">›</span></div><div class="subr"><span style="font-size:12.5px;font-weight:600">Privacy · Terms</span><span class="faint">›</span></div></div>
+        <div class="seclbl-s">Support</div>
+        <div class="scard" style="padding:4px 12px"><div class="subr"><span style="font-size:12.5px;font-weight:600">Suggest a feature</span><span class="faint">›</span></div><div class="subr"><span style="font-size:12.5px;font-weight:600">Report a bug</span><span class="faint">›</span></div><div class="subr"><span style="font-size:12.5px;font-weight:600">Version</span><span class="faint" style="font-size:11px">1.0.0</span></div></div>
+        <div class="seclbl-s" style="color:var(--danger)">Danger zone</div>
+        <div class="scard" style="padding:4px 12px;border-color:color-mix(in srgb,var(--danger) 30%,var(--hair))"><div class="subr" style="color:var(--danger);font-size:12.5px;font-weight:600">Clear all data</div><div class="subr" style="color:var(--danger);font-size:12.5px;font-weight:600">Delete account</div></div>
+        <div class="navbar"><i>⌂</i><i>≣</i><i class="fab">＋</i><i>▦</i><i class="on">⚙</i></div>
+      </div></div><div class="cap-s">Settings <b>· free</b> (upsell + all controls)</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="h2t">Settings</div>
+        <div class="scard row-s"><div class="avatar" style="width:38px;height:38px">A</div><div style="flex:1"><div class="row-s" style="gap:6px"><span style="font-weight:800;font-size:14px">Alex Rivera</span><span class="badge pro" style="font-size:9px">✦ PRO</span></div><div class="faint" style="font-size:11px">alex@getmyrev.app</div></div><span class="faint">›</span></div>
+        <div class="scard" style="border-color:var(--accent);background:var(--accent-soft)"><div class="between"><span class="ey-s" style="color:var(--accent)">✦ myrev Pro</span><span class="badge pro">Active</span></div><div class="muted" style="font-size:11.5px;margin-top:4px">Cheaper-plan finder, backup, custom reminders and widgets unlocked.</div></div>
+        <div class="seclbl-s">Account</div>
+        <div class="scard" style="padding:4px 12px"><div class="subr"><div><div style="font-size:12.5px;font-weight:600">Backup &amp; sync</div><div style="font-size:10px;color:var(--mint)">On · synced 2m ago</div></div><span class="sw-ui" style="width:38px;height:22px"></span></div><div class="subr"><span style="font-size:12.5px;font-weight:600">Change password</span><span class="faint">›</span></div></div>
+        <div class="seclbl-s">Preferences</div>
+        <div class="scard" style="padding:4px 12px"><div class="subr"><span style="font-size:12.5px;font-weight:600">Currency</span><span class="faint" style="font-size:12px">USD ›</span></div><div class="subr"><span style="font-size:12.5px;font-weight:600">Appearance</span><span class="faint" style="font-size:12px">Dark ›</span></div><div class="subr"><span style="font-size:12.5px;font-weight:600">Reminders</span><span class="sw-ui" style="width:38px;height:22px"></span></div></div>
+        <div class="seclbl-s">Privacy &amp; data</div>
+        <div class="scard" style="padding:4px 12px"><div class="subr"><span style="font-size:12.5px;font-weight:600">Share analytics</span><span class="sw-ui off" style="width:38px;height:22px"></span></div><div class="subr"><span style="font-size:12.5px;font-weight:600">Export my data</span><span class="faint">›</span></div><div class="subr"><span style="font-size:12.5px;font-weight:600">Privacy · Terms</span><span class="faint">›</span></div></div>
+        <div class="seclbl-s">Support</div>
+        <div class="scard" style="padding:4px 12px"><div class="subr"><span style="font-size:12.5px;font-weight:600">Suggest a feature</span><span class="faint">›</span></div><div class="subr"><span style="font-size:12.5px;font-weight:600">Report a bug</span><span class="faint">›</span></div></div>
+        <div class="seclbl-s" style="color:var(--danger)">Danger zone</div>
+        <div class="scard" style="padding:4px 12px;border-color:color-mix(in srgb,var(--danger) 30%,var(--hair))"><div class="subr" style="color:var(--danger);font-size:12.5px;font-weight:600">Clear all data</div><div class="subr" style="color:var(--danger);font-size:12.5px;font-weight:600">Delete account</div></div>
+        <div class="navbar"><i>⌂</i><i>≣</i><i class="fab">＋</i><i>▦</i><i class="on">⚙</i></div>
+      </div></div><div class="cap-s">Settings <b>· Pro</b> (all free content + Pro status/backup)</div></div>
+    </div>
+
+    <h3 id="s-cancel">Cancel flow &amp; Found review — myrev shows how, you cancel, myrev updates</h3>
+    <p class="lead">Overlaps are a keep-one <b>decision</b>, not a forced cut. The card summarises; the review screen scales to any number of services; the cancel sheet guides then reconciles. myrev never implies it cancels for you. Found review + detail are tab-nested, so the menu persists.</p>
+    <div class="stage">
+
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="between" style="padding-bottom:2px"><span style="font-size:22px;color:var(--dim)">‹</span><span class="disp" style="font-size:16px">myrev Found</span><span style="width:22px"></span></div>
+        <div class="scard" style="border-color:var(--accent);background:var(--accent-soft)"><div class="ey-s" style="color:var(--accent)">up to</div><div class="big" style="font-size:26px;color:var(--accent)">$480<span style="font-size:12px;font-weight:800">/yr to cut</span></div></div>
+        <div class="scard" style="padding:6px 12px">
+          <div style="padding:8px 0 4px;font-weight:800;font-size:12px">3 AI tools do similar things</div>
+          <div class="faint" style="font-size:10px;padding-bottom:6px">Keep the one you use — save up to $480/yr</div>
+          <div class="subr"><div><div style="font-weight:700;font-size:12px">ChatGPT</div><div class="faint" style="font-size:9.5px">$20/mo · keep this, save $300/yr</div></div><span class="chip" style="border-color:var(--accent);color:var(--accent);padding:5px 11px;font-size:11px">Cancel</span></div>
+          <div class="subr"><div><div style="font-weight:700;font-size:12px">Claude</div><div class="faint" style="font-size:9.5px">$20/mo · keep this, save $300/yr</div></div><span class="chip" style="border-color:var(--accent);color:var(--accent);padding:5px 11px;font-size:11px">Cancel</span></div>
+          <div class="subr"><div><div style="font-weight:700;font-size:12px">Perplexity</div><div class="faint" style="font-size:9.5px">$10/mo · keep this, save $360/yr</div></div><span class="chip" style="border-color:var(--accent);color:var(--accent);padding:5px 11px;font-size:11px">Cancel</span></div>
+        </div>
+        <div class="navbar"><i>⌂</i><i>≣</i><i class="fab">＋</i><i>▦</i><i>⚙</i></div>
+      </div></div><div class="cap-s">Found review <b>· Pro, hidden tab</b> (menu persists, scrolls 20+)</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr" style="justify-content:flex-end">
+        <div class="sb" style="position:absolute;top:15px;left:13px;right:13px"><span>9:41</span><span>● ● ●</span></div>
+        <div style="position:absolute;inset:0;background:rgba(10,8,20,.3)"></div>
+        <div class="scard" style="position:relative;border-radius:22px 22px 0 0;margin:0 -13px -15px;padding:18px 15px">
+          <div style="height:5px;width:38px;border-radius:9px;background:var(--hair2);margin:0 auto 12px"></div>
+          <div class="ey-s" style="color:var(--accent)">Cancel</div>
+          <div class="h2t" style="font-size:17px;margin-top:2px">Adobe</div>
+          <div class="muted" style="font-size:11.5px;margin-top:4px">I can't cancel it for you. Here's how, then tell me.</div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;font-size:12px">
+            <div class="row-s"><b style="color:var(--accent)">1</b> Open account.adobe.com → Plans</div>
+            <div class="row-s"><b style="color:var(--accent)">2</b> Manage plan → Cancel plan</div>
+            <div class="row-s"><b style="color:var(--accent)">3</b> Skip the retention offer, confirm</div>
+          </div>
+          <div class="bs pri" style="margin-top:12px">Open Adobe's cancel page ↗</div>
+          <div class="bs" style="margin-top:6px;border:1px solid var(--hair)">I've already cancelled it</div>
+        </div>
+      </div></div><div class="cap-s">Cancel sheet <b>· guide (Pro)</b> — Free: generic steps + "Pro shows exact steps &amp; link"</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr" style="justify-content:flex-end">
+        <div class="sb" style="position:absolute;top:15px;left:13px;right:13px"><span>9:41</span><span>● ● ●</span></div>
+        <div style="position:absolute;inset:0;background:rgba(10,8,20,.3)"></div>
+        <div class="scard" style="position:relative;border-radius:22px 22px 0 0;margin:0 -13px -15px;padding:18px 15px">
+          <div style="height:5px;width:38px;border-radius:9px;background:var(--hair2);margin:0 auto 12px"></div>
+          <div class="h2t" style="font-size:17px">Did you cancel Adobe?</div>
+          <div class="muted" style="font-size:11.5px;margin-top:4px">Tell me so myrev keeps your spend and savings accurate.</div>
+          <div class="bs pri" style="margin-top:14px">Yes, it's cancelled</div>
+          <div class="bs" style="margin-top:6px;border:1px solid var(--hair)">I'm keeping it</div>
+          <div class="bs gh" style="margin-top:2px">Not yet — I'll decide later</div>
+        </div>
+      </div></div><div class="cap-s">Cancel sheet <b>· confirm on return</b> (AppState)</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="between" style="padding-bottom:2px"><span style="font-size:22px;color:var(--dim)">‹</span><span class="disp" style="font-size:16px">Subscription</span><span style="width:22px"></span></div>
+        <div class="scard" style="border-color:var(--accent);background:var(--accent-soft)">
+          <div style="font-weight:800;font-size:12.5px">Did you cancel Adobe?</div>
+          <div class="faint" style="font-size:10.5px;margin-top:2px">You started cancelling on Jul 26. Confirm so your tracker stays right.</div>
+          <div class="row-s" style="margin-top:8px;gap:6px"><span class="bs pri" style="flex:1;padding:8px;font-size:11px">Yes, cancelled</span><span class="bs" style="flex:1;padding:8px;font-size:11px;border:1px solid var(--hair)">Keeping it</span></div>
+        </div>
+        <div class="glowb" style="text-align:center;margin-top:6px"><span class="tile-s glowb" style="width:48px;height:48px;border-radius:14px;background:#ff0000;font-size:22px;margin:0 auto">A</span></div>
+        <div class="disp" style="font-size:18px;text-align:center;margin-top:4px">Adobe</div>
+        <div class="navbar"><i>⌂</i><i class="on">≣</i><i class="fab">＋</i><i>▦</i><i>⚙</i></div>
+      </div></div><div class="cap-s">Reconciliation check-in (detail + Home nudge) + 1 push ~24h</div></div>
+
+    </div>
+
+    <h3 id="s-sys">System &amp; edge states</h3>
+    <p class="lead">Local-first, so these are the states that genuinely occur (see the state matrix for the full grid + rationale). Core screens have no skeletons — data is instant; the only wait is the launch splash.</p>
+    <div class="stage">
+      <div class="pw"><div class="phone"><div class="scr" style="justify-content:center;text-align:center;align-items:center;min-height:300px">
+        <div style="font-size:34px">📭</div><div class="disp" style="font-size:16px;margin-top:8px">Nothing tracked yet</div><div class="muted" style="font-size:12px;margin-top:4px">Tap ＋ to add your first subscription.</div>
+      </div></div><div class="cap-s">Empty (teaches next action)</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr" style="justify-content:center;text-align:center;align-items:center;min-height:300px">
+        <div class="glowb"><div class="tile-s glowb" style="width:52px;height:52px;border-radius:16px;background:var(--accent);font-size:26px;margin:0 auto">m</div></div>
+        <div class="disp" style="font-size:20px;margin-top:10px">myrev</div>
+        <div class="faint" style="font-size:11px;margin-top:2px">know what renews</div>
+      </div></div><div class="cap-s">App launch (splash) — the only real wait; no per-screen skeletons</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr" style="justify-content:center;text-align:center;align-items:center;min-height:300px">
+        <div style="font-size:34px">📡</div><div class="disp" style="font-size:16px;margin-top:8px">You're offline</div><div class="muted" style="font-size:12px;margin-top:4px">Your data is on your phone, so tracking still works. Sign-in, backup and Found refresh when you're back.</div>
+      </div></div><div class="cap-s">Offline — core works; only network features wait</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr" style="min-height:300px">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="between" style="padding-bottom:2px"><span style="font-size:22px;color:var(--dim)">‹</span><span class="disp" style="font-size:16px">Sign in</span><span style="width:22px"></span></div>
+        <div class="field" style="margin-top:8px">alex@getmyrev.app</div>
+        <div class="field">••••••••</div>
+        <div class="scard" style="border-color:var(--danger);background:var(--danger-soft, rgba(224,82,95,.1))"><span style="color:var(--danger);font-size:12px;font-weight:700">That password doesn't match. Try again or reset it.</span></div>
+        <div class="bs pri" style="margin-top:4px">Sign in</div>
+      </div></div><div class="cap-s">Error — auth (Clerk); also form validation (price&gt;0), export/share fail</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr" style="min-height:300px">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="seclbl-s">Preferences</div>
+        <div class="scard" style="padding:4px 12px"><div class="subr"><div><div style="font-size:12.5px;font-weight:600">Renewal reminders</div><div style="font-size:10px;color:var(--amber)">Off — allow notifications in iOS Settings</div></div><span class="sw-ui off" style="width:38px;height:22px"></span></div></div>
+        <div class="scard" style="padding:4px 12px"><div class="subr"><div><div style="font-size:12.5px;font-weight:600">Backup &amp; sync</div><div style="font-size:10px;color:var(--dim)">🔒 Sign in to enable</div></div><span class="faint">›</span></div></div>
+      </div></div><div class="cap-s">Permission denied (notifications) · restricted (sign-in required)</div></div>
+    </div>
+
+    <h3 id="s-pro">Pro lifecycle — downgrade · locked · consent</h3>
+    <div class="stage">
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="ey-s" style="color:var(--accent)">Your Pro ended</div>
+        <div class="disp" style="font-size:19px;line-height:1.1;margin-top:4px">Choose the 5 to keep tracking</div>
+        <div class="muted" style="font-size:11.5px;margin-top:4px">Free tracks 5. I'll pause the rest — nothing is deleted, and Pro brings them all back.</div>
+        <div style="font-size:11px;font-weight:800;margin-top:8px">Keeping 5 of 8 · pausing 3</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">
+          <div class="scard" style="padding:8px 11px;border-color:var(--accent);background:rgba(110,91,228,.1)"><div class="row-s"><span style="width:18px;height:18px;border-radius:5px;background:var(--accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800">✓</span><div style="flex:1"><b style="font-size:12px">Netflix</b></div><b class="disp" style="font-size:12px">$15.49</b></div></div>
+          <div class="scard" style="padding:8px 11px;border-color:var(--accent);background:rgba(110,91,228,.1)"><div class="row-s"><span style="width:18px;height:18px;border-radius:5px;background:var(--accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800">✓</span><div style="flex:1"><b style="font-size:12px">ChatGPT</b></div><b class="disp" style="font-size:12px">$20.00</b></div></div>
+          <div class="scard" style="padding:8px 11px;opacity:.45"><div class="row-s"><span style="width:18px;height:18px;border-radius:5px;border:1.5px solid var(--hair)"></span><div style="flex:1"><b style="font-size:12px">Notion · trial</b></div><b class="disp" style="font-size:12px">$10.00</b></div></div>
+        </div>
+        <div style="margin-top:auto"><div class="bs pri">Keep 5, pause 3</div><div class="gh" style="font-size:11.5px;text-align:center;font-weight:700;margin-top:6px">Reactivate Pro to keep all 8</div></div>
+      </div></div><div class="cap-s">Downgrade reconcile <b>· forced pick-5</b> (<code>/reconcile</code>)</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+        <div class="between"><div class="h2t">Subscriptions</div><span class="pill">8 total</span></div>
+        <div class="seclbl-s">Active · 5 · $71/mo</div>
+        <div class="scard" style="padding:4px 12px"><div class="subr"><div class="row-s"><span class="tile-s" style="background:#e50914">N</span><b style="font-size:12.5px">Netflix</b></div><b class="disp" style="font-size:12.5px">$15.49</b></div></div>
+        <div class="seclbl-s" style="color:var(--amber)">Locked · 3 · Pro</div>
+        <div class="scard" style="padding:6px 12px;opacity:.6"><div class="subr"><div><div style="font-weight:700;font-size:12.5px">Dropbox</div><div class="faint" style="font-size:10px">Locked — reactivate with Pro</div></div><span class="chip" style="border-color:var(--accent);color:var(--accent);padding:5px 10px;font-size:10.5px">Reactivate</span></div></div>
+        <div class="navbar"><i>⌂</i><i class="on">≣</i><i class="fab">＋</i><i>▦</i><i>⚙</i></div>
+      </div></div><div class="cap-s">Subscriptions <b>· Locked section</b> (post-downgrade, view-only)</div></div>
+
+      <div class="pw"><div class="phone"><div class="scr" style="justify-content:flex-end">
+        <div class="sb" style="position:absolute;top:15px;left:13px;right:13px"><span>9:41</span><span>● ● ●</span></div>
+        <div style="position:absolute;inset:0;background:rgba(10,8,20,.4)"></div>
+        <div class="scard" style="position:relative;border-radius:22px;margin:0 0 4px;padding:18px 15px">
+          <div class="ey-s" style="color:var(--accent)">Your privacy</div>
+          <div class="disp" style="font-size:19px;margin-top:4px">Help improve myrev?</div>
+          <div class="muted" style="font-size:12px;margin-top:6px">Anonymous usage stats — never your name, the services you track, or amounts. Off until you say yes.</div>
+          <div class="bs pri" style="margin-top:14px">Sure, share anonymous stats</div>
+          <div class="gh" style="font-size:12px;text-align:center;font-weight:700;margin-top:6px">Not now</div>
+        </div>
+      </div></div><div class="cap-s">Analytics consent <b>· EEA/UK opt-in</b> (GDPR)</div></div>
+    </div>
+
+  </section>
+
+  <!-- 09 SCREEN INVENTORY / DEV HANDOFF -->
+  <section class="sec" id="handoff">
+    <div class="sec-n">09</div><h2>Screen inventory &amp; developer handoff</h2>
+    <p class="lead">The anti-drift layer. Each screen maps to its route and RN file. <b>Code is the source of truth for built screens</b>; edit the file, not a picture. New surfaces have no code yet, so their spec here is authoritative until built.</p>
+    <div class="card" style="overflow-x:auto">
+      <table>
+        <tr><th>Screen</th><th>Route</th><th>RN file</th><th>Built</th><th>Free/Pro</th><th>Key components / classes</th></tr>
+        <tr><td>Splash</td><td>root overlay</td><td><code>components/AnimatedSplash.tsx</code></td><td>✓</td><td>—</td><td>Reanimated reveal, reduce-motion aware</td></tr>
+        <tr><td>Onboarding</td><td><code>/onboarding</code></td><td><code>app/onboarding.tsx</code></td><td>✓</td><td>—</td><td>GuideBubble, grouped BrandPickerSheet, AnimatedCounter, PickerSheet</td></tr>
+        <tr><td>Sign in / up</td><td><code>/(auth)/sign-in|sign-up</code></td><td><code>app/(auth)/*.tsx</code></td><td>✓</td><td>—</td><td>Clerk, <code>auth-*</code> classes</td></tr>
+        <tr><td>Forgot / reset</td><td><code>/(auth)/forgot|reset</code></td><td>NEW</td><td>—</td><td>—</td><td>Clerk password reset (design here is spec)</td></tr>
+        <tr><td>Home</td><td><code>/(tabs)</code></td><td><code>app/(tabs)/index.tsx</code></td><td>✓</td><td>✓ Found hook</td><td>AnimatedCounter, SubscriptionCard, UpcomingSubscriptionCard, MilestoneCelebration, <code>home-*</code></td></tr>
+        <tr><td>Subscriptions (list)</td><td><code>/subscriptions</code></td><td><code>app/(tabs)/subscriptions/index.tsx</code></td><td>✓</td><td>✓ ✦ flags</td><td>SectionList grouped by status, SubscriptionCard. Nested stack (<code>subscriptions/_layout.tsx</code>) → menu persists on detail</td></tr>
+        <tr><td>Insights</td><td><code>/(tabs)/insights</code></td><td><code>components/Insights.tsx</code></td><td>✓</td><td>✓ Found (compact card → /found)</td><td>category bars, projection, <code>insights-*</code></td></tr>
+        <tr><td>Settings</td><td><code>/(tabs)/settings</code></td><td><code>app/(tabs)/settings.tsx</code></td><td>✓</td><td>✓ Pro card/account</td><td>PickerSheet, <code>settings-section-label</code>, Row/Chevron</td></tr>
+        <tr><td>Add</td><td><code>/add</code></td><td><code>app/add.tsx</code> + <code>SubscriptionFormModal.tsx</code></td><td>✓</td><td>—</td><td>SheetBackdrop, BrandPickerSheet, PickerSheet, DateTimePicker; auto-category via <code>brandMetaFor</code></td></tr>
+        <tr><td>Detail</td><td><code>/subscriptions/[id]</code></td><td><code>app/(tabs)/subscriptions/[id].tsx</code></td><td>✓</td><td>—</td><td>tab-nested (menu persists); SubscriptionFormModal, check-ins incl. cancel-pending, CancelFlowSheet, CancelCelebration, DetailHeader+BackButton</td></tr>
+        <tr><td><b>Found review</b></td><td><code>/found</code></td><td><code>app/(tabs)/found.tsx</code> (hidden tab, <code>href:null</code>)</td><td>✓</td><td>Pro</td><td>keep-one decision rows + Cancel; scrolls; menu persists</td></tr>
+        <tr><td><b>Cancel flow</b></td><td>sheet</td><td><code>components/CancelFlowSheet.tsx</code></td><td>✓</td><td>Pro guide</td><td>guide → confirm-on-return (AppState); <code>cancelGuides.ts</code>; sets <code>cancelPendingAt</code>; free=generic+upsell</td></tr>
+        <tr><td>Tab bar + FAB</td><td><code>(tabs)/_layout</code></td><td><code>components/TabBar.tsx</code></td><td>✓</td><td>—</td><td><code>tab-bar-shell</code>, <code>tab-fab</code>; ＋ → <code>/add</code>; routes looked up by name</td></tr>
+        <tr><td>Back button</td><td>—</td><td><code>components/BackButton.tsx</code></td><td>✓</td><td>—</td><td>44px, chevron, a11y label; used on detail/found/auth</td></tr>
+        <tr><td>Cap wall</td><td>sheet at 6th add</td><td><code>app/cap-wall.tsx</code></td><td>✓</td><td>gate</td><td><code>canAddActive</code> (<code>lib/limits.ts</code>) guards add route + resume/reactivate + onboarding</td></tr>
+        <tr><td><b>Paywall v1</b></td><td><code>/paywall</code> (modal)</td><td><code>app/paywall.tsx</code></td><td>✓</td><td>Pro</td><td>custom-branded 3 tiers, per-package trial detection, restore, disclosures; Clerk-before-checkout (guest → sign-up w/ <code>returnTo</code> → auto-resume); double-charge re-entry lock; no AI copy (v1)</td></tr>
+        <tr><td><b>Downgrade reconcile</b></td><td><code>/reconcile</code> (fullScreenModal)</td><td><code>app/reconcile.tsx</code></td><td>✓</td><td>Free</td><td>lapsed over-cap → pick 5 to keep; rest locked (view-only). <code>DowngradeWatcher</code> + <code>lib/downgrade.ts</code>; forced (no dismiss) except Reactivate Pro</td></tr>
+        <tr><td><b>Analytics consent</b></td><td><code>/analytics-consent</code> (modal)</td><td><code>app/analytics-consent.tsx</code></td><td>✓</td><td>—</td><td>GDPR region-gated opt-in (EEA/UK); off until accepted; <code>lib/analytics.ts</code> (<code>isGdprRegion</code>)</td></tr>
+      </table>
+    </div>
+    <div class="note"><b>Cross-cutting sources.</b> Tokens: <code>global.css</code> @theme + <code>@media(prefers-color-scheme:dark) :root</code>, mirrored in <code>constants/theme.ts</code>. Theme switch: <code>context/ThemeContext.tsx</code> via <code>Appearance.setColorScheme()</code>. Entitlement: <code>context/EntitlementsContext.tsx</code> → <code>useEntitlement().isPro</code> = <code>(__DEV__ &amp;&amp; devPro) || live RevenueCat</code> entitlement (never a product id). Purchases: <code>lib/purchases.ts</code> (<code>react-native-purchases</code>; configure/logIn/restore/offerings; <code>test_</code> key dev-only). Billing math: <code>lib/billing.ts</code> (incl. <code>computeTrialEnd</code>, <code>firstChargeDate</code>). Reminders: <code>lib/notifications.ts</code> + <code>lib/reminders.ts</code> (incl. <code>cancel_pending</code> push). Found: <code>lib/found.ts</code> + <code>lib/foundKept.ts</code>. Cap + downgrade: <code>lib/limits.ts</code> + <code>lib/downgrade.ts</code> + <code>components/DowngradeWatcher.tsx</code>. State: persisted <code>cancelPendingAt</code> (v5) + <code>lockedAt</code> (v6, downgrade-locked). Analytics: <code>lib/analytics.ts</code> (priceBucket only; region-gated consent). iPad: centred column cap in <code>app/_layout.tsx</code>.</div>
+  </section>
+
+  <!-- 10 STATE MATRIX -->
+  <section class="sec" id="states">
+    <div class="sec-n">10</div><h2>State matrix (all standard states)</h2>
+    <p class="lead"><b>✓</b> built · <b>○</b> planned · <b>—</b> not applicable. Every standard screen state is listed so applicability is explicit, not a gap.</p>
+    <div class="note"><b>Local-first changes what applies.</b> Core data is read <b>synchronously from on-device SQLite</b>, so there is <b>no per-screen loading/skeleton</b> (the only "loading" is the launch splash) and core screens <b>work fully offline</b> — nothing to fail. Loading / offline / error / session-expired therefore apply to the <b>network-touching surfaces</b> (auth, and later backup/sync + AI), not to the tracker. Drawing those on Home/Insights would be fiction, so they're marked —.</div>
+    <div class="card" style="overflow-x:auto">
+      <table>
+        <tr><th>Screen</th><th>Populated</th><th>Empty</th><th>Loading</th><th>Skeleton</th><th>Error</th><th>Offline</th><th>Refreshing</th><th>Permission</th><th>Session&nbsp;exp.</th><th>Success</th></tr>
+        <tr><td>App launch</td><td>—</td><td>—</td><td>✓ splash</td><td>—</td><td>✓ font/db fail→throw</td><td>✓ works</td><td>—</td><td>—</td><td>—</td><td>✓ reveal app</td></tr>
+        <tr><td>Home</td><td>✓</td><td>✓ no subs→add</td><td>—<sup>1</sup></td><td>—<sup>1</sup></td><td>—</td><td>✓ works</td><td>✓ on focus</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Subscriptions</td><td>✓</td><td>✓ none / no match</td><td>—<sup>1</sup></td><td>—<sup>1</sup></td><td>—</td><td>✓ works</td><td>✓ on focus</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Insights</td><td>✓</td><td>✓ no active</td><td>—<sup>1</sup></td><td>—<sup>1</sup></td><td>—</td><td>✓ works</td><td>✓ on focus</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Found review</td><td>✓</td><td>✓ nothing found</td><td>—</td><td>—</td><td>—</td><td>✓ works</td><td>—</td><td>—</td><td>—</td><td>✓ savings recompute</td></tr>
+        <tr><td>Settings</td><td>✓</td><td>—</td><td>—</td><td>—</td><td>✓ mail/link fail</td><td>✓ works</td><td>—</td><td>○ notif. denied hint</td><td>—</td><td>✓ toasts</td></tr>
+        <tr><td>Add / Edit</td><td>✓</td><td>—</td><td>—</td><td>—</td><td>✓ price&gt;0</td><td>✓ works</td><td>—</td><td>—</td><td>—</td><td>✓ added prompt</td></tr>
+        <tr><td>Detail</td><td>✓</td><td>✓ not found</td><td>—</td><td>—</td><td>—</td><td>✓ works</td><td>—</td><td>—</td><td>—</td><td>✓ cancel celebration</td></tr>
+        <tr><td>Cancel sheet</td><td>✓</td><td>—</td><td>—</td><td>—</td><td>—</td><td>✓ steps offline</td><td>—</td><td>—</td><td>—</td><td>✓ celebration</td></tr>
+        <tr><td>Onboarding</td><td>✓</td><td>✓ skip→0</td><td>✓ analyzing beat</td><td>—</td><td>—</td><td>✓ works</td><td>—</td><td>○ notifications ask</td><td>—</td><td>✓ reveal</td></tr>
+        <tr><td>Auth (sign-in/up/reset)</td><td>✓</td><td>—</td><td>✓ submitting</td><td>—</td><td>✓ Clerk error</td><td>✓ offline notice</td><td>—</td><td>—</td><td>○ expired/verify</td><td>✓ signed in</td></tr>
+        <tr><td>Backup / sync (v-later)</td><td>○</td><td>○ never synced</td><td>○ syncing</td><td>—</td><td>○ sync error</td><td>○ queued offline</td><td>○</td><td>—</td><td>○ re-auth</td><td>○ synced</td></tr>
+        <tr><td>Paywall</td><td>✓ tiers</td><td>✓ plans not loaded (dev-build note)</td><td>✓ purchasing (busy)</td><td>—</td><td>✓ error alert (non-cancel)</td><td>✓ needs network</td><td>—</td><td>—</td><td>✓ sign-in required first</td><td>✓ isPro → dismiss</td></tr>
+        <tr><td>Downgrade reconcile</td><td>✓ pick 5</td><td>—</td><td>—</td><td>—</td><td>—</td><td>✓ works</td><td>—</td><td>—</td><td>—</td><td>✓ locks rest / Reactivate</td></tr>
+        <tr><td>Subscriptions · Locked</td><td>✓ greyed + Reactivate</td><td>—</td><td>—</td><td>—</td><td>—</td><td>✓ works</td><td>—</td><td>—</td><td>—</td><td>✓ resubscribe → auto-unlock</td></tr>
+        <tr><td>Analytics consent</td><td>✓ EEA/UK only</td><td>—</td><td>—</td><td>—</td><td>—</td><td>✓ works</td><td>—</td><td>—</td><td>—</td><td>✓ decision persisted</td></tr>
+      </table>
+    </div>
+    <p class="rule" style="margin-top:12px"><sup>1</sup> Data is local + synchronous → no fetch, so no per-screen loading/skeleton; the launch splash covers the only real wait. <b>Restricted/gated</b> states (free 5-cap → cap wall; Found locked for free) are covered in the Screens section and the free/Pro variants, not repeated as a column here.</p>
+  </section>
+
+  <!-- 11 USER FLOWS -->
+  <section class="sec" id="flows">
+    <div class="sec-n">11</div><h2>User flows</h2>
+    <p class="lead">Happy path plus the edges that must not break. Guest-first throughout; auth only where noted.</p>
+    <div class="grid g2">
+      <div class="card"><h3 style="margin-top:0">Onboarding → reveal → trial</h3>
+        <p class="rule">Intro → (goal) → currency → pick (accordion) → confirm prices → analyzing → reveal → trial offer.</p>
+        <p class="rule">Decline → dashboard. Accept → lands on the dashboard, then the <b>paywall</b> presents over it (dismissing drops onto the dashboard, not back into onboarding).</p>
+        <p class="rule muted">Skip at any step → dashboard with 0 subs (empty state teaches add).</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Add subscription</h3>
+        <p class="rule">FAB (any tab) → <code>/add</code> sheet → brand → price + cycle → Add → toast.</p>
+        <p class="rule">Duplicate active name → nudge to rename or add anyway.</p>
+        <p class="rule">Free at 5 active → cap wall instead of add; existing data untouched.</p>
+        <p class="rule muted">Price ≤ 0 → inline validation, blocks add.</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Cancel / pause</h3>
+        <p class="rule">Detail → Cancel → celebration + savings + share card.</p>
+        <p class="rule">Savings milestone crossed → MilestoneCelebration → optional store-review prompt (rate-limited).</p>
+        <p class="rule">Pause → excluded from spend + reminders; resume restores.</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Settings actions</h3>
+        <p class="rule">Currency: freely set while no subs exist; <b>locked</b> once any sub exists (guarded reset only).</p>
+        <p class="rule">Reminders toggle → permission prompt on enable → reschedule.</p>
+        <p class="rule">Export → CSV/JSON → OS share sheet. <b>Restore purchases</b> → RevenueCat restore + feedback.</p>
+        <p class="rule"><b>Delete account</b> → confirm → Clerk delete (if signed in) + full local wipe (subs + all kv prefs) + RevenueCat logout/reset + dev-override clear → onboarding. ("Clear all data" is subs-only.)</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Pro purchase &amp; trial (RevenueCat)</h3>
+        <p class="rule">Any Pro CTA (cap wall · onboarding reveal · Found teaser · Insights · Settings) → <code>/paywall</code>.</p>
+        <p class="rule"><b>Login before checkout:</b> guest → sign-up (<code>returnTo</code>) → returns to paywall &amp; <b>auto-resumes</b> the trial once. Ties the RC entitlement to the Clerk id (cross-device Pro).</p>
+        <p class="rule">Buy → <code>isPro</code> flips via the CustomerInfo listener → paywall dismisses → Pro unlocks. Cancel → silent; error → alert. <b>Double-charge guard:</b> synchronous re-entry lock + skip-if-already-Pro (+ store/RC dedupe).</p>
+        <p class="rule">Trial state surfaced in Settings ("converts on/renews on/cancels on/payment issue") so a charge is never a surprise. <b>Needs a native dev build</b> — Expo Go can't run purchases.</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Pro → Free downgrade (over-cap)</h3>
+        <p class="rule">Grace is the store's own (RC keeps the entitlement active during billing-retry / until a voluntary cancel's period-end) → a <b>Home winback banner</b> (<code>WinbackBanner</code>): "Update payment" (billing issue) / "Reactivate" (pending cancel) → store's manage-subscriptions page. A locked sub nearing renewal also gets one upgrade-framed <code>locked_renewal</code> push.</p>
+        <p class="rule">Truly lapsed &amp; &gt;5 active → <b><code>/reconcile</code></b>: pick which 5 stay active (default = soonest-renewal / highest-spend); the rest are <b>locked</b> (paused + view-only, "Reactivate with Pro", no reminders). Nothing deleted.</p>
+        <p class="rule">Resubscribe → <code>DowngradeWatcher</code> auto-unlocks all locked subs. Reactivate a single locked sub → cap-gated (free if under 5, else paywall).</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Analytics consent (GDPR)</h3>
+        <p class="rule">EEA/UK first launch (post-onboarding) → one-time opt-in prompt; analytics stays OFF until accepted.</p>
+        <p class="rule">Rest of world → opt-out default (Settings toggle). Decision persisted; never re-prompts.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 NAVIGATION -->
+  <section class="sec" id="nav">
+    <div class="sec-n">12</div><h2>Navigation</h2>
+    <div class="grid g2">
+      <div class="card"><h3 style="margin-top:0">Structure</h3>
+        <p class="rule">Root Stack (expo-router) → <code>(tabs)</code> Tabs + modal routes.</p>
+        <p class="rule">Tabs keep their own state/scroll; switching tabs preserves position.</p>
+        <p class="rule"><b>Drill-ins keep the menu:</b> subscription <b>detail</b> is a nested stack inside the Subscriptions tab; <b>Found</b> is a hidden tab (<code>href:null</code>). Both show the tab bar + a BackButton (Back pops to the list/prior screen).</p>
+        <p class="rule"><b>Modals stay menu-less</b> (focused overlays, frosted backdrop): <code>/add</code>, cap wall, cancel sheet, pickers, <code>/paywall</code>, <code>/analytics-consent</code>.</p>
+        <p class="rule"><code>/reconcile</code> is a <b>forced fullScreenModal</b> (gesture-disabled, no dismiss) — the only exits are "keep 5" or "Reactivate Pro". Driven by <code>DowngradeWatcher</code> when a lapsed user is over the cap.</p>
+        <p class="rule">Guarded back everywhere (<code>canGoBack() ? back() : replace('/')</code>) so a modal reached via <code>replace</code> can't throw GO_BACK.</p>
+        <p class="rule">Onboarding + auth are full-screen pushes, not tabs.</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Platform &amp; links</h3>
+        <p class="rule">Android hardware back + iOS swipe-back both dismiss sheets/modals and pop the stack.</p>
+        <p class="rule">Deep link scheme <code>myrev://</code>; renewal reminder → <code>/subscriptions/[id]</code> (buffered until navigator mounts).</p>
+        <p class="rule">Auth is optional; no redirect wall. Guest reaches everything except backup/Pro.</p>
+      </div>
+    </div>
+  </section>
+  <!-- 13 INTERACTION -->
+  <section class="sec" id="interaction">
+    <div class="sec-n">13</div><h2>Interaction</h2>
+    <div class="grid g2">
+      <div class="card"><h3 style="margin-top:0">Touch &amp; gesture</h3>
+        <p class="rule">Primary controls use <code>PressableScale</code> (scale-down on press) + a light haptic (<code>lib/haptics</code> tapLight).</p>
+        <p class="rule">Sheets: drag handle + drag-to-dismiss + tap scrim to close.</p>
+        <p class="rule">Lists refresh on focus (<code>useFocusEffect</code>); pull-to-refresh optional.</p>
+        <p class="rule">Back: Android hardware back and iOS swipe-back both pop / dismiss.</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Haptics</h3>
+        <p class="rule">Select brand / toggle: light tap.</p>
+        <p class="rule">Add subscription, cancel, milestone: success haptic.</p>
+        <p class="rule muted">Never on scroll or passive updates.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 MOTION -->
+  <section class="sec" id="motion">
+    <div class="sec-n">14</div><h2>Motion</h2>
+    <p class="lead">Reanimated + RN Animated only (no new libraries). Every motion respects reduce-motion via <code>AccessibilityInfo</code>.</p>
+    <div class="card"><table>
+      <tr><th>Moment</th><th>Motion</th><th>Duration / easing</th></tr>
+      <tr><td>Splash</td><td>mark springs in, wordmark fades, cover lifts</td><td>spring; ~900ms total</td></tr>
+      <tr><td>Screen enter</td><td>list items FadeInUp, staggered</td><td>~220ms, ease-out, 40–80ms stagger</td></tr>
+      <tr><td>Hero number</td><td>AnimatedCounter count-up</td><td>~900ms; onboarding reveal ~1500ms</td></tr>
+      <tr><td>Sheet</td><td>slide up from bottom, frosted backdrop fades</td><td>native modal slide</td></tr>
+      <tr><td>Press</td><td>PressableScale to ~0.97</td><td>~120ms spring</td></tr>
+      <tr><td>Milestone</td><td>confetti + count-up (violet/mint)</td><td>one-shot; skipped on reduce-motion</td></tr>
+    </table>
+    <p class="rule" style="margin-top:12px">Reduce-motion: count-ups jump to final value, confetti is skipped, transitions shorten to a cross-fade.</p></div>
+  </section>
+
+  <!-- 15 FORMS & KEYBOARD -->
+  <section class="sec" id="forms">
+    <div class="sec-n">15</div><h2>Forms &amp; keyboard</h2>
+    <div class="grid g2">
+      <div class="card"><h3 style="margin-top:0">Add / edit fields</h3>
+        <p class="rule">Name: text, autocapitalize words, one line.</p>
+        <p class="rule">Price: <b>decimal-pad</b>, accepts "12,99" or "12.99"; must be &gt; 0 to add.</p>
+        <p class="rule">Cycle: picker sheet (weekly … annual; custom sets days in detail).</p>
+        <p class="rule">Category: from brand or picker. Trial: toggle + days.</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Keyboard</h3>
+        <p class="rule"><code>KeyboardAvoidingView</code>: padding on iOS, height on Android.</p>
+        <p class="rule">Amount fields keep the CTA reachable; scroll adjusts insets.</p>
+        <p class="rule">Date: inline calendar (iOS) / dialog (Android), <b>closes on selection</b>.</p>
+        <p class="rule">Placeholders use <code>palette.mutedForeground</code>; iOS clear button while editing.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16 ACCESSIBILITY -->
+  <section class="sec" id="a11y">
+    <div class="sec-n">16</div><h2>Accessibility</h2>
+    <div class="grid g2">
+      <div class="card"><h3 style="margin-top:0">Must-haves</h3>
+        <p class="rule">Touch targets ≥ 44px.</p>
+        <p class="rule">Text contrast clears WCAG AA in both themes (faint tokens sit at the small-text floor).</p>
+        <p class="rule"><b>Status is never colour alone</b> — always a word or icon too (On trial, Paused, in 3d).</p>
+        <p class="rule">Dynamic type: layouts reflow; big numbers use <code>adjustsFontSizeToFit</code>.</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Screen reader &amp; motion</h3>
+        <p class="rule">Labels on icon-only controls (scrim "Close", tab icons, FAB "Add").</p>
+        <p class="rule">Logical focus/reading order top→bottom; visible focus state.</p>
+        <p class="rule">Reduce-motion honored everywhere (see Motion).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17 RESPONSIVE + 18 iOS/ANDROID -->
+  <section class="sec" id="platform">
+    <div class="sec-n">17 · 18</div><h2>Responsive &amp; platform</h2>
+    <div class="grid g2">
+      <div class="card"><h3 style="margin-top:0">Devices</h3>
+        <p class="rule">Small / standard / large phones; portrait only (<code>orientation: "portrait"</code>).</p>
+        <p class="rule">Layout is fluid: the tab bar's 4 buttons + centre FAB are each <code>flex-1</code> across (width − 40); no fixed widths, so it adapts from 320px up.</p>
+        <p class="rule">Safe areas via <code>useSafeAreaInsets</code>; tab bar clears the bottom inset; content uses pb-32 clearance.</p>
+        <p class="rule">Notch / Dynamic Island respected; brand names truncate; large a11y text reflows without clipping.</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">iPad (phone-first, centred column)</h3>
+        <p class="rule">Not a stretched phone layout: the whole app is capped to a <b>centred column at <code>TABLET_MAX_WIDTH = 600</code></b> (<code>app/_layout.tsx</code>) — full-width on phones, centred on iPad with the theme colour bleeding to the edges (intentional, not a black letterbox).</p>
+        <p class="rule">RN <code>&lt;Modal&gt;</code> sheets render in their own full-device window, so the root cap can't reach them; <code>.modal-container</code> mirrors it with <code>max-w-[600px] self-center</code> (keep the two 600s in sync).</p>
+        <p class="rule"><b>Submission:</b> <code>supportsTablet:true</code> + portrait-only requires <code>ios.requireFullScreen:true</code> — without it App Store validation fails (Apple wants all-orientation support for Split View, or an explicit opt-out).</p>
+        <p class="rule"><b>v2 (deferred, demand-gated):</b> a true iPad master-detail (list + detail side by side, wider Insights) if iPad becomes a real audience — not launch-blocking.</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">iOS vs Android (intentional)</h3>
+        <p class="rule">Date picker: inline calendar vs native dialog.</p>
+        <p class="rule">Share &amp; export via the native share sheet (<code>expo-sharing</code>).</p>
+        <p class="rule">Blur strength 24 (iOS) / 50 (Android) since Android blur is weaker.</p>
+        <p class="rule">Back: swipe (iOS) vs hardware button (Android); haptics via <code>expo-haptics</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19 COPY DECK -->
+  <section class="sec" id="copy">
+    <div class="sec-n">19</div><h2>Copy deck</h2>
+    <p class="lead">Real strings, in the locked voice: short, concrete, numbers over adjectives, plain labels, assistant first-person only where myrev speaks. No em-dash filler, no "AI" in v1.</p>
+    <div class="grid g2">
+      <div class="card"><h3 style="margin-top:0">Onboarding &amp; assistant</h3>
+        <p class="rule">"Hi, I'm myrev."</p>
+        <p class="rule">"I keep an eye on what renews, so a charge never surprises you."</p>
+        <p class="rule">"Tap everything you pay for. I'll tally it up."</p>
+        <p class="rule">"Here's what renews." → "I'll warn you before each one renews."</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Pro / paywall / cap</h3>
+        <p class="rule">"Pay less for what you already have."</p>
+        <p class="rule">Trial: "Start 3-day free trial" · "Free for 3 days, then $29.99/yr. Cancel anytime." (No intro offer → "Subscribe".)</p>
+        <p class="rule">Guest: "You'll create a free account first, so your Pro follows you to any device."</p>
+        <p class="rule">Cap: "You're tracking 5. Go unlimited and I'll watch every subscription."</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Empty / error / toast</h3>
+        <p class="rule">Empty: "Nothing tracked yet. Tap ＋ to add your first."</p>
+        <p class="rule">Offline: "You're offline. Your data is on your phone, so tracking still works."</p>
+        <p class="rule">Toast: "Cancelled. Saving $15.49/mo."</p>
+        <p class="rule">Validation: "Enter a price above 0."</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Found &amp; cancel</h3>
+        <p class="rule">Free: "myrev found up to $480/yr to cut." → "Start free trial"</p>
+        <p class="rule">Review: "3 AI tools do similar things. Keep the one you use."</p>
+        <p class="rule">Cancel: "I can't cancel it for you. Here's how, then tell me."</p>
+        <p class="rule">Reconcile: "Did you cancel Adobe?" → Yes / I'm keeping it / Not yet</p>
+        <p class="rule">Search: "Use &ldquo;{query}&rdquo;" (add any service, no dead end)</p>
+        <p class="rule muted">Never: "seamless", "effortless", "unlock the power of", or implying myrev cancels for you.</p>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Downgrade, trial state &amp; consent</h3>
+        <p class="rule">Reconcile: "Your Pro ended. Choose the 5 to keep tracking." → "Keep 5, pause 3" / "Reactivate Pro to keep all 8."</p>
+        <p class="rule">Locked row: "Locked — reactivate with Pro."</p>
+        <p class="rule">Trial state (Settings): "Free trial — converts to paid on Jul 2." / "Renews on Aug 25." / "Cancels on Aug 25 — you keep Pro until then." / "Payment issue — update your payment method to keep Pro."</p>
+        <p class="rule">Restore: "Pro restored" / "No purchases found."</p>
+        <p class="rule">Consent: "Help improve myrev? Anonymous usage stats — never your name, the services you track, or amounts. Off until you say yes." → "Sure, share anonymous stats" / "Not now"</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20 ANALYTICS -->
+  <section class="sec" id="analytics">
+    <div class="sec-n">20</div><h2>Analytics event map</h2>
+    <p class="lead">PostHog, privacy-safe: <b>no</b> subscription names, amounts, or email — only the opaque Clerk id + a <code>price_bucket</code>. <b>Region-gated consent:</b> EEA/UK opt-in (off until accepted), opt-out elsewhere.</p>
+    <div class="card"><table>
+      <tr><th>Event</th><th>Props</th><th>Status</th></tr>
+      <tr><td><code>onboarding_started</code></td><td>—</td><td>live</td></tr>
+      <tr><td><code>onboarding_goal_selected</code></td><td>goal</td><td>live</td></tr>
+      <tr><td><code>onboarding_completed</code></td><td>subs_added, chose_trial</td><td>live</td></tr>
+      <tr><td><code>onboarding_skipped</code></td><td>—</td><td>live</td></tr>
+      <tr><td><code>subscription_created</code></td><td>billing_cycle, category, is_trial, price_bucket</td><td>live</td></tr>
+      <tr><td><code>cancel_intent</code> / <code>cancel_confirmed</code> / <code>cancel_kept</code></td><td>subscription_id (opaque)</td><td>live</td></tr>
+      <tr><td><code>subscription_reactivated</code> / <code>subscription_resumed</code> / <code>subscription_paused</code></td><td>subscription_id</td><td>live</td></tr>
+      <tr><td><code>user_signed_in</code> / <code>user_signed_out</code> / <code>user_signed_up</code></td><td>— (identify by opaque id)</td><td>live</td></tr>
+      <tr><td><code>paywall_view</code></td><td>source</td><td>live</td></tr>
+      <tr><td><code>paywall_signin_required</code></td><td>source</td><td>live (guest tapped buy → sign-up)</td></tr>
+      <tr><td><code>trial_start</code></td><td>source, plan</td><td>live (fires on RC purchase success)</td></tr>
+      <tr><td><code>cap_hit</code></td><td>active_count</td><td>live (on cap-wall mount)</td></tr>
+      <tr><td><code>found_review_opened</code></td><td>surface (home/insights)</td><td>live</td></tr>
+      <tr><td><code>$screen</code> (screen views)</td><td>pathname</td><td>live (explicit <code>posthog.screen</code>; no autocapture)</td></tr>
+    </table></div>
+  </section>
+
+  <!-- 21 QA -->
+  <section class="sec" id="qa">
+    <div class="sec-n">21</div><h2>Design QA checklist</h2>
+    <p class="lead">Run before calling any screen done. This artefact is the reference (there is no Figma).</p>
+    <div class="grid g2">
+      <div class="card">
+        <p class="rule">Tokens only — no hardcoded hex except intentional brand tiles.</p>
+        <p class="rule">Correct type family/size/weight per the scale.</p>
+        <p class="rule">Light AND dark both legible; contrast AA.</p>
+        <p class="rule">Spacing on the 4-scale; 20 gutter; pb-32 clearance.</p>
+        <p class="rule">Status shown with word/icon, not colour alone.</p>
+      </div>
+      <div class="card">
+        <p class="rule">All states present (see state matrix).</p>
+        <p class="rule">Free vs Pro correct; Pro = free + Pro layer.</p>
+        <p class="rule">Touch targets ≥ 44; reduce-motion honored.</p>
+        <p class="rule">Keyboard avoidance + CTA reachable; date picker closes on select.</p>
+        <p class="rule">No "AI" language in v1; copy in the locked voice.</p>
+      </div>
+    </div>
+    <div class="note" style="margin-top:8px"><b>Design system complete.</b> Foundations, components, all screens (light/dark, free/Pro v1), and the full specification. Source of truth for the RN build and the RevenueCat paywall.</div>
+  </section>
+</div>
+
+<script>
+  var r=document.documentElement;function set(m,b){m==="system"?r.removeAttribute("data-theme"):r.setAttribute("data-theme",m);document.querySelectorAll(".toggle button").forEach(function(x){x.classList.remove("on")});b.classList.add("on")}
+  document.getElementById("tl").onclick=function(){set("light",this)};document.getElementById("td").onclick=function(){set("dark",this)};document.getElementById("ts").onclick=function(){set("system",this)};
+</script>
