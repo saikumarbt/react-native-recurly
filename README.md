@@ -53,6 +53,61 @@ npx expo start -c
 
 Open on a dev build (or press **a**/**i** for an emulator/simulator).
 
+### Run on a physical device via a secure tunnel (dev build)
+
+Use a **tunnel** when your phone and computer aren't on the same Wi‑Fi (or a
+corporate/campus network blocks LAN connections, or USB won't cooperate). It
+routes the Metro bundler through a public **ngrok** URL that your device can
+always reach. This serves the JS bundle to your **installed dev build** — not
+Expo Go (RevenueCat purchases still need the native dev build; see Prerequisites).
+
+**One-time setup:**
+
+1. **Install the tunnel backend** (Expo uses `@expo/ngrok`). Either accept the
+   CLI prompt the first time you pass `--tunnel`, or install it up front:
+
+   ```bash
+   npx expo install @expo/ngrok
+   ```
+
+2. **Create a free ngrok account** and grab an authtoken (current ngrok requires
+   one):
+   - Sign up: <https://dashboard.ngrok.com/signup>
+   - Copy your token: <https://dashboard.ngrok.com/get-started/your-authtoken>
+
+3. **Register the authtoken** so the tunnel can authenticate. Either write it to
+   the ngrok config once:
+
+   ```bash
+   npx ngrok config add-authtoken <YOUR_NGROK_AUTHTOKEN>
+   ```
+
+   …or export it as an environment variable that Expo's tunnel reads
+   (`NGROK_AUTHTOKEN`) — e.g. add `NGROK_AUTHTOKEN=<token>` to your shell profile
+   or `.env.local`.
+
+**Start the tunnel:**
+
+```bash
+npx expo start --tunnel --clear -c --dev-client
+```
+
+Flag reference:
+
+- `--tunnel` — serve over a public ngrok URL (`*.exp.direct`) instead of LAN.
+- `--clear` / `-c` — clear the Metro bundler cache (both do the same; either is fine).
+- `--dev-client` — open in the installed **development build**, not Expo Go.
+
+Then scan the QR from your dev build's launcher screen (or press **a**/**i** for
+an emulator/simulator on the same machine).
+
+**Troubleshooting:**
+
+- "Install `@expo/ngrok`?" prompt → answer **yes** (or run the install in step 1).
+- Tunnel won't connect / "ngrok authtoken" error → re-check step 3 (the token
+  must be registered); some corporate VPNs/firewalls block ngrok entirely.
+- Still stuck? Fall back to `npx expo start --dev-client` on the same Wi‑Fi.
+
 ### Environment Variables
 
 Create a `.env` in the project root:
@@ -74,7 +129,19 @@ npm test           # Jest unit tests
 
 ---
 
+## 🎨 Design System
+
+[`myrev-design-system.html`](./myrev-design-system.html) is the single source of
+truth for the spec: foundations (tokens, type, spacing), the component library,
+every screen (light/dark, free + Pro v1), the state matrix, flows, navigation,
+copy deck, and the analytics event map. **Code is the source of truth for built
+screens; the doc maps each to its route + RN file** (anti-drift). Open it in any
+browser.
+
+---
+
 ## 📚 Learn More
+
 - [Expo Documentation](https://docs.expo.dev/versions/v54.0.0/)
 - [NativeWind Docs](https://nativewind.dev/)
 - [Clerk Docs](https://clerk.dev/docs)
