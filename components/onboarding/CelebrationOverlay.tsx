@@ -14,12 +14,12 @@ interface CelebrationOverlayProps {
 // A handful of dots that burst outward from the checkmark — DIY confetti, no
 // asset files. Offsets are the final translation; colors are theme tokens.
 const CONFETTI = [
-  { x: -84, y: -48, color: "#ea7a53" },
-  { x: 88, y: -56, color: "#16a34a" },
-  { x: -64, y: 64, color: "#081126" },
-  { x: 74, y: 56, color: "#ea7a53" },
-  { x: 4, y: -96, color: "#16a34a" },
-  { x: 14, y: 92, color: "#ea7a53" },
+  { x: -84, y: -48, color: "#6e5be4" },
+  { x: 88, y: -56, color: "#34d399" },
+  { x: -64, y: 64, color: "#7da7f4" },
+  { x: 74, y: 56, color: "#6e5be4" },
+  { x: 4, y: -96, color: "#f5b860" },
+  { x: 14, y: 92, color: "#6e5be4" },
 ];
 
 /**
@@ -106,10 +106,10 @@ const CelebrationOverlay = ({
         ))}
         <Animated.View style={{ transform: [{ scale }] }}>
           <Svg width={112} height={112} viewBox="0 0 96 96">
-            <Circle cx={48} cy={48} r={48} fill="#16a34a" />
+            <Circle cx={48} cy={48} r={48} fill="#6e5be4" />
             <Path
               d="M27 49 L42 64 L69 32"
-              stroke="#fff9e3"
+              stroke="#ffffff"
               strokeWidth={9}
               strokeLinecap="round"
               strokeLinejoin="round"

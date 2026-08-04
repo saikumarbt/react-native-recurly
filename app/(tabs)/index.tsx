@@ -1,31 +1,33 @@
 import AnimatedCounter from "@/components/AnimatedCounter";
+import MilestoneCelebration from "@/components/MilestoneCelebration";
 import { FadeInUp, PressableScale } from "@/components/motion";
 import PulsingDot from "@/components/PulsingDot";
 import ListHeading from "@/components/ListHeading";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
-import SubscriptionFormModal from "@/components/SubscriptionFormModal";
 import UpcomingSubscriptionCard from "@/components/UpcomingSubscriptionCard";
-import { icons } from "@/constants/icons";
 import images from "@/constants/images";
+import { categoryColorRamp } from "@/constants/theme";
 import { useCurrency } from "@/context/CurrencyContext";
+import { useEntitlement } from "@/context/EntitlementsContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
+import { useTheme } from "@/context/ThemeContext";
 import "@/global.css";
-import { priceBucket } from "@/lib/analytics";
 import { duplicateActiveNames, normalizeName } from "@/lib/duplicates";
+import { computeFound } from "@/lib/found";
+import { getKeptSubIds } from "@/lib/foundKept";
+import { checkSavingsMilestone, recordWeeklyOpen } from "@/lib/retention";
+import { maybeRequestReview } from "@/lib/review";
 import {
   getDaysUntilRenewal,
   getMonthlyEquivalent,
   pendingRenewal,
 } from "@/lib/billing";
-import { success } from "@/lib/haptics";
-import { hasSeenNudge, markNudgeSeen } from "@/lib/nudges";
 import { formatCurrency } from "@/lib/utils";
 import { useClerk, useUser } from "@clerk/expo";
 import { styled } from "nativewind";
 import { usePostHog } from "posthog-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Animated,
   FlatList,
   Image,
   Pressable,
@@ -41,7 +43,7 @@ const SafeAreaView = styled(RNSafeAreaView) as any;
 export default function App() {
   const { user, isSignedIn } = useUser();
   const { signOut } = useClerk();
-  const { subscriptions, addSubscription, refresh } = useSubscriptions();
+  const { subscriptions, refresh } = useSubscriptions();
 
   // Re-pull from the DB whenever Home regains focus, so nudge counts reflect
   // actions taken on the detail screen (confirm renewal, delete duplicate, etc).
@@ -51,12 +53,12 @@ export default function App() {
     }, [refresh]),
   );
   const { baseCurrency } = useCurrency();
+  const { palette } = useTheme();
+  const { isPro } = useEntitlement();
   const posthog = usePostHog();
   const router = useRouter();
-  const [isCreateModalVisible, setCreateModalVisible] = useState(false);
-  const [showAddNudge, setShowAddNudge] = useState(
-    () => !hasSeenNudge("add_first"),
-  );
+  const [streak, setStreak] = useState(0);
+  const [milestone, setMilestone] = useState<number | null>(null);
 
   const activeSubscriptions = useMemo(
     () => subscriptions.filter((sub) => sub.status === "active"),
@@ -95,31 +97,6 @@ export default function App() {
     ).length;
   }, [subscriptions, activeSubscriptions]);
 
-  // One-time first-run nudge: gently pulse the "+" until the first sub is added.
-  const [addPulse] = useState(() => new Animated.Value(1));
-  const nudgeActive = showAddNudge && activeSubscriptions.length === 0;
-  useEffect(() => {
-    if (!nudgeActive) {
-      addPulse.setValue(1);
-      return;
-    }
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(addPulse, {
-          toValue: 1.15,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.timing(addPulse, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [nudgeActive, addPulse]);
 
   // Real monthly outflow across mixed billing cycles (annual/quarterly/etc.
   // are normalized to a per-month average, so the total reflects everything).
@@ -161,39 +138,71 @@ export default function App() {
     [activeSubscriptions],
   );
 
-  // Soonest upcoming renewal, for the hero footer.
-  const nextUp = upcomingRenewals[0] ?? null;
-  const nextUpWhen =
-    nextUp === null || !Number.isFinite(nextUp.daysLeft)
-      ? ""
-      : nextUp.daysLeft <= 0
-        ? "due today"
-        : nextUp.daysLeft === 1
-          ? "tomorrow"
-          : `in ${nextUp.daysLeft} days`;
-
-  const handleCreate = (draft: SubscriptionDraft) => {
-    const created = addSubscription(draft);
-    success();
-    if (showAddNudge) {
-      markNudgeSeen("add_first");
-      setShowAddNudge(false);
-    }
-    // Non-identifying signal only: no name, no exact price, no currency.
-    posthog.capture("subscription_created", {
-      subscription_id: created.id,
-      billing_cycle: created.billingCycle ?? "monthly",
-      category: created.category ?? "Uncategorized",
-      is_trial: !!created.isTrial,
-      price_bucket: priceBucket(
-        getMonthlyEquivalent(
-          created.price,
-          created.billingCycle ?? "monthly",
-          created.customIntervalDays,
+  // Motivational retention hook: recurring value the user has cut (cancelled
+  // subs), mirrored from Insights.
+  const savedMonthly = useMemo(
+    () =>
+      subscriptions
+        .filter((s) => s.status === "cancelled")
+        .reduce(
+          (sum, s) =>
+            sum +
+            getMonthlyEquivalent(
+              s.price,
+              s.billingCycle ?? "monthly",
+              s.customIntervalDays,
+            ),
+          0,
         ),
-      ),
-    });
-  };
+    [subscriptions],
+  );
+
+  // Deterministic "myrev Found" — number always; findings gated to Pro.
+  const found = useMemo(
+    () => computeFound(subscriptions, getKeptSubIds()),
+    [subscriptions],
+  );
+
+  // A cancellation the user started but never confirmed — nudge to close the loop.
+  const pendingCancel = subscriptions.find(
+    (s) => (s.status ?? "active") === "active" && s.cancelPendingAt,
+  );
+
+  // Top spend categories for the slim "Where it goes" glimpse (paying subs).
+  const categoryBreakdown = useMemo(() => {
+    const byCat = new Map<string, number>();
+    for (const s of activeSubscriptions) {
+      if (s.isTrial) continue;
+      const cat = s.category?.trim() || "Other";
+      byCat.set(
+        cat,
+        (byCat.get(cat) ?? 0) +
+          getMonthlyEquivalent(
+            s.price,
+            s.billingCycle ?? "monthly",
+            s.customIntervalDays,
+          ),
+      );
+    }
+    return Array.from(byCat.entries()).sort((a, b) => b[1] - a[1]);
+  }, [activeSubscriptions]);
+
+  const categoryColors = categoryColorRamp(palette);
+
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
+  // Weekly "audit" streak — recorded once per open.
+  useEffect(() => {
+    setStreak(recordWeeklyOpen());
+  }, []);
+
+  // Celebrate when cancellation savings cross a new annual milestone.
+  useEffect(() => {
+    const reached = checkSavingsMilestone(savedMonthly * 12);
+    if (reached !== null) setMilestone(reached);
+  }, [savedMonthly]);
 
   const displayName =
     user?.firstName ||
@@ -201,24 +210,32 @@ export default function App() {
     "Guest";
 
   return (
-    <SafeAreaView className="flex-1  bg-background p-5">
+    <SafeAreaView className="flex-1 bg-background">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerClassName="pb-30"
+        contentContainerClassName="grow p-5 pb-32"
       >
         <View className="home-header">
               <View className="home-user">
                 <Image
-                  source={{
-                    uri:
-                      user?.imageUrl ||
-                      Image.resolveAssetSource(images.avatar).uri,
-                  }}
+                  // Static require = instant; only the remote photo needs a uri.
+                  source={user?.imageUrl ? { uri: user.imageUrl } : images.avatar}
+                  defaultSource={images.avatar}
                   resizeMode="contain"
                   className="home-avatar"
                 />
                 <View>
+                  <Text className="ml-4 text-sm font-sans-medium text-muted-foreground">
+                    {greeting}
+                  </Text>
                   <Text className="home-user-name">{displayName}</Text>
+                  {streak >= 2 && (
+                    <View className="ml-4 mt-1 self-start rounded-full bg-warning/10 px-2.5 py-1">
+                      <Text className="text-[11px] font-sans-bold text-warning">
+                        🔥 {streak}-week streak
+                      </Text>
+                    </View>
+                  )}
                   {isSignedIn && (
                     <Pressable onPress={() => signOut()} className="ml-4 mt-1">
                       <Text className="text-sm font-sans-medium text-destructive">
@@ -228,56 +245,173 @@ export default function App() {
                   )}
                 </View>
               </View>
-              <Pressable onPress={() => setCreateModalVisible(true)}>
-                <Animated.View style={{ transform: [{ scale: addPulse }] }}>
-                  <Image source={icons.add} className="home-add-icon" />
-                </Animated.View>
-              </Pressable>
             </View>
 
-            <View className="home-hero">
-              <View className="home-hero-top">
-                <Text className="home-hero-label">Spend per month</Text>
-                <View className="home-hero-badge">
-                  <Text className="home-hero-badge-text">
-                    {activeSubscriptions.length} active
-                  </Text>
-                </View>
-              </View>
+            {/* Add lives in the centre ＋ FAB on the tab bar (reachable from any
+                tab), so Home has no separate add button. */}
 
+            {/* FEEL — spend, the emotional hero */}
+            <View className="mb-4 rounded-3xl border border-border bg-card p-6">
+              <Text className="text-xs font-sans-bold uppercase tracking-[2px] text-muted-foreground">
+                You&apos;re spending
+              </Text>
               <AnimatedCounter
                 value={monthlyTotal}
                 currency={baseCurrency}
-                className="home-hero-amount"
+                className="mt-1 text-6xl font-display-black text-primary"
                 numberOfLines={1}
                 adjustsFontSizeToFit
               />
-              <Text className="home-hero-year">
-                ≈ {formatCurrency(yearlyTotal, baseCurrency)} / year
+              <Text className="mt-1 text-sm font-sans-medium text-muted-foreground">
+                a month · ≈ {formatCurrency(yearlyTotal, baseCurrency)} / year ·{" "}
+                {activeSubscriptions.length} active
               </Text>
-
-              <View className="home-hero-divider" />
-
-              <View className="home-hero-foot">
-                <View className="min-w-0 flex-1">
-                  <Text className="home-hero-foot-label">Next renewal</Text>
-                  <Text className="home-hero-foot-value" numberOfLines={1}>
-                    {nextUp ? nextUp.name : "Nothing upcoming"}
-                  </Text>
-                </View>
-                {nextUp ? (
-                  <View className="items-end">
-                    <Text className="home-hero-foot-value">
-                      {formatCurrency(nextUp.price, baseCurrency)}
-                    </Text>
-                    <Text className="home-hero-foot-label">{nextUpWhen}</Text>
-                  </View>
-                ) : null}
-              </View>
             </View>
 
+            {/* Where it goes — slim glimpse into Insights */}
+            {categoryBreakdown.length > 0 && (
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-center justify-between">
+                  <Text className="text-xs font-sans-bold uppercase tracking-[1px] text-muted-foreground">
+                    Where it goes
+                  </Text>
+                  <PressableScale onPress={() => router.push("/insights")}>
+                    <Text className="text-xs font-sans-bold text-accent">
+                      Details ›
+                    </Text>
+                  </PressableScale>
+                </View>
+                <View
+                  className="h-2.5 flex-row overflow-hidden rounded-full"
+                  style={{ gap: 2 }}
+                >
+                  {categoryBreakdown.slice(0, 5).map(([cat, amt], i) => (
+                    <View
+                      key={cat}
+                      style={{
+                        flexGrow: amt,
+                        backgroundColor:
+                          categoryColors[i % categoryColors.length],
+                      }}
+                    />
+                  ))}
+                </View>
+                <View className="mt-2 flex-row flex-wrap items-center gap-x-3 gap-y-1">
+                  {categoryBreakdown.slice(0, 3).map(([cat], i) => (
+                    <View key={cat} className="flex-row items-center gap-1.5">
+                      <View
+                        style={{
+                          width: 7,
+                          height: 7,
+                          borderRadius: 99,
+                          backgroundColor:
+                            categoryColors[i % categoryColors.length],
+                        }}
+                      />
+                      <Text className="text-[11px] font-sans-medium text-muted-foreground">
+                        {cat}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Motivational — what you've saved */}
+            {savedMonthly > 0 && (
+              <FadeInUp>
+                <View className="mb-4 flex-row items-center gap-3 rounded-2xl border border-success/30 bg-success/10 p-3.5">
+                  <View
+                    className="size-9 items-center justify-center rounded-xl"
+                    style={{ backgroundColor: palette.success }}
+                  >
+                    <Text
+                      className="font-sans-bold"
+                      style={{ color: "#04130c", fontSize: 16 }}
+                    >
+                      ↓
+                    </Text>
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-sm font-sans-bold text-primary">
+                      You&apos;ve saved{" "}
+                      {formatCurrency(savedMonthly, baseCurrency)}/mo
+                    </Text>
+                    <Text className="mt-0.5 text-xs font-sans-medium text-muted-foreground">
+                      {formatCurrency(savedMonthly * 12, baseCurrency)} a year
+                      back 🎉
+                    </Text>
+                  </View>
+                </View>
+              </FadeInUp>
+            )}
+
+            {/* Reconciliation nudge: close the loop on a started cancellation. */}
+            {pendingCancel && (
+              <FadeInUp>
+                <Pressable
+                  onPress={() =>
+                    router.push(`/subscriptions/${pendingCancel.id}`)
+                  }
+                  className="mb-4 flex-row items-center gap-3 rounded-2xl border border-accent bg-accent/10 p-3.5"
+                >
+                  <Text className="text-base text-accent">↩</Text>
+                  <View className="flex-1">
+                    <Text className="text-sm font-sans-bold text-primary">
+                      Did you cancel {pendingCancel.name}?
+                    </Text>
+                    <Text className="mt-0.5 text-xs font-sans-medium text-muted-foreground">
+                      Tap to confirm so your tracker stays right
+                    </Text>
+                  </View>
+                  <Text className="text-lg font-sans-bold text-accent">›</Text>
+                </Pressable>
+              </FadeInUp>
+            )}
+
+            {/* myrev Found hook: number always shown; free links to the teaser,
+                Pro shows the top opportunity inline. Deep-links to Insights. */}
+            {found.count > 0 && (
+              <FadeInUp>
+                <Pressable
+                  onPress={() =>
+                    isPro
+                      ? router.push("/found")
+                      : router.push("/paywall?source=home_found")
+                  }
+                  className="mb-4 rounded-2xl border border-accent bg-accent/5 p-3.5"
+                  style={{ borderStyle: isPro ? "solid" : "dashed" }}
+                >
+                  <View className="flex-row items-center gap-3">
+                    <Text className="text-base text-accent">✦</Text>
+                    <View className="flex-1">
+                      <Text className="text-sm font-sans-bold text-accent">
+                        myrev found up to{" "}
+                        {formatCurrency(found.annualSavings, baseCurrency)}/yr
+                        to cut
+                      </Text>
+                      <Text className="mt-0.5 text-xs font-sans-medium text-muted-foreground">
+                        {!isPro
+                          ? `${found.count} to review — tap to unlock`
+                          : found.groups[0]
+                            ? `${found.groups[0].members.length} ${found.groups[0].category} tools do similar things`
+                            : (found.findings[0]?.detail ?? "")}
+                      </Text>
+                    </View>
+                    {!isPro && (
+                      <View className="rounded-full bg-accent px-3 py-1.5">
+                        <Text className="text-xs font-sans-bold text-on-accent">
+                          Unlock
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </Pressable>
+              </FadeInUp>
+            )}
+
             <View className="mb-5">
-              <ListHeading title="Upcoming" />
+              <ListHeading title="Next up" />
               <FlatList
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -296,14 +430,8 @@ export default function App() {
             {assumedCount > 0 && (
               <FadeInUp>
                 <PressableScale onPress={() => router.push("/subscriptions")}>
-                  <View
-                    className="mb-4 flex-row items-center gap-3 rounded-2xl border p-4"
-                    style={{
-                      borderColor: "#E0952F",
-                      backgroundColor: "rgba(224,149,47,0.08)",
-                    }}
-                  >
-                    <PulsingDot size={10} />
+                  <View className="mb-4 flex-row items-center gap-3 rounded-2xl border border-warning bg-warning/10 p-4">
+                    <PulsingDot size={10} color={palette.warning} />
                     <View className="flex-1">
                       <Text className="text-sm font-sans-bold text-primary">
                         {assumedCount} subscription
@@ -313,10 +441,7 @@ export default function App() {
                         Confirm them so reminders land on the right day.
                       </Text>
                     </View>
-                    <Text
-                      className="text-base font-sans-bold"
-                      style={{ color: "#E0952F" }}
-                    >
+                    <Text className="text-base font-sans-bold text-warning">
                       Review ›
                     </Text>
                   </View>
@@ -327,7 +452,7 @@ export default function App() {
               <FadeInUp>
                 <PressableScale onPress={() => router.push("/subscriptions")}>
                   <View className="mb-4 flex-row items-center gap-3 rounded-2xl border border-accent bg-accent/10 p-4">
-                    <PulsingDot size={10} color="#ea7a53" />
+                    <PulsingDot size={10} color={palette.accent} />
                     <View className="flex-1">
                       <Text className="text-sm font-sans-bold text-primary">
                         {renewalCheckinCount} subscription
@@ -338,10 +463,7 @@ export default function App() {
                         accurate.
                       </Text>
                     </View>
-                    <Text
-                      className="text-base font-sans-bold"
-                      style={{ color: "#ea7a53" }}
-                    >
+                    <Text className="text-base font-sans-bold text-accent">
                       Review ›
                     </Text>
                   </View>
@@ -352,7 +474,7 @@ export default function App() {
               <FadeInUp>
                 <PressableScale onPress={() => router.push("/subscriptions")}>
                   <View className="mb-4 flex-row items-center gap-3 rounded-2xl border border-destructive bg-destructive/10 p-4">
-                    <PulsingDot size={10} color="#dc2626" />
+                    <PulsingDot size={10} color={palette.destructive} />
                     <View className="flex-1">
                       <Text className="text-sm font-sans-bold text-primary">
                         Possible duplicate subscriptions
@@ -362,10 +484,7 @@ export default function App() {
                         remove any extras.
                       </Text>
                     </View>
-                    <Text
-                      className="text-base font-sans-bold"
-                      style={{ color: "#dc2626" }}
-                    >
+                    <Text className="text-base font-sans-bold text-destructive">
                       Review ›
                     </Text>
                   </View>
@@ -418,10 +537,16 @@ export default function App() {
             )}
       </ScrollView>
 
-      <SubscriptionFormModal
-        visible={isCreateModalVisible}
-        onClose={() => setCreateModalVisible(false)}
-        onSubmit={handleCreate}
+      <MilestoneCelebration
+        visible={milestone !== null}
+        amount={milestone ?? 0}
+        currency={baseCurrency}
+        onClose={() => {
+          setMilestone(null);
+          // A celebrated savings milestone is the peak positive moment — the
+          // right (and only) time to ask for a store rating. Self rate-limited.
+          void maybeRequestReview();
+        }}
       />
     </SafeAreaView>
   );

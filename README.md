@@ -1,99 +1,85 @@
-# Recurrly
+# myrev
 
-![Recurrly Banner](assets/images/recurrly_banner.png)
+**myrev** — _know what renews._
 
-**Recurrly** is a full‑stack subscription management application designed to help users monitor and control their recurring expenses in one centralized hub. Built using a modern "Next.js‑style" mobile architecture, the app features robust subscription tracking for both active and inactive charges, automated email reminders to ensure users never miss a billing date.
+Track subscriptions, recurring bills, and upcoming payments in one place. myrev is a **local-first, guest-first** mobile app: your data lives on your phone, there's no signup wall to start, and it reminds you before anything renews so a charge never catches you off guard.
 
 ---
 
 ## ⚙️ Tech Stack
 
-### Frontend & Mobile
-- **React Native** – Build native iOS and Android apps with a single codebase.
-- **Expo** – Streamlined workflow, file‑based routing, and EAS services.
-- **TypeScript** – Strong static typing for a maintainable codebase.
-- **NativeWind** – Tailwind‑CSS utilities for rapid UI development.
-
-### Data & Storage
-- **SQLite (expo-sqlite)** – Local-first, on-device storage for subscription data. Your data lives on your phone.
-
-### Infrastructure & Tools
-- **Clerk** – Secure authentication and user management.
-- **PostHog** – Product analytics and event tracking.
-- **CodeRabbit** – AI‑powered code review assistant.
+- **React Native + Expo (SDK 54)** — single codebase for iOS & Android, file-based routing via `expo-router`, new architecture enabled.
+- **TypeScript** — strict, throughout.
+- **NativeWind v5** (Tailwind v4 tokens) — theming via CSS variables with adaptive **light/dark** (see `global.css` + `constants/theme.ts`).
+- **expo-sqlite** — on-device, local-first persistence (`db/`), cached by `SubscriptionsContext`.
+- **Clerk** — optional authentication (guest-first; sign-in only needed for backup/sync later).
+- **expo-notifications** — local renewal + free-trial reminders (no email/server).
+- **PostHog** — privacy-safe product analytics (no subscription names/amounts/PII; opt-out in Settings).
+- **Reanimated + react-native-svg** — motion (splash, count-ups, sheets); no extra animation libraries.
 
 ---
 
 ## 🔋 Features
 
-- **✨ Subscription Dashboard** – Central hub to monitor all recurring expenses with a clean UI built with NativeWind.
-- **📊 Active & Inactive Tracking** – Toggle and categorize subscriptions to see where money is going.
-- **⏰ Scheduled Email Reminders** – Automated notifications before billing dates.
-- **🔐 Secure Authentication** – Clerk integration for enterprise‑grade sign‑ups and logins.
-- **🧭 Native Navigation** – Custom tab navigation delivering a fluid, high‑performance experience on iOS and Android.
-- **💾 Full‑Stack Data Persistence** – Node.js/Express backend with MongoDB storage.
-- **💳 Monetization Ready** – Integrated billing and payment flows.
-- **📈 Production‑Grade Analytics** – Real‑time insights via PostHog.
-- **…and many more** – Architecture, reusability, and clean code patterns.
+- **Subscription tracking** — add/edit/pause/cancel, categories, brand icons, monthly-equivalent math across all billing cycles.
+- **Grouped-by-status list** — Active · On trial · Paused · Cancelled, with per-section totals and a celebrated savings figure.
+- **Insights** — spend, category breakdown, next-month projection, savings from cancellations, portfolio.
+- **Reminders** — local notifications before renewals and free-trial endings.
+- **Single base currency** — amounts entered/shown in one currency (no FX).
+- **Adaptive theming** — light / dark / system.
+- **Guest-first** — fully usable without an account.
+- **myrev Pro (planned)** — unlimited subscriptions, curated savings-knowledge (cheaper plans/bundles), cancel guidance, backup/sync, custom reminders, widgets. (Free tier tracks up to 5 active subscriptions.)
 
 ---
 
 ## 🤸 Quick Start
 
 ### Prerequisites
-- **Git**
-- **Node.js** (>= 20)
-- **npm** (or Yarn)
 
-### Clone the Repository
-```bash
-git clone https://github.com/adrianhajdin/react-native-recurrly.git
-cd react-native-recurrly
-```
+- **Node.js** (>= 20) and **npm**
+- A **native development build** for the full app. `react-native-purchases` (RevenueCat) isn't bundled in Expo Go, so **real purchase / subscription testing requires a dev build** (`eas build --profile development`, or `npx expo run:android` / `run:ios`). `expo-sqlite`, `expo-blur`, and local `expo-notifications` all run in Expo Go, so the rest of the app can be developed there (notifications are local/scheduled only — no push server).
 
-### Install Dependencies
+### Install
+
 ```bash
 npm install
 ```
 
-### Run the Development Server
+### Run
+
 ```bash
-npx expo start
+npx expo start -c
 ```
-- Press **a** to open Android emulator, **i** for iOS simulator, **w** for web, etc.
+
+Open on a dev build (or press **a**/**i** for an emulator/simulator).
 
 ### Environment Variables
-Create a `.env` file in the project root:
+
+Create a `.env` in the project root:
+
 ```dotenv
 EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_key
 EXPO_PUBLIC_POSTHOG_KEY=your_posthog_project_api_key
 EXPO_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+EXPO_PUBLIC_RC_API_KEY=your_revenuecat_public_sdk_key
 ```
-Replace placeholders with real credentials.
-
----
-
-## 📱 Running the Project
-```bash
-npx expo start
-```
-Scan the QR code with a **development build** (or Expo Go) on your device, or press **a**/**i** for an emulator/simulator.
 
 ### Scripts
+
 ```bash
-npm run lint       # ESLint via expo lint
-npm run typecheck  # tsc --noEmit
+npx expo lint      # ESLint via expo lint
+npx tsc --noEmit   # typecheck
 npm test           # Jest unit tests
 ```
 
 ---
 
 ## 📚 Learn More
-- [Expo Documentation](https://docs.expo.dev/)
+- [Expo Documentation](https://docs.expo.dev/versions/v54.0.0/)
 - [NativeWind Docs](https://nativewind.dev/)
 - [Clerk Docs](https://clerk.dev/docs)
 - [PostHog Docs](https://posthog.com/docs)
 
 ---
 
-*Happy coding!*
+_myrev — by Zerohaus._

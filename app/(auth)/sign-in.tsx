@@ -1,5 +1,8 @@
+import BackButton from "@/components/BackButton";
+import { useTheme } from "@/context/ThemeContext";
 import { useSignIn } from "@clerk/expo";
-import { Link, useRouter } from "expo-router";
+import { safeReturnTo } from "@/lib/navigation";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { styled } from "nativewind";
 import React from "react";
 import {
@@ -17,7 +20,14 @@ const SafeAreaView = styled(RNSafeAreaView) as any;
 
 export default function SignIn() {
   const { signIn, errors, fetchStatus } = useSignIn();
+  const { palette } = useTheme();
   const router = useRouter();
+  // Optional post-auth destination (e.g. the paywall resuming a trial),
+  // validated against an allowlist so it can't be an arbitrary target.
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
+  const destination = safeReturnTo(returnTo) as Parameters<
+    typeof router.replace
+  >[0];
 
   const [emailAddress, setEmailAddress] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -61,7 +71,7 @@ export default function SignIn() {
             console.log(session?.currentTask);
             return;
           }
-          router.replace("/");
+          router.replace(destination);
         },
       });
     } else if (signIn.status === "needs_client_trust") {
@@ -85,7 +95,7 @@ export default function SignIn() {
             console.log(session?.currentTask);
             return;
           }
-          router.replace("/");
+          router.replace(destination);
         },
       });
     }
@@ -95,22 +105,7 @@ export default function SignIn() {
     return (
       <SafeAreaView className="auth-screen">
         <View className="auth-content">
-          <Pressable
-            className="mb-2 flex-row items-center gap-1 self-start py-2"
-            onPress={() =>
-              router.canGoBack() ? router.back() : router.replace("/")
-            }
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Text className="text-2xl font-sans-medium text-muted-foreground">
-              ‹
-            </Text>
-            <Text className="text-sm font-sans-semibold text-muted-foreground">
-              Back
-            </Text>
-          </Pressable>
+          <BackButton />
           <Text className="auth-title">Verify your account</Text>
           <Text className="auth-subtitle">
             Enter the code sent to your email.
@@ -124,7 +119,7 @@ export default function SignIn() {
                   className="auth-input"
                   value={code}
                   placeholder="Enter your verification code"
-                  placeholderTextColor="#666666"
+                  placeholderTextColor={palette.mutedForeground}
                   onChangeText={(code) => setCode(code)}
                   keyboardType="numeric"
                 />
@@ -157,30 +152,15 @@ export default function SignIn() {
       >
         <ScrollView className="auth-scroll">
           <View className="auth-content">
-            <Pressable
-              className="mb-2 flex-row items-center gap-1 self-start py-2"
-              onPress={() =>
-                router.canGoBack() ? router.back() : router.replace("/")
-              }
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <Text className="text-2xl font-sans-medium text-muted-foreground">
-                ‹
-              </Text>
-              <Text className="text-sm font-sans-semibold text-muted-foreground">
-                Back
-              </Text>
-            </Pressable>
+            <BackButton />
             <View className="auth-brand-block">
               <View className="auth-logo-wrap">
                 <View className="auth-logo-mark">
-                  <Text className="auth-logo-mark-text">R</Text>
+                  <Text className="auth-logo-mark-text">m</Text>
                 </View>
                 <View>
-                  <Text className="auth-wordmark">Recurrly</Text>
-                  <Text className="auth-wordmark-sub">SMART BILLING</Text>
+                  <Text className="auth-wordmark">myrev</Text>
+                  <Text className="auth-wordmark-sub">know what renews</Text>
                 </View>
               </View>
 
@@ -198,7 +178,7 @@ export default function SignIn() {
                     autoCapitalize="none"
                     value={emailAddress}
                     placeholder="Enter email"
-                    placeholderTextColor="#666666"
+                    placeholderTextColor={palette.mutedForeground}
                     onChangeText={(emailAddress) =>
                       setEmailAddress(emailAddress)
                     }
@@ -212,7 +192,7 @@ export default function SignIn() {
                     className="auth-input"
                     value={password}
                     placeholder="Enter password"
-                    placeholderTextColor="#666666"
+                    placeholderTextColor={palette.mutedForeground}
                     secureTextEntry={true}
                     onChangeText={(password) => setPassword(password)}
                   />
@@ -236,7 +216,12 @@ export default function SignIn() {
 
             <View className="auth-link-row">
               <Text className="auth-link-copy">Don&apos;t have an account?</Text>
-              <Link href="/(auth)/sign-up">
+              <Link
+                href={{
+                  pathname: "/(auth)/sign-up",
+                  params: returnTo ? { returnTo } : {},
+                }}
+              >
                 <Text className="auth-link">Sign up</Text>
               </Link>
             </View>

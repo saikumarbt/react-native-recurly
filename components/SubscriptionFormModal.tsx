@@ -1,10 +1,16 @@
 import BrandPickerSheet from "@/components/BrandPickerSheet";
+import SheetBackdrop from "@/components/SheetBackdrop";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
-import { ONBOARDING_CATEGORY_ORDER } from "@/constants/onboardingBrands";
+import {
+  ONBOARDING_CATEGORY_ORDER,
+  brandMetaFor,
+} from "@/constants/onboardingBrands";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
+import { useTheme } from "@/context/ThemeContext";
 import "@/global.css";
 import {
   BILLING_CYCLE_KEYS,
+  computeTrialEnd,
   getCycleLabel,
   resolveNextRenewal,
   type BillingCycle,
@@ -58,6 +64,7 @@ const SubscriptionFormModal = ({
 }: SubscriptionFormModalProps) => {
   const isEdit = !!subscription;
   const { subscriptions } = useSubscriptions();
+  const { varStyle, palette, scheme } = useTheme();
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
@@ -65,6 +72,8 @@ const SubscriptionFormModal = ({
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [customDays, setCustomDays] = useState("30");
   const [category, setCategory] = useState<string | null>(null);
+  // Once the user picks a category themselves, stop auto-deriving it from the name.
+  const [categoryTouched, setCategoryTouched] = useState(false);
   const [isTrial, setIsTrial] = useState(false);
   const [trialDays, setTrialDays] = useState("7");
   const [startDate, setStartDate] = useState<Date>(new Date());
@@ -82,10 +91,39 @@ const SubscriptionFormModal = ({
     setBillingCycle("monthly");
     setCustomDays("30");
     setCategory(null);
+    setCategoryTouched(false);
     setIsTrial(false);
     setTrialDays("7");
     setStartDate(new Date());
   }, []);
+
+  // Auto-assign the category (and default price if blank) from a known brand,
+  // matching onboarding. The user can still override the category — once they
+  // do, we stop overriding it. A brand picked from the sheet is definitive.
+  const applyBrand = useCallback(
+    (brandName: string, fromPicker: boolean) => {
+      const meta = brandMetaFor(brandName);
+      if (!meta) return;
+      if (fromPicker || !categoryTouched) {
+        setCategory(meta.category);
+        if (fromPicker) setCategoryTouched(false);
+      }
+      setPrice((current) =>
+        fromPicker && !current.trim() ? String(meta.price) : current,
+      );
+    },
+    [categoryTouched],
+  );
+
+  const handleNameChange = (value: string) => {
+    setName(value);
+    applyBrand(value, false);
+  };
+
+  const handleBrandSelect = (brandName: string) => {
+    setName(brandName);
+    applyBrand(brandName, true);
+  };
 
   // Prefill when opening in edit mode (or reset when opening in create mode).
   useEffect(() => {
@@ -100,13 +138,22 @@ const SubscriptionFormModal = ({
       setBillingCycle(subscription.billingCycle ?? "monthly");
       setCustomDays(String(subscription.customIntervalDays ?? 30));
       setCategory(subscription.category ?? null);
+      setCategoryTouched(true); // editing: keep the sub's own category
       setIsTrial(!!subscription.isTrial);
+      // Trial length = trialEnd − start (the span the user set), so editing
+      // shows the same "7 days" they entered — not days-remaining-from-today.
+      // Round the raw ms span (not diff("day"), which truncates and would turn a
+      // DST-crossing 7-day trial into 6).
       setTrialDays(
         subscription.trialEndDate
           ? String(
               Math.max(
                 1,
-                dayjs(subscription.trialEndDate).diff(dayjs(), "day"),
+                Math.round(
+                  dayjs(subscription.trialEndDate).diff(
+                    dayjs(subscription.startDate ?? subscription.trialEndDate),
+                  ) / 86_400_000,
+                ),
               ),
             )
           : "7",
@@ -133,18 +180,23 @@ const SubscriptionFormModal = ({
       (!Number.isNaN(parsedCustomDays) && parsedCustomDays > 0)) &&
     (!isTrial || (!Number.isNaN(parsedTrialDays) && parsedTrialDays > 0));
 
-  // Live preview of the derived next renewal, shown under the date field.
+  // Trial ends `trialDays` after the START date the user chose — not "now"
+  // (using now ignored the start date and pinned every trial to today + N).
+  // Shared by the preview and commit so they always agree. See computeTrialEnd.
+  const trialEndIso = isTrial
+    ? computeTrialEnd(startDate, parsedTrialDays)
+    : undefined;
+
+  // Live preview of the derived next renewal. For a trial the first charge
+  // lands at the trial end, so anchor the preview there; otherwise at the start.
   const nextRenewalPreview = resolveNextRenewal(
-    startDate.toISOString(),
+    trialEndIso ?? startDate.toISOString(),
     billingCycle,
     customIntervalDays,
   );
 
   const commit = (acknowledgeDuplicate = false) => {
     const startIso = startDate.toISOString();
-    const trialEndIso = isTrial
-      ? dayjs().add(parsedTrialDays, "day").toISOString()
-      : undefined;
     // The first charge lands at the trial end (conversion) for a trial,
     // otherwise at the start date — so the renewal we track is that date, not
     // start + one cycle.
@@ -222,9 +274,9 @@ const SubscriptionFormModal = ({
   };
 
   const onDateChange = (event: { type: string }, selected?: Date) => {
-    // Android's dialog is one-shot: close it here. iOS uses an inline spinner
-    // that stays open until the user taps Done.
-    if (Platform.OS !== "ios") setShowDatePicker(false);
+    // Close on selection on BOTH platforms — picking a day should dismiss the
+    // calendar (Android dialog is one-shot; iOS inline calendar fires on tap).
+    setShowDatePicker(false);
     if (event.type !== "dismissed" && selected) setStartDate(selected);
   };
 
@@ -239,7 +291,8 @@ const SubscriptionFormModal = ({
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <View className="modal-overlay">
+        <View className="modal-overlay" style={varStyle}>
+          <SheetBackdrop scheme={scheme} />
           {/* Tapping the dimmed area (incl. the exposed top strip) dismisses. */}
           <Pressable
             className="absolute inset-0"
@@ -247,6 +300,7 @@ const SubscriptionFormModal = ({
             accessibilityLabel="Close"
           />
           <View className="modal-container">
+            <View className="sheet-handle" />
             <View className="modal-header">
               <Text className="modal-title">
                 {showDuplicatePrompt
@@ -344,9 +398,9 @@ const SubscriptionFormModal = ({
                   <TextInput
                     className="auth-input flex-1"
                     value={name}
-                    onChangeText={setName}
+                    onChangeText={handleNameChange}
                     placeholder="e.g. Netflix"
-                    placeholderTextColor="#666666"
+                    placeholderTextColor={palette.mutedForeground}
                     autoCapitalize="words"
                   />
                 </View>
@@ -359,7 +413,7 @@ const SubscriptionFormModal = ({
                   value={price}
                   onChangeText={setPrice}
                   placeholder="0.00"
-                  placeholderTextColor="#666666"
+                  placeholderTextColor={palette.mutedForeground}
                   keyboardType="decimal-pad"
                 />
               </View>
@@ -371,7 +425,7 @@ const SubscriptionFormModal = ({
                   value={paymentMethod}
                   onChangeText={setPaymentMethod}
                   placeholder="e.g. Visa ending in 4242"
-                  placeholderTextColor="#666666"
+                  placeholderTextColor={palette.mutedForeground}
                   autoCapitalize="words"
                 />
               </View>
@@ -382,53 +436,40 @@ const SubscriptionFormModal = ({
                   highlightDate
                     ? {
                         borderWidth: 1.5,
-                        borderColor: "#E0952F",
+                        borderColor: palette.warning,
                         borderRadius: 16,
                         padding: 12,
-                        backgroundColor: "rgba(224,149,47,0.06)",
+                        backgroundColor: `${palette.warning}14`,
                       }
                     : undefined
                 }
               >
                 <Text className="auth-label">Started on</Text>
-                {Platform.OS === "ios" ? (
-                  // Compact themed pill: opens a popover and dismisses itself
-                  // on selection. themeVariant keeps text dark on our light UI.
-                  <View className="flex-row">
-                    <DateTimePicker
-                      value={startDate}
-                      mode="date"
-                      display="compact"
-                      themeVariant="light"
-                      accentColor="#ea7a53"
-                      maximumDate={new Date()}
-                      onChange={onDateChange}
-                    />
-                  </View>
-                ) : (
-                  <>
-                    <Pressable
-                      className="auth-input"
-                      onPress={() => setShowDatePicker(true)}
-                    >
-                      <Text className="text-base font-sans-medium text-primary">
-                        {dayjs(startDate).format("MMM D, YYYY")}
-                      </Text>
-                    </Pressable>
-                    {showDatePicker && (
-                      <DateTimePicker
-                        value={startDate}
-                        mode="date"
-                        display="default"
-                        maximumDate={new Date()}
-                        onChange={onDateChange}
-                      />
-                    )}
-                  </>
+                {/* Tap the field to open the calendar; picking a day closes it
+                    (see onDateChange). Unified across platforms — iOS shows an
+                    inline calendar, Android its native dialog. */}
+                <Pressable
+                  className="auth-input"
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text className="text-base font-sans-medium text-primary">
+                    {dayjs(startDate).format("MMM D, YYYY")}
+                  </Text>
+                </Pressable>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={startDate}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "inline" : "default"}
+                    themeVariant={scheme}
+                    accentColor={palette.accent}
+                    maximumDate={new Date()}
+                    onChange={onDateChange}
+                  />
                 )}
                 <Text
                   className="auth-helper"
-                  style={highlightDate ? { color: "#E0952F" } : undefined}
+                  style={highlightDate ? { color: palette.warning } : undefined}
                 >
                   {highlightDate
                     ? "Set the real date this renews so your reminder is accurate."
@@ -468,7 +509,7 @@ const SubscriptionFormModal = ({
                     value={customDays}
                     onChangeText={setCustomDays}
                     placeholder="Interval in days, e.g. 45"
-                    placeholderTextColor="#666666"
+                    placeholderTextColor={palette.mutedForeground}
                     keyboardType="number-pad"
                   />
                 )}
@@ -496,11 +537,12 @@ const SubscriptionFormModal = ({
                           "category-chip",
                           active && "category-chip-active",
                         )}
-                        onPress={() =>
+                        onPress={() => {
+                          setCategoryTouched(true);
                           setCategory((current) =>
                             current === option ? null : option,
-                          )
-                        }
+                          );
+                        }}
                       >
                         <Text
                           className={clsx(
@@ -522,14 +564,21 @@ const SubscriptionFormModal = ({
                   <Switch value={isTrial} onValueChange={setIsTrial} />
                 </View>
                 {isTrial && (
-                  <TextInput
-                    className="auth-input"
-                    value={trialDays}
-                    onChangeText={setTrialDays}
-                    placeholder="Days until trial ends, e.g. 7"
-                    placeholderTextColor="#666666"
-                    keyboardType="number-pad"
-                  />
+                  <>
+                    <TextInput
+                      className="auth-input"
+                      value={trialDays}
+                      onChangeText={setTrialDays}
+                      placeholder="Trial length in days from the start date, e.g. 7"
+                      placeholderTextColor={palette.mutedForeground}
+                      keyboardType="number-pad"
+                    />
+                    {trialEndIso && (
+                      <Text className="mt-1 text-xs font-sans-medium text-muted-foreground">
+                        Trial ends {dayjs(trialEndIso).format("MMM D, YYYY")}
+                      </Text>
+                    )}
+                  </>
                 )}
               </View>
 
@@ -554,7 +603,7 @@ const SubscriptionFormModal = ({
       <BrandPickerSheet
         visible={showBrandPicker}
         selected={trimmedName}
-        onSelect={setName}
+        onSelect={handleBrandSelect}
         onClose={() => setShowBrandPicker(false)}
       />
     </Modal>

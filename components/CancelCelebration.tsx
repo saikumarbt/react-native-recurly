@@ -59,7 +59,7 @@ const CancelCelebration = ({
           message: `I just cancelled ${name} and I'm saving ${formatCurrency(
             yearlySaved,
             currency,
-          )}/yr. Tracked with Recurrly.`,
+          )}/yr. Tracked with myrev.`,
         });
       }
     } catch {
@@ -183,7 +183,7 @@ const CancelCelebration = ({
                   marginTop: 20,
                 }}
               >
-                RECURRLY
+                MYREV
               </Text>
             </View>
 

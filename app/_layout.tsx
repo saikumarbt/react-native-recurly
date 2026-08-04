@@ -11,24 +11,36 @@ import { ClerkProvider, useUser } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { PostHogProvider, usePostHog } from "posthog-react-native";
 
+import { View } from "react-native";
+
+import AnimatedSplash from "@/components/AnimatedSplash";
+import DowngradeWatcher from "@/components/DowngradeWatcher";
 import { CurrencyProvider } from "@/context/CurrencyContext";
+import { EntitlementsProvider } from "@/context/EntitlementsContext";
 import { SubscriptionsProvider } from "@/context/SubscriptionsContext";
-import { getKv } from "@/db/subscriptionsRepo";
-import { ANALYTICS_OPTOUT_KEY } from "@/lib/analytics";
+import { ThemeProvider, useTheme } from "@/context/ThemeContext";
+import { analyticsAllowed, needsAnalyticsConsent } from "@/lib/analytics";
+import { hasOnboarded } from "@/lib/onboarding";
+import { loginPurchases, logoutPurchases } from "@/lib/purchases";
 
 SplashScreen.preventAutoHideAsync();
+
+// myrev is a phone-first, single-column app. On iPad/large screens we cap the
+// whole app to a centred column at this width (theme background fills the sides)
+// rather than stretching phone layouts across the full display. Keep in sync
+// with the .modal-container cap in global.css.
+const TABLET_MAX_WIDTH = 600;
 
 function PostHogUserIdentifier() {
   const posthog = usePostHog();
   const { isLoaded, isSignedIn, user } = useUser();
 
-  // Apply the persisted analytics opt-out on launch (before any capture).
+  // Apply the analytics decision on launch, before any capture. Region-gated:
+  // an undecided EEA/UK user stays opted OUT until they consent (GDPR); elsewhere
+  // undecided defaults to opted in (opt-out model). See lib/analytics.
   useEffect(() => {
-    if (getKv(ANALYTICS_OPTOUT_KEY) === "1") {
-      posthog.optOut();
-    } else {
-      posthog.optIn();
-    }
+    if (analyticsAllowed()) posthog.optIn();
+    else posthog.optOut();
   }, [posthog]);
   // Tracks the previous auth state so we only capture on real transitions.
   // `null` means "not yet known" (initial mount), which must not count as a
@@ -45,6 +57,9 @@ function PostHogUserIdentifier() {
       // stays out of analytics — it lives in Clerk (auth) and, later, the
       // marketing list. PostHog holds behavior keyed to this id.
       posthog.identify(user.id);
+      // Tie RevenueCat purchases to the Clerk id so Pro follows the user across
+      // devices (no-ops until RC is configured). Safe to call with the same id.
+      void loginPurchases(user.id);
 
       // Fire only on a genuine signed-out -> signed-in transition.
       if (wasSignedIn.current === false) {
@@ -54,6 +69,9 @@ function PostHogUserIdentifier() {
       // Capture before reset() so the event is still attributed to the user.
       if (wasSignedIn.current === true) {
         posthog.capture("user_signed_out");
+        // Revert RC to an anonymous id on sign-out (only on a real transition,
+        // so a launch-as-guest doesn't fire a needless logOut).
+        void logoutPurchases();
       }
       posthog.reset();
     }
@@ -66,6 +84,21 @@ function PostHogUserIdentifier() {
 
 function RootLayoutContent() {
   const router = useRouter();
+  const { palette } = useTheme();
+  const [splashDone, setSplashDone] = useState(false);
+
+  // Region-gated analytics consent (GDPR): once past the splash, an onboarded
+  // EEA/UK user who hasn't decided yet gets the one-time opt-in prompt. Analytics
+  // is already OFF for them until they accept (see PostHog init above); this just
+  // lets them turn it on. Shown once per launch.
+  const consentPrompted = useRef(false);
+  useEffect(() => {
+    if (!splashDone || consentPrompted.current) return;
+    if (hasOnboarded() && needsAnalyticsConsent()) {
+      consentPrompted.current = true;
+      router.push("/analytics-consent");
+    }
+  }, [splashDone, router]);
 
   // Tapping a reminder deep-links to that subscription. The response can arrive
   // before the navigator is mounted (a cold start launched by the tap), so we
@@ -95,6 +128,10 @@ function RootLayoutContent() {
     "sans-bold": require("../assets/fonts/PlusJakartaSans-Bold.ttf"),
     "sans-extrabold": require("../assets/fonts/PlusJakartaSans-ExtraBold.ttf"),
     "sans-light": require("../assets/fonts/PlusJakartaSans-Light.ttf"),
+    // Fraunces (72pt optical size) — editorial display face for large numerals
+    // and headlines only; body/UI stays Plus Jakarta Sans.
+    "display-semibold": require("../assets/fonts/Fraunces_72pt-SemiBold.ttf"),
+    "display-black": require("../assets/fonts/Fraunces_72pt-Black.ttf"),
   });
 
   // Preload the tab-bar icons so the whole bar paints at once. Otherwise the
@@ -134,17 +171,79 @@ function RootLayoutContent() {
   }
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        gestureEnabled: true,
-        animation: "slide_from_right",
-      }}
-    >
-      <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
-      <Stack.Screen name="onboarding" options={{ animation: "fade" }} />
-      <Stack.Screen name="subscriptions/[id]" />
-    </Stack>
+    // Outer fills the whole screen with the theme background; the inner column
+    // caps at TABLET_MAX_WIDTH and centers, so on iPad the app is a clean centred
+    // column (phone-first, no stretched layouts) with the theme colour on the
+    // sides — seamless, not a black letterbox. On phones the column is full width.
+    // Theme switch is driven by Appearance.setColorScheme() in ThemeProvider.
+    <View className="flex-1" style={{ backgroundColor: palette.background }}>
+      <View
+        style={{
+          flex: 1,
+          width: "100%",
+          maxWidth: TABLET_MAX_WIDTH,
+          alignSelf: "center",
+        }}
+      >
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            gestureEnabled: true,
+            animation: "slide_from_right",
+            contentStyle: { backgroundColor: palette.background },
+          }}
+        >
+          <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
+          <Stack.Screen name="onboarding" options={{ animation: "fade" }} />
+          {/* Full-height add sheet: the route itself must be transparent (not the
+              Stack's opaque palette.background) so the active tab stays visible,
+              dimmed, behind the form's own slide-up Modal. Otherwise the route
+              paints a solid screen over the tabs and the background reads blank. */}
+          <Stack.Screen
+            name="add"
+            options={{
+              presentation: "transparentModal",
+              animation: "none",
+              contentStyle: { backgroundColor: "transparent" },
+            }}
+          />
+          <Stack.Screen
+            name="cap-wall"
+            options={{
+              presentation: "transparentModal",
+              animation: "fade",
+              contentStyle: { backgroundColor: "transparent" },
+            }}
+          />
+          {/* Pro paywall — a full modal card (opaque; not the transparent
+              sheet the cap wall uses) so the tiers + trial read as their own
+              screen. Reached from every Pro-upsell CTA. */}
+          <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
+          {/* Downgrade reconciliation — a forced full-screen choice (no swipe
+              dismiss): a lapsed over-cap user picks which 5 subs stay active. */}
+          <Stack.Screen
+            name="reconcile"
+            options={{
+              presentation: "fullScreenModal",
+              gestureEnabled: false,
+            }}
+          />
+          {/* GDPR analytics opt-in prompt (EEA/UK) — transparent centred card. */}
+          <Stack.Screen
+            name="analytics-consent"
+            options={{
+              presentation: "transparentModal",
+              animation: "fade",
+              contentStyle: { backgroundColor: "transparent" },
+            }}
+          />
+        </Stack>
+        {!splashDone ? (
+          <AnimatedSplash onFinish={() => setSplashDone(true)} />
+        ) : null}
+        <DowngradeWatcher />
+      </View>
+    </View>
   );
 }
 
@@ -175,7 +274,11 @@ export default function RootLayout() {
           <PostHogUserIdentifier />
           <CurrencyProvider>
             <SubscriptionsProvider>
-              <RootLayoutContent />
+              <EntitlementsProvider>
+                <ThemeProvider>
+                  <RootLayoutContent />
+                </ThemeProvider>
+              </EntitlementsProvider>
             </SubscriptionsProvider>
           </CurrencyProvider>
         </ClerkProvider>

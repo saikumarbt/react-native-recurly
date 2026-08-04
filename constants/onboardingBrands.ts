@@ -298,6 +298,23 @@ export const ONBOARDING_BRANDS: OnboardingBrand[] = BRAND_ICONS.map((icon) => {
   };
 });
 
+/**
+ * Look up a known brand's meta (category + default price) by name. Matches an
+ * exact title or a typed name that leads with a known brand ("chatgpt plus" →
+ * ChatGPT), so the add form can auto-assign a category the way onboarding does.
+ * Returns null for unknown names (user keeps whatever they set).
+ */
+export const brandMetaFor = (name: string): OnboardingBrand | null => {
+  const q = name.trim().toLowerCase();
+  if (!q) return null;
+  return (
+    ONBOARDING_BRANDS.find((b) => {
+      const t = b.title.toLowerCase();
+      return t === q || q.startsWith(`${t} `);
+    }) ?? null
+  );
+};
+
 export interface OnboardingBrandGroup {
   category: string;
   brands: OnboardingBrand[];

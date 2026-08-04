@@ -26,6 +26,8 @@ export interface SubscriptionRow {
   next_renewal_date: string | null;
   cancelled_at: string | null;
   paused_at: string | null;
+  cancel_pending_at: string | null;
+  locked_at: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -59,6 +61,8 @@ export const rowToSubscription = (row: SubscriptionRow): Subscription => {
     renewalDate: row.next_renewal_date ?? undefined,
     cancelledAt: row.cancelled_at ?? undefined,
     pausedAt: row.paused_at ?? undefined,
+    cancelPendingAt: row.cancel_pending_at ?? undefined,
+    lockedAt: row.locked_at ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -143,6 +147,8 @@ const PATCH_COLUMNS: Record<string, string> = {
   renewalDate: "next_renewal_date",
   cancelledAt: "cancelled_at",
   pausedAt: "paused_at",
+  cancelPendingAt: "cancel_pending_at",
+  lockedAt: "locked_at",
 };
 
 export const updateSubscription = (
@@ -185,6 +191,13 @@ export const clearAllSubscriptions = (): void => {
   getDatabase().runSync("DELETE FROM subscriptions");
 };
 
+/** Wipes all key-value prefs (currency, reminders, analytics consent, dev
+ *  override, kept-flags, onboarding flag). Used on ACCOUNT DELETION for a full
+ *  clean slate — not on "clear all data", which only removes subscriptions. */
+export const clearAllKv = (): void => {
+  getDatabase().runSync("DELETE FROM kv");
+};
+
 /** Soft delete (tombstone kept for future sync + undo). */
 export const softDeleteSubscription = (id: string): void => {
   const timestamp = nowIso();
@@ -217,6 +230,75 @@ export const setSubscriptionStatus = (
     [status, cancelledAt, pausedAt, timestamp, id],
   );
   return getSubscriptionById(id);
+};
+
+/**
+ * Lock the given subs on a Pro→Free downgrade, ATOMICALLY. Each becomes status
+ * 'paused' + locked_at (drops out of the active count + reminders; distinct from
+ * a user pause so we can restore exactly these on resubscribe). All-or-nothing:
+ * a failure rolls the whole batch back.
+ */
+export const lockSubscriptions = (ids: string[]): void => {
+  if (ids.length === 0) return;
+  const db = getDatabase();
+  const timestamp = nowIso();
+  db.withTransactionSync(() => {
+    for (const id of ids) {
+      db.runSync(
+        `UPDATE subscriptions
+         SET status = 'paused', paused_at = ?, locked_at = ?, updated_at = ?
+         WHERE id = ? AND deleted_at IS NULL`,
+        [timestamp, timestamp, timestamp, id],
+      );
+    }
+  });
+};
+
+/**
+ * Reactivate a single downgrade-locked sub. Restricted to rows that are actually
+ * locked (`locked_at IS NOT NULL`) so a normal paused/cancelled sub is never
+ * touched; returns null when nothing matched.
+ */
+export const unlockSubscription = (id: string): Subscription | null => {
+  const timestamp = nowIso();
+  const res = getDatabase().runSync(
+    `UPDATE subscriptions
+     SET status = 'active', paused_at = NULL, cancelled_at = NULL,
+         locked_at = NULL, updated_at = ?
+     WHERE id = ? AND deleted_at IS NULL AND locked_at IS NOT NULL`,
+    [timestamp, id],
+  );
+  return res.changes > 0 ? getSubscriptionById(id) : null;
+};
+
+/** IDs of all subs currently locked by a downgrade. */
+export const getLockedSubscriptionIds = (): string[] =>
+  getDatabase()
+    .getAllSync<{ id: string }>(
+      "SELECT id FROM subscriptions WHERE locked_at IS NOT NULL AND deleted_at IS NULL",
+    )
+    .map((r) => r.id);
+
+/**
+ * Unlock ALL downgrade-locked subs atomically (resubscribe). Returns the ids
+ * that were unlocked (empty when none), so the caller can decide whether to
+ * refresh + reschedule.
+ */
+export const unlockAllLockedSubscriptions = (): string[] => {
+  const ids = getLockedSubscriptionIds();
+  if (ids.length === 0) return [];
+  const db = getDatabase();
+  const timestamp = nowIso();
+  db.withTransactionSync(() => {
+    db.runSync(
+      `UPDATE subscriptions
+       SET status = 'active', paused_at = NULL, cancelled_at = NULL,
+           locked_at = NULL, updated_at = ?
+       WHERE locked_at IS NOT NULL AND deleted_at IS NULL`,
+      [timestamp],
+    );
+  });
+  return ids;
 };
 
 /** kv helpers (settings, cached FX rates, flags). */

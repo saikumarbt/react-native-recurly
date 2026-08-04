@@ -5,17 +5,25 @@
 @import "nativewind/theme";
 
 @theme {
-  --color-background: #fff9e3;
-  --color-foreground: #081126;
-  --color-card: #fff8e7;
-  --color-muted: #f6eecf;
-  --color-muted-foreground: rgba(0, 0, 0, 0.6);
-  --color-primary: #081126;
-  --color-accent: #ea7a53;
-  --color-border: rgba(0, 0, 0, 0.1);
-  --color-success: #16a34a;
-  --color-destructive: #dc2626;
-  --color-subscription: #8fd1bd;
+  /* myrev violet system — light (Porcelain) defaults. Runtime vars() swaps
+     these per active theme (see context/ThemeContext + constants/theme). */
+  --color-background: #f4f2f9;
+  --color-foreground: #191427;
+  --color-card: #ffffff;
+  --color-raised: #ffffff;
+  --color-muted: #ece9f4;
+  --color-muted-foreground: rgba(25, 20, 39, 0.6);
+  --color-faint: rgba(25, 20, 39, 0.5);
+  --color-primary: #191427;
+  --color-accent: #6e5be4;
+  --color-accent-press: #7e6dea;
+  --color-on-accent: #ffffff;
+  --color-border: rgba(30, 22, 54, 0.09);
+  --color-success: #2fbf82;
+  --color-warning: #d98a1f;
+  --color-destructive: #e0525f;
+  --color-info: #4f7fe0;
+  --color-subscription: #efeafb;
 
   --spacing-0: 0px;
   --spacing-1: 4px;
@@ -43,6 +51,37 @@
   --font-sans-semibold: sans-semibold;
   --font-sans-bold: sans-bold;
   --font-sans-extrabold: sans-extrabold;
+  /* Fraunces display face (large numerals + headlines only). */
+  --font-display-semibold: display-semibold;
+  --font-display-black: display-black;
+}
+
+/* Dark theme (Violet Midnight). react-native-css re-evaluates this block when
+   the color scheme changes — driven by Appearance.setColorScheme() from
+   ThemeProvider (its colorScheme observable subscribes to Appearance). Every
+   color utility reads var(--color-...), so overriding those on :root here
+   swaps the whole app to dark. Keep values in sync with palettes.dark in
+   constants/theme.ts (used for inline styles). */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #0f0d1a;
+    --color-foreground: #f3f1fb;
+    --color-card: #191627;
+    --color-raised: #221d34;
+    --color-muted: #221d34;
+    --color-muted-foreground: rgba(243, 241, 251, 0.62);
+    --color-faint: rgba(243, 241, 251, 0.56);
+    --color-primary: #f3f1fb;
+    --color-accent: #6e5be4;
+    --color-accent-press: #7e6dea;
+    --color-on-accent: #ffffff;
+    --color-border: rgba(255, 255, 255, 0.09);
+    --color-success: #34d399;
+    --color-warning: #f5b860;
+    --color-destructive: #f47174;
+    --color-info: #7da7f4;
+    --color-subscription: #251f3a;
+  }
 }
 
 @layer components {
@@ -60,6 +99,19 @@
 
   .tabs-glyph {
     @apply size-6;
+  }
+
+  /* Custom bottom bar with a raised center ＋ FAB (see components/TabBar.tsx). */
+  .tab-bar-shell {
+    @apply absolute left-0 right-0 h-[68px] flex-row items-center rounded-full border px-1.5;
+  }
+
+  .tab-fab {
+    @apply -mt-6 size-14 items-center justify-center rounded-full;
+  }
+
+  .tab-fab-glyph {
+    @apply size-7;
   }
 
   .home-header {
@@ -103,7 +155,7 @@
   }
 
   .home-hero-amount {
-    @apply text-6xl font-sans-extrabold leading-tight text-white;
+    @apply text-6xl font-display-black leading-tight text-white;
   }
 
   .home-hero-year {
@@ -131,11 +183,16 @@
   }
 
   .list-title {
-    @apply text-2xl font-sans-bold text-primary;
+    @apply text-2xl font-display-semibold text-primary;
   }
 
   .list-action {
     @apply rounded-full border border-black/20 px-4 py-1;
+  }
+
+  /* Uppercase group header above each Settings card (grouped-cards layout). */
+  .settings-section-label {
+    @apply mb-2 mt-5 ml-1 text-xs font-sans-bold uppercase tracking-[2px] text-muted-foreground;
   }
 
   .list-action-text {
@@ -291,7 +348,7 @@
   }
 
   .auth-title {
-    @apply text-3xl font-sans-bold text-primary;
+    @apply text-3xl font-display-semibold text-primary;
   }
 
   .auth-subtitle {
@@ -339,7 +396,7 @@
   }
 
   .auth-button-text {
-    @apply text-base font-sans-bold text-primary;
+    @apply text-base font-sans-bold text-on-accent;
   }
 
   .auth-secondary-button {
@@ -375,11 +432,21 @@
   }
 
   .modal-overlay {
-    @apply flex-1 bg-black/50;
+    /* Backdrop tint now comes from <SheetBackdrop> (blur + dim) layered
+       inside; the overlay itself stays transparent so the blur shows. */
+    @apply flex-1;
   }
 
   .modal-container {
-    @apply mt-auto max-h-[85%] rounded-t-3xl bg-background;
+    /* Bottom sheet. max-w + self-center caps it on iPad/wide screens (RN Modals
+       render in their own full-device window, so the root column cap doesn't
+       reach here); on phones w-full keeps it edge-to-edge. Keep 600px in sync
+       with TABLET_MAX_WIDTH in app/_layout.tsx. */
+    @apply mt-auto max-h-[85%] w-full max-w-[600px] self-center rounded-t-3xl border border-border bg-background;
+  }
+
+  .sheet-handle {
+    @apply mx-auto mb-1 mt-3 h-1 w-10 rounded-full bg-primary/20;
   }
 
   .modal-header {
@@ -459,7 +526,7 @@
   }
 
   .onboarding-headline {
-    @apply text-4xl font-sans-extrabold leading-tight text-primary;
+    @apply text-4xl font-display-semibold leading-tight text-primary;
   }
 
   .progress-row {
@@ -563,7 +630,7 @@
   }
 
   .insights-expense-amount {
-    @apply text-2xl font-sans-extrabold text-primary;
+    @apply text-2xl font-display-black text-primary;
   }
 
   .insights-expense-change {
@@ -575,7 +642,7 @@
   }
 
   .insights-stat-value {
-    @apply text-2xl font-sans-extrabold text-primary;
+    @apply text-2xl font-display-black text-primary;
   }
 
   .insights-stat-label {

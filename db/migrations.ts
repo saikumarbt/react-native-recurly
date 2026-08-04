@@ -78,4 +78,28 @@ export const MIGRATIONS: Migration[] = [
       ADD COLUMN duplicate_acknowledged INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    // Timestamp (ISO) set when the user starts cancelling a sub at the service
+    // but hasn't confirmed the outcome in myrev yet. Drives the "did you cancel?"
+    // reconciliation check-in + one reminder. Additive; existing rows are NULL
+    // (nothing pending). Cleared when the user confirms cancelled or keeps it.
+    version: 5,
+    sql: `
+      ALTER TABLE subscriptions
+      ADD COLUMN cancel_pending_at TEXT;
+    `,
+  },
+  {
+    // Timestamp (ISO) set when a sub is LOCKED by a Pro→Free downgrade: the user
+    // was over the free active cap on lapse and this sub wasn't among the 5 they
+    // kept. A locked sub is stored as status 'paused' (so it's already excluded
+    // from the active count and gets no reminders) PLUS this flag, which drives
+    // the distinct "Reactivate with Pro" UI and auto-restore on resubscribe.
+    // Additive; existing rows are NULL (not locked). Cleared on reactivate.
+    version: 6,
+    sql: `
+      ALTER TABLE subscriptions
+      ADD COLUMN locked_at TEXT;
+    `,
+  },
 ];

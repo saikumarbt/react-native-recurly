@@ -1,6 +1,7 @@
 import PulsingDot from "@/components/PulsingDot";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
 import { useCurrency } from "@/context/CurrencyContext";
+import { useTheme } from "@/context/ThemeContext";
 import { getDaysUntilRenewal, pendingRenewal } from "@/lib/billing";
 import { cardTint } from "@/lib/brand";
 import {
@@ -39,8 +40,10 @@ const SubscriptionCard = ({
   isDuplicate,
   isTrial,
   trialEndDate,
+  foundFlag,
 }: SubscriptionCardProps) => {
   const { baseCurrency } = useCurrency();
+  const { palette, scheme } = useTheme();
   const fallback = "Not provided";
 
   const isActive = status === "active" || status === undefined;
@@ -97,13 +100,13 @@ const SubscriptionCard = ({
   // scannable and memorable (colour-coding). A coloured left edge makes cards
   // that need attention pop out pre-attentively (duplicate > confirm-date >
   // renewed?).
-  const tint = cardTint(name);
+  const tint = cardTint(name, scheme);
   const warningColor = isDuplicate
-    ? "#dc2626"
+    ? palette.destructive
     : dateAssumed && isActive
-      ? "#E0952F"
+      ? palette.warning
       : trialEnded || pendingCheckin
-        ? "#EA7A53"
+        ? palette.accent
         : null;
 
   return (
@@ -141,51 +144,46 @@ const SubscriptionCard = ({
             </Text>
             {isDuplicate && !expanded ? (
               <View className="mt-1 flex-row items-center gap-1.5">
-                <PulsingDot size={7} color="#dc2626" />
-                <Text
-                  style={{ color: "#dc2626" }}
-                  className="text-xs font-sans-semibold"
-                >
+                <PulsingDot size={7} color={palette.destructive} />
+                <Text className="text-xs font-sans-semibold text-destructive">
                   Possible duplicate
                 </Text>
               </View>
             ) : dateAssumed && isActive && !expanded ? (
               <View className="mt-1 flex-row items-center gap-1.5">
-                <PulsingDot size={7} />
-                <Text
-                  style={{ color: "#E0952F" }}
-                  className="text-xs font-sans-semibold"
-                >
+                <PulsingDot size={7} color={palette.warning} />
+                <Text className="text-xs font-sans-semibold text-warning">
                   Confirm date
                 </Text>
               </View>
             ) : trialEnded && !expanded ? (
               <View className="mt-1 flex-row items-center gap-1.5">
-                <PulsingDot size={7} color="#ea7a53" />
-                <Text
-                  style={{ color: "#ea7a53" }}
-                  className="text-xs font-sans-semibold"
-                >
+                <PulsingDot size={7} color={palette.accent} />
+                <Text className="text-xs font-sans-semibold text-accent">
                   Convert?
                 </Text>
               </View>
             ) : onTrial && !expanded ? (
               <View className="mt-1 flex-row items-center gap-1.5">
-                <Text
-                  style={{ color: "#7DA7F4" }}
-                  className="text-xs font-sans-semibold"
-                >
+                <Text className="text-xs font-sans-semibold text-info">
                   Free trial
                 </Text>
               </View>
             ) : pendingCheckin && !expanded ? (
               <View className="mt-1 flex-row items-center gap-1.5">
-                <PulsingDot size={7} color="#ea7a53" />
-                <Text
-                  style={{ color: "#ea7a53" }}
-                  className="text-xs font-sans-semibold"
-                >
+                <PulsingDot size={7} color={palette.accent} />
+                <Text className="text-xs font-sans-semibold text-accent">
                   Renewed?
+                </Text>
+              </View>
+            ) : null}
+            {foundFlag && !expanded ? (
+              <View className="mt-1 flex-row items-center gap-1">
+                <Text
+                  numberOfLines={1}
+                  className="text-xs font-sans-bold text-accent"
+                >
+                  ✦ {foundFlag}
                 </Text>
               </View>
             ) : null}

@@ -1,3 +1,5 @@
+import SheetBackdrop from "@/components/SheetBackdrop";
+import { useTheme } from "@/context/ThemeContext";
 import "@/global.css";
 import { useMemo, useState, type ReactNode } from "react";
 import {
@@ -43,6 +45,7 @@ const PickerSheet = ({
   renderLeading,
 }: PickerSheetProps) => {
   const [query, setQuery] = useState("");
+  const { varStyle, palette, scheme } = useTheme();
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -70,13 +73,15 @@ const PickerSheet = ({
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <View className="modal-overlay">
+        <View className="modal-overlay" style={varStyle}>
+          <SheetBackdrop scheme={scheme} />
           <Pressable
             className="absolute inset-0"
             onPress={handleClose}
             accessibilityLabel="Close"
           />
           <View className="modal-container">
+            <View className="sheet-handle" />
             <View className="modal-header">
               <Text className="modal-title">{title}</Text>
               <Pressable className="modal-close" onPress={handleClose}>
@@ -90,7 +95,7 @@ const PickerSheet = ({
                 value={query}
                 onChangeText={setQuery}
                 placeholder={placeholder}
-                placeholderTextColor="#666666"
+                placeholderTextColor={palette.mutedForeground}
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoFocus

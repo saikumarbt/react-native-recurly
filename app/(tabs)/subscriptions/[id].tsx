@@ -1,12 +1,14 @@
+import BackButton from "@/components/BackButton";
 import CancelCelebration from "@/components/CancelCelebration";
+import CancelFlowSheet from "@/components/CancelFlowSheet";
 import { FadeInUp, PressableScale } from "@/components/motion";
 import PulsingDot from "@/components/PulsingDot";
 import SubscriptionFormModal from "@/components/SubscriptionFormModal";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
-import { icons } from "@/constants/icons";
 import { success } from "@/lib/haptics";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
+import { useTheme } from "@/context/ThemeContext";
 import "@/global.css";
 import {
   addInterval,
@@ -16,8 +18,12 @@ import {
   pendingRenewal,
   trialPendingConversion,
 } from "@/lib/billing";
+import { useEntitlement } from "@/context/EntitlementsContext";
 import { cardTint } from "@/lib/brand";
 import { duplicateActiveNames, normalizeName } from "@/lib/duplicates";
+import { computeFound } from "@/lib/found";
+import { getKeptSubIds, keepSubscription } from "@/lib/foundKept";
+import { canAddActive } from "@/lib/limits";
 import {
   formatCurrency,
   formatStatusLabel,
@@ -27,12 +33,21 @@ import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { usePostHog } from "posthog-react-native";
-import { useState } from "react";
-import { Alert, Image, Pressable, ScrollView, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 
 const SafeAreaView = styled(RNSafeAreaView) as any;
-const PRIMARY = "#081126";
+
+// Module-level so it isn't remounted on every parent re-render (which was
+// dropping taps on the back control). Balanced spacer keeps the title centred.
+const DetailHeader = ({ onBack }: { onBack: () => void }) => (
+  <View className="insights-header">
+    <BackButton onPress={onBack} />
+    <Text className="modal-title">Subscription</Text>
+    <View className="size-11" />
+  </View>
+);
 
 const DetailRow = ({ label, value }: { label: string; value: string }) => (
   <View className="sub-row">
@@ -50,6 +65,8 @@ const SubscriptionDetail = () => {
   const router = useRouter();
   const posthog = usePostHog();
   const { baseCurrency } = useCurrency();
+  const { palette, scheme } = useTheme();
+  const { isPro } = useEntitlement();
   const {
     subscriptions,
     getSubscription,
@@ -64,6 +81,8 @@ const SubscriptionDetail = () => {
   const [justCompleted, setJustCompleted] = useState(false);
   const [checkinSnoozed, setCheckinSnoozed] = useState(false);
   const [trialSnoozed, setTrialSnoozed] = useState(false);
+  const [cancelSheet, setCancelSheet] = useState(false);
+  const [cancelPendingSnoozed, setCancelPendingSnoozed] = useState(false);
   // Snapshot of the just-cancelled sub so the celebration survives the status
   // change (and any re-render) while the overlay is up.
   const [celebration, setCelebration] = useState<{
@@ -79,34 +98,19 @@ const SubscriptionDetail = () => {
     }
   };
 
-  const subscription = id ? getSubscription(id) : undefined;
-
-  const Header = () => (
-    <View className="insights-header">
-      <Pressable
-        className="insights-icon-btn"
-        onPress={goBack}
-        hitSlop={8}
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
-      >
-        <Image
-          source={icons.back}
-          resizeMode="contain"
-          tintColor={PRIMARY}
-          className="insights-icon-glyph"
-        />
-      </Pressable>
-      <Text className="modal-title">Subscription</Text>
-      {/* Spacer keeps the title centered against the back button. */}
-      <View className="size-11" />
-    </View>
+  // myrev Found — memoized and computed BEFORE the early return below so hook
+  // order stays stable (and it doesn't recompute/re-read kv on every render).
+  const found = useMemo(
+    () => computeFound(subscriptions, getKeptSubIds()),
+    [subscriptions],
   );
+
+  const subscription = id ? getSubscription(id) : undefined;
 
   if (!subscription) {
     return (
       <SafeAreaView className="flex-1 bg-background">
-        <Header />
+        <DetailHeader onBack={goBack} />
         <View className="p-5">
           <Text className="home-empty-state">Subscription not found.</Text>
           <Pressable className="auth-button mt-5" onPress={goBack}>
@@ -154,6 +158,9 @@ const SubscriptionDetail = () => {
   const isDuplicate =
     !subscription.duplicateAcknowledged &&
     duplicateActiveNames(subscriptions).has(normalizeName(subscription.name));
+
+  // myrev Found: does this subscription appear in a savings finding/group?
+  const foundFlag = found.flagged[subscription.id];
 
   // Opaque id only — no subscription name in analytics.
   const captureStatus = (event: string) =>
@@ -214,6 +221,19 @@ const SubscriptionDetail = () => {
     cancelAndCelebrate();
   };
 
+  // Reconciliation check-in: the user started cancelling but never told myrev
+  // the outcome. Close the loop so the tracker stays accurate.
+  const handleCancelPendingYes = () => {
+    updateSubscription(subscription.id, { cancelPendingAt: undefined });
+    cancelAndCelebrate();
+  };
+  const handleCancelPendingKeep = () => {
+    updateSubscription(subscription.id, { cancelPendingAt: undefined });
+    keepSubscription(subscription.id);
+    captureStatus("cancel_kept");
+    setCancelPendingSnoozed(true);
+  };
+
   // Trial converted to paid: it's now a normal subscription. The trial end was
   // the first charge, so confirm through it and set the next renewal one cycle
   // on. Clearing isTrial makes it count toward spend.
@@ -242,8 +262,20 @@ const SubscriptionDetail = () => {
     captureStatus("duplicate_kept");
   };
 
+  // Resuming a paused sub or reactivating a cancelled one turns it active again
+  // (+1 active slot), so both must respect the free cap — otherwise a downgraded
+  // Pro user (or anyone at the cap with paused/cancelled subs) could grow past
+  // the limit without ever hitting the add flow. Blocked → the same cap wall as
+  // add. Existing over-cap subs are never touched; we only block new growth.
+  const guardActivation = (): boolean => {
+    if (canAddActive(subscriptions, isPro)) return true;
+    router.push("/cap-wall");
+    return false;
+  };
+
   const handlePauseResume = () => {
     if (isPaused) {
+      if (!guardActivation()) return;
       resumeSubscription(subscription.id);
       captureStatus("subscription_resumed");
     } else {
@@ -253,23 +285,9 @@ const SubscriptionDetail = () => {
   };
 
   const handleReactivate = () => {
+    if (!guardActivation()) return;
     resumeSubscription(subscription.id);
     captureStatus("subscription_reactivated");
-  };
-
-  const handleCancel = () => {
-    Alert.alert(
-      "Cancel subscription?",
-      `${subscription.name} will be marked as cancelled. It stays in your history so you can see what you're saving.`,
-      [
-        { text: "Keep it", style: "cancel" },
-        {
-          text: "Cancel subscription",
-          style: "destructive",
-          onPress: cancelAndCelebrate,
-        },
-      ],
-    );
   };
 
   const handleDelete = () => {
@@ -293,7 +311,7 @@ const SubscriptionDetail = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <Header />
+      <DetailHeader onBack={goBack} />
       <ScrollView
         contentContainerClassName="p-5 pb-30"
         showsVerticalScrollIndicator={false}
@@ -306,6 +324,73 @@ const SubscriptionDetail = () => {
                 All set — your reminders are now accurate.
               </Text>
             </View>
+          </FadeInUp>
+        )}
+
+        {isActive && subscription.cancelPendingAt && !cancelPendingSnoozed && (
+          <FadeInUp>
+            <View className="mb-5 rounded-2xl border border-accent bg-accent/10 p-4">
+              <Text className="text-sm font-sans-bold text-primary">
+                Did you cancel {subscription.name}?
+              </Text>
+              <Text className="mt-1 text-xs font-sans-medium text-muted-foreground">
+                You started cancelling on{" "}
+                {dayjs(subscription.cancelPendingAt).format("MMM D")}. Tell me so
+                your spend and savings stay accurate.
+              </Text>
+              <View className="mt-3 flex-row gap-2">
+                <Pressable
+                  className="flex-1 items-center rounded-xl bg-accent py-2.5"
+                  onPress={handleCancelPendingYes}
+                >
+                  <Text className="text-sm font-sans-bold text-on-accent">
+                    Yes, cancelled
+                  </Text>
+                </Pressable>
+                <Pressable
+                  className="flex-1 items-center rounded-xl border border-border py-2.5"
+                  onPress={handleCancelPendingKeep}
+                >
+                  <Text className="text-sm font-sans-bold text-primary">
+                    Keeping it
+                  </Text>
+                </Pressable>
+              </View>
+              <Pressable
+                className="mt-1 items-center py-1.5"
+                onPress={() => setCancelPendingSnoozed(true)}
+              >
+                <Text className="text-xs font-sans-semibold text-muted-foreground">
+                  Not yet
+                </Text>
+              </Pressable>
+            </View>
+          </FadeInUp>
+        )}
+
+        {foundFlag && (
+          <FadeInUp>
+            <Pressable
+              onPress={() =>
+                isPro
+                  ? router.push("/insights")
+                  : router.push("/paywall?source=detail_found")
+              }
+              className="mb-5 flex-row items-center gap-3 rounded-2xl border border-accent bg-accent/5 p-4"
+            >
+              <Text className="text-base text-accent">✦</Text>
+              <View className="flex-1">
+                <Text className="text-sm font-sans-bold text-accent">
+                  {isPro ? foundFlag : "myrev found a way to save here"}
+                </Text>
+                <Text className="mt-0.5 text-xs font-sans-medium text-muted-foreground">
+                  {isPro
+                    ? "See your options in Insights"
+                    : "Unlock to see it and how to act"}
+                </Text>
+              </View>
+              <Text className="text-lg font-sans-bold text-accent">›</Text>
+            </Pressable>
           </FadeInUp>
         )}
 
@@ -332,11 +417,11 @@ const SubscriptionDetail = () => {
                 <PressableScale onPress={handleDelete}>
                   <View
                     className="rounded-xl px-4 py-2"
-                    style={{ backgroundColor: "#dc2626" }}
+                    style={{ backgroundColor: palette.destructive }}
                   >
                     <Text
                       className="text-sm font-sans-bold"
-                      style={{ color: "#ffffff" }}
+                      style={{ color: palette.onAccent }}
                     >
                       Delete this one
                     </Text>
@@ -350,7 +435,7 @@ const SubscriptionDetail = () => {
         {/* Hero */}
         <View
           className="sub-card mb-5"
-          style={{ backgroundColor: cardTint(subscription.name) }}
+          style={{ backgroundColor: cardTint(subscription.name, scheme) }}
         >
           <View className="sub-head">
             <View className="sub-main">
@@ -391,14 +476,8 @@ const SubscriptionDetail = () => {
                 setEditVisible(true);
               }}
             >
-              <View
-                className="mb-5 flex-row items-center gap-3 rounded-2xl border p-4"
-                style={{
-                  borderColor: "#E0952F",
-                  backgroundColor: "rgba(224,149,47,0.08)",
-                }}
-              >
-                <PulsingDot size={10} />
+              <View className="mb-5 flex-row items-center gap-3 rounded-2xl border border-warning bg-warning/10 p-4">
+                <PulsingDot size={10} color={palette.warning} />
                 <View className="flex-1">
                   <Text className="text-sm font-sans-bold text-primary">
                     Confirm your renewal date
@@ -408,10 +487,7 @@ const SubscriptionDetail = () => {
                     (optional).
                   </Text>
                 </View>
-                <Text
-                  className="text-base font-sans-bold"
-                  style={{ color: "#E0952F" }}
-                >
+                <Text className="text-base font-sans-bold text-warning">
                   Fix ›
                 </Text>
               </View>
@@ -436,7 +512,7 @@ const SubscriptionDetail = () => {
               <View className="mt-3 flex-row items-center gap-2">
                 <PressableScale onPress={handleTrialConvert}>
                   <View className="rounded-xl bg-accent px-4 py-2">
-                    <Text className="text-sm font-sans-bold text-primary">
+                    <Text className="text-sm font-sans-bold text-on-accent">
                       Yes, keep it
                     </Text>
                   </View>
@@ -478,7 +554,7 @@ const SubscriptionDetail = () => {
               <View className="mt-3 flex-row items-center gap-2">
                 <PressableScale onPress={handleRenewed}>
                   <View className="rounded-xl bg-accent px-4 py-2">
-                    <Text className="text-sm font-sans-bold text-primary">
+                    <Text className="text-sm font-sans-bold text-on-accent">
                       Yes, renewed
                     </Text>
                   </View>
@@ -578,7 +654,10 @@ const SubscriptionDetail = () => {
                 </Text>
               </Pressable>
 
-              <Pressable className="sub-cancel" onPress={handleCancel}>
+              <Pressable
+                className="sub-cancel"
+                onPress={() => setCancelSheet(true)}
+              >
                 <Text className="sub-cancel-text">Cancel subscription</Text>
               </Pressable>
             </>
@@ -609,6 +688,14 @@ const SubscriptionDetail = () => {
         monthlySaved={celebration?.monthlySaved ?? 0}
         currency={baseCurrency}
         onClose={() => setCelebration(null)}
+      />
+
+      <CancelFlowSheet
+        visible={cancelSheet}
+        subId={subscription.id}
+        name={subscription.name}
+        isPro={isPro}
+        onClose={() => setCancelSheet(false)}
       />
     </SafeAreaView>
   );

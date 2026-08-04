@@ -54,6 +54,13 @@ declare global {
     updatedAt?: string;
     cancelledAt?: string;
     pausedAt?: string;
+    /** ISO time the user started cancelling at the service but hasn't confirmed
+     * the outcome in myrev yet — drives the "did you cancel?" reconciliation. */
+    cancelPendingAt?: string;
+    /** ISO time this sub was LOCKED by a Pro→Free downgrade (over the free cap,
+     * not among the kept 5). Stored as status 'paused' + this flag. Drives the
+     * "Reactivate with Pro" UI and auto-restore on resubscribe. */
+    lockedAt?: string;
   }
 
   interface SubscriptionCardProps extends Omit<Subscription, "id"> {
@@ -63,6 +70,8 @@ declare global {
     isCancelling?: boolean;
     /** Another active sub shares this name — flag as a possible duplicate. */
     isDuplicate?: boolean;
+    /** Pro-only "myrev Found" flag (e.g. "Overlaps Netflix in Entertainment"). */
+    foundFlag?: string;
   }
 
   interface SubscriptionFormModalProps {

@@ -19,7 +19,8 @@ import Animated, {
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 
-const COLORS = ["#4ADE9C", "#7DA7F4", "#F4B860", "#EA7A53", "#F2F5FA"];
+// myrev palette: violet accent, success mint, warning, info, near-white.
+const COLORS = ["#6e5be4", "#34d399", "#f5b860", "#7da7f4", "#f3f1fb"];
 
 type Piece = {
   x: number;
