@@ -1,6 +1,7 @@
 import BackButton from "@/components/BackButton";
 import { useTheme } from "@/context/ThemeContext";
 import { useSignIn } from "@clerk/expo";
+import { safeReturnTo } from "@/lib/navigation";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { styled } from "nativewind";
 import React from "react";
@@ -21,10 +22,12 @@ export default function SignIn() {
   const { signIn, errors, fetchStatus } = useSignIn();
   const { palette } = useTheme();
   const router = useRouter();
-  // Optional post-auth destination (e.g. the paywall resuming a trial). Falls
-  // back to the app root for a plain sign-in.
+  // Optional post-auth destination (e.g. the paywall resuming a trial),
+  // validated against an allowlist so it can't be an arbitrary target.
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
-  const destination = (returnTo ?? "/") as Parameters<typeof router.replace>[0];
+  const destination = safeReturnTo(returnTo) as Parameters<
+    typeof router.replace
+  >[0];
 
   const [emailAddress, setEmailAddress] = React.useState("");
   const [password, setPassword] = React.useState("");

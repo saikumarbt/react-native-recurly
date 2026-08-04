@@ -1,5 +1,10 @@
 import type { ReactNode } from "react";
-import { Pressable, type StyleProp, type ViewStyle } from "react-native";
+import {
+  Pressable,
+  type PressableProps,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 import Animated, {
   FadeInUp as FadeInUpEntrance,
   useAnimatedStyle,
@@ -37,17 +42,29 @@ export const FadeInUp = ({
  * tactile feedback every primary button should have. Wrap styled children
  * (e.g. a View with the `auth-button` class) so the whole control scales.
  */
+// Accessibility props aren't inferred from the wrapped children, so accept and
+// forward them explicitly (e.g. the tab-bar FAB needs role/label).
+type A11yProps = Pick<
+  PressableProps,
+  | "accessible"
+  | "accessibilityRole"
+  | "accessibilityLabel"
+  | "accessibilityHint"
+  | "accessibilityState"
+>;
+
 export const PressableScale = ({
   children,
   onPress,
   disabled,
   style,
+  ...a11y
 }: {
   children: ReactNode;
   onPress?: () => void;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
-}) => {
+} & A11yProps) => {
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -57,6 +74,7 @@ export const PressableScale = ({
     <Pressable
       onPress={onPress}
       disabled={disabled}
+      {...a11y}
       onPressIn={() => {
         scale.set(withSpring(0.96, { damping: 15, stiffness: 220 }));
       }}

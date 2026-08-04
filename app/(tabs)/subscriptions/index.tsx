@@ -254,7 +254,9 @@ const Subscriptions = () => {
         [s.name, s.category, s.plan, s.status]
           .filter(Boolean)
           .some((f) => f!.toLowerCase().includes(q));
-      const matchesCategory = !catActive || selectedCategories.has(s.category ?? "");
+      // Trim to match the trimmed keys categoryOptions builds the chips from.
+      const matchesCategory =
+        !catActive || selectedCategories.has((s.category ?? "").trim());
       return matchesQuery && matchesCategory;
     };
 

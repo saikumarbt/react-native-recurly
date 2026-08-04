@@ -78,8 +78,15 @@ describe("buildReminders", () => {
     );
     const pending = reminders.find((r) => r.id === "sub1::cancel_pending");
     expect(pending).toBeTruthy();
-    expect(dayjs(pending!.date).date()).toBe(14);
+    // TZ-independent: fires at 09:00 local, on the local day after the intent
+    // (asserting the calendar-day offset rather than a fixed date, which would
+    // shift by ±1 in far-east/west timezones).
     expect(dayjs(pending!.date).hour()).toBe(9);
+    expect(
+      dayjs(pending!.date)
+        .startOf("day")
+        .diff(dayjs("2026-07-13T12:00:00.000Z").startOf("day"), "day"),
+    ).toBe(1);
     expect(pending!.title).toMatch(/Did you cancel/);
   });
 

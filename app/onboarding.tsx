@@ -23,7 +23,7 @@ import {
   type BillingCycle,
 } from "@/lib/billing";
 import { tapLight } from "@/lib/haptics";
-import { remainingSlots } from "@/lib/limits";
+import { FREE_ACTIVE_CAP, remainingSlots } from "@/lib/limits";
 import { markOnboarded } from "@/lib/onboarding";
 import { formatCurrency } from "@/lib/utils";
 import clsx from "clsx";
@@ -196,11 +196,17 @@ const Onboarding = () => {
       sum + getMonthlyEquivalent(priceFor(b.title, b.price), cycleFor(b.title)),
     0,
   );
-  // Same validity rule addSelected uses (price > 0), so the CTA count matches
-  // what actually gets added.
-  const addableCount = selectedBrands.filter(
+  // Same validity rule addSelected uses (price > 0), then capped by the free
+  // slots remaining — so the CTA count matches what actually gets added.
+  const validCount = selectedBrands.filter(
     (b) => priceFor(b.title, b.price) > 0,
   ).length;
+  const addableCount = Math.min(
+    validCount,
+    remainingSlots(subscriptions, isPro),
+  );
+  // Selections beyond the free cap won't be seeded — tell the user.
+  const overflowCount = validCount - addableCount;
 
   const finish = useCallback(
     (subsAdded: number) => {
@@ -252,6 +258,7 @@ const Onboarding = () => {
     // The reveal's trial offer is how a heavy tracker unlocks the rest.
     const limit = remainingSlots(subscriptions, isPro);
     let count = 0;
+    let addedMonthly = 0;
     for (const brand of selectedBrands) {
       if (count >= limit) break;
       const price = priceFor(brand.title, brand.price);
@@ -272,6 +279,7 @@ const Onboarding = () => {
         // the user sets the real date (which re-anchors this).
         confirmedThrough: now,
       });
+      addedMonthly += getMonthlyEquivalent(price, cycle);
       count += 1;
     }
     if (count === 0) {
@@ -279,7 +287,8 @@ const Onboarding = () => {
       return;
     }
     setAddedCount(count);
-    setCelebrateTotal(monthlyTotal);
+    // Reveal the total of what was ACTUALLY added (capped), not every selection.
+    setCelebrateTotal(addedMonthly);
     setStep("analyzing");
   };
 
@@ -444,6 +453,9 @@ const Onboarding = () => {
                         !searching &&
                         setOpenCategory(expanded ? null : category)
                       }
+                      disabled={searching}
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded, disabled: searching }}
                       className="flex-row items-center justify-between px-4 py-3.5"
                     >
                       <View className="flex-row items-center gap-2">
@@ -589,6 +601,12 @@ const Onboarding = () => {
                 </Text>
               </View>
             </PressableScale>
+            {overflowCount > 0 && (
+              <Text className="text-center text-xs font-sans-semibold text-warning">
+                Free tracks {FREE_ACTIVE_CAP}. {overflowCount} won&apos;t be added
+                now — start a trial later to track them all.
+              </Text>
+            )}
             <Text className="text-center text-xs font-sans-medium text-muted-foreground">
               Edit or remove anything later. Just tap a subscription.
             </Text>

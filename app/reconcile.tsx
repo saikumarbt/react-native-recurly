@@ -1,3 +1,4 @@
+import { SafeAreaView } from "@/components/ThemedSafeAreaView";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useEntitlement } from "@/context/EntitlementsContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
@@ -7,12 +8,8 @@ import { suggestKeep } from "@/lib/downgrade";
 import { FREE_ACTIVE_CAP } from "@/lib/limits";
 import { formatCurrency } from "@/lib/utils";
 import { useRouter } from "expo-router";
-import { styled } from "nativewind";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
-
-const SafeAreaView = styled(RNSafeAreaView) as any;
 
 // Pro→Free reconciliation (boardroom 2026-07-28): a lapsed user over the free
 // active cap picks which FREE_ACTIVE_CAP subs stay active; the rest are locked
@@ -62,7 +59,14 @@ export default function Reconcile() {
     });
   };
 
-  const keepCount = selected.size;
+  // Count only selected subs that are still active, so if `selected` holds a
+  // now-stale id (a sub changed while this screen was open) lockCount can never
+  // go negative. (Subscriptions load synchronously from SQLite, so there's no
+  // async-hydration race to gate on.)
+  const keepCount = active.reduce(
+    (n, s) => n + (selected.has(s.id) ? 1 : 0),
+    0,
+  );
   const lockCount = active.length - keepCount;
   const atMax = keepCount >= FREE_ACTIVE_CAP;
   const canConfirm = keepCount >= 1 && keepCount <= FREE_ACTIVE_CAP;

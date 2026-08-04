@@ -1,8 +1,8 @@
 import { useEntitlement } from "@/context/EntitlementsContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
 import { needsReconciliation } from "@/lib/downgrade";
-import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
+import { usePathname, useRouter } from "expo-router";
+import { useEffect } from "react";
 
 /**
  * Drives the Pro→Free over-cap downgrade (boardroom 2026-07-28). Renders nothing.
@@ -16,7 +16,7 @@ export default function DowngradeWatcher() {
   const { subscriptions, restoreLockedSubscriptions } = useSubscriptions();
   const { isPro, ready } = useEntitlement();
   const router = useRouter();
-  const pushed = useRef(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!ready) return;
@@ -24,20 +24,19 @@ export default function DowngradeWatcher() {
     if (isPro) {
       // Pro (incl. just-resubscribed) — restore anything a past lapse locked.
       if (subscriptions.some((s) => s.lockedAt)) restoreLockedSubscriptions();
-      pushed.current = false;
       return;
     }
 
-    if (needsReconciliation(subscriptions, isPro)) {
-      if (!pushed.current) {
-        pushed.current = true;
-        router.push("/reconcile");
-      }
-    } else {
-      // Back at/under the cap — reset so a future lapse can trigger again.
-      pushed.current = false;
+    // Over the cap and not already on the reconcile screen → send them there.
+    // Gating on the pathname (rather than a fired-once ref) re-arms it: if they
+    // dismiss reconcile while still over-cap, a later check navigates again.
+    if (
+      needsReconciliation(subscriptions, isPro) &&
+      pathname !== "/reconcile"
+    ) {
+      router.push("/reconcile");
     }
-  }, [ready, isPro, subscriptions, router, restoreLockedSubscriptions]);
+  }, [ready, isPro, subscriptions, pathname, router, restoreLockedSubscriptions]);
 
   return null;
 }

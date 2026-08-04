@@ -1,5 +1,6 @@
 import { needsReconciliation, suggestKeep } from "@/lib/downgrade";
 import { FREE_ACTIVE_CAP } from "@/lib/limits";
+import dayjs from "dayjs";
 
 let n = 0;
 const sub = (over: Partial<Subscription> = {}): Subscription =>
@@ -46,14 +47,16 @@ describe("downgrade reconciliation", () => {
   });
 
   it("prioritises the soonest renewal to keep (avoids a surprise charge)", () => {
+    // Relative to now so both renewals stay in the intended future ordering
+    // regardless of when the test runs (fixed dates drift into the past).
     const soon = sub({
-      renewalDate: "2026-08-01T00:00:00.000Z",
-      startDate: "2026-07-01T00:00:00.000Z",
+      renewalDate: dayjs().add(3, "day").toISOString(),
+      startDate: dayjs().subtract(27, "day").toISOString(),
     });
     const later = Array.from({ length: FREE_ACTIVE_CAP }, () =>
       sub({
-        renewalDate: "2027-01-01T00:00:00.000Z",
-        startDate: "2026-12-01T00:00:00.000Z",
+        renewalDate: dayjs().add(6, "month").toISOString(),
+        startDate: dayjs().subtract(1, "day").toISOString(),
       }),
     );
     // cap+1 active; the soonest-renewing one must survive into keepIds.

@@ -17,16 +17,24 @@ const tabBar = components.tabBar;
 /** One tinted glyph in its (optionally active) pill — matches the mockup navbar. */
 const TabButton = ({
   icon,
+  label,
   focused,
   onPress,
 }: {
   icon: ImageSourcePropType;
+  label: string;
   focused: boolean;
   onPress: () => void;
 }) => {
   const { palette } = useTheme();
   return (
-    <Pressable onPress={onPress} className="flex-1 items-center">
+    <Pressable
+      onPress={onPress}
+      className="flex-1 items-center"
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: focused }}
+    >
       <View className={clsx("tabs-pill", focused && "tabs-active")}>
         <Image
           source={icon}
@@ -81,6 +89,7 @@ const TabBar = ({ state, navigation }: BottomTabBarProps) => {
       <TabButton
         key={route.key}
         icon={tab.icon}
+        label={tab.title}
         focused={focused}
         onPress={() => go(route.name, route.key, focused)}
       />
@@ -110,7 +119,13 @@ const TabBar = ({ state, navigation }: BottomTabBarProps) => {
       {button(1)}
 
       <View className="flex-1 items-center">
-        <PressableScale onPress={openAdd}>
+        {/* PressableScale doesn't forward a11y props, so set them here. */}
+        <PressableScale
+          onPress={openAdd}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel="Add subscription"
+        >
           <View
             className="tab-fab"
             style={{

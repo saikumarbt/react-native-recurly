@@ -33,7 +33,7 @@ import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { usePostHog } from "posthog-react-native";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 
@@ -98,6 +98,13 @@ const SubscriptionDetail = () => {
     }
   };
 
+  // myrev Found — memoized and computed BEFORE the early return below so hook
+  // order stays stable (and it doesn't recompute/re-read kv on every render).
+  const found = useMemo(
+    () => computeFound(subscriptions, getKeptSubIds()),
+    [subscriptions],
+  );
+
   const subscription = id ? getSubscription(id) : undefined;
 
   if (!subscription) {
@@ -153,9 +160,7 @@ const SubscriptionDetail = () => {
     duplicateActiveNames(subscriptions).has(normalizeName(subscription.name));
 
   // myrev Found: does this subscription appear in a savings finding/group?
-  const foundFlag = computeFound(subscriptions, getKeptSubIds()).flagged[
-    subscription.id
-  ];
+  const foundFlag = found.flagged[subscription.id];
 
   // Opaque id only — no subscription name in analytics.
   const captureStatus = (event: string) =>

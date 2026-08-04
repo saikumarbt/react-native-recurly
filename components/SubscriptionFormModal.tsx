@@ -142,14 +142,17 @@ const SubscriptionFormModal = ({
       setIsTrial(!!subscription.isTrial);
       // Trial length = trialEnd − start (the span the user set), so editing
       // shows the same "7 days" they entered — not days-remaining-from-today.
+      // Round the raw ms span (not diff("day"), which truncates and would turn a
+      // DST-crossing 7-day trial into 6).
       setTrialDays(
         subscription.trialEndDate
           ? String(
               Math.max(
                 1,
-                dayjs(subscription.trialEndDate).diff(
-                  dayjs(subscription.startDate ?? subscription.trialEndDate),
-                  "day",
+                Math.round(
+                  dayjs(subscription.trialEndDate).diff(
+                    dayjs(subscription.startDate ?? subscription.trialEndDate),
+                  ) / 86_400_000,
                 ),
               ),
             )

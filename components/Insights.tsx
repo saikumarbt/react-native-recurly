@@ -1,3 +1,4 @@
+import { categoryColorRamp } from "@/constants/theme";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useEntitlement } from "@/context/EntitlementsContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
@@ -73,15 +74,8 @@ const Insights = () => {
     [subscriptions],
   );
 
-  // A fixed, theme-aware ramp so each category reads distinctly; the biggest
-  // category always gets the brand accent.
-  const CATEGORY_COLORS = [
-    palette.accent,
-    "#9b8bef",
-    palette.warning,
-    palette.info,
-    palette.success,
-  ];
+  // Shared canonical ramp so a category reads the same colour here and on Home.
+  const CATEGORY_COLORS = categoryColorRamp(palette);
 
   const stats = useMemo(() => {
     const active = subscriptions.filter((s) => s.status === "active");
@@ -291,7 +285,9 @@ const Insights = () => {
         {found.count > 0 && (
           <Pressable
             onPress={() =>
-              isPro ? router.push("/found") : router.push("/(auth)/sign-in")
+              isPro
+                ? router.push("/found")
+                : router.push("/paywall?source=insights_found")
             }
             className="rounded-3xl border border-accent bg-card p-5"
           >

@@ -1,5 +1,5 @@
 import { useTheme } from "@/context/ThemeContext";
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { AccessibilityInfo, StyleSheet, Text } from "react-native";
 import Animated, {
   runOnJS,
@@ -23,19 +23,26 @@ const AnimatedSplash = ({ onFinish }: { onFinish: () => void }) => {
   const markOpacity = useSharedValue(0);
   const wordOpacity = useSharedValue(0);
 
+  // Stable completion callback via a ref, so a parent re-render can't restart
+  // the splash sequence (onFinish is intentionally NOT in the effect deps).
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
+  const finish = useCallback(() => onFinishRef.current(), []);
+
   useEffect(() => {
     let cancelled = false;
-    AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
+    const play = (reduced: boolean) => {
       if (cancelled) return;
       if (reduced) {
-        // No motion: a short, plain hold then reveal.
+        // No motion (or the reduce-motion check failed): a short plain hold,
+        // then reveal — the fallback ALWAYS calls finish so we never get stuck.
         markOpacity.value = 1;
         markScale.value = 1;
         wordOpacity.value = 1;
         cover.value = withDelay(
           600,
           withTiming(0, { duration: 250 }, (done) => {
-            if (done) runOnJS(onFinish)();
+            if (done) runOnJS(finish)();
           }),
         );
         return;
@@ -46,14 +53,17 @@ const AnimatedSplash = ({ onFinish }: { onFinish: () => void }) => {
       cover.value = withDelay(
         1350,
         withTiming(0, { duration: 460 }, (done) => {
-          if (done) runOnJS(onFinish)();
+          if (done) runOnJS(finish)();
         }),
       );
-    });
+    };
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((reduced) => play(reduced))
+      .catch(() => play(true)); // couldn't read the setting → safe plain reveal
     return () => {
       cancelled = true;
     };
-  }, [cover, markOpacity, markScale, wordOpacity, onFinish]);
+  }, [cover, markOpacity, markScale, wordOpacity, finish]);
 
   const coverStyle = useAnimatedStyle(() => ({ opacity: cover.value }));
   const markStyle = useAnimatedStyle(() => ({

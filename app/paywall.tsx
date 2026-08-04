@@ -8,8 +8,8 @@ import {
   type PurchasesOffering,
   type PurchasesPackage,
 } from "@/lib/purchases";
+import { SafeAreaView } from "@/components/ThemedSafeAreaView";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { styled } from "nativewind";
 import { usePostHog } from "posthog-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -21,9 +21,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
-
-const SafeAreaView = styled(RNSafeAreaView) as any;
 
 const TERMS_URL = "https://getmyrev.app/terms";
 const PRIVACY_URL = "https://getmyrev.app/privacy";
@@ -209,8 +206,11 @@ export default function Paywall() {
   const onRestore = async () => {
     if (busy) return;
     setBusy(true);
-    await restorePurchases();
-    setBusy(false);
+    try {
+      await restorePurchases();
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -326,17 +326,23 @@ export default function Paywall() {
         </View>
 
         <View className="mt-1 flex-row items-center justify-center gap-4">
-          <Pressable onPress={onRestore} disabled={busy} accessibilityRole="button">
+          <Pressable
+            onPress={() => void onRestore()}
+            disabled={busy}
+            accessibilityRole="button"
+          >
             <Text className="text-xs font-sans-bold text-accent">Restore</Text>
           </Pressable>
           <Text className="text-xs text-muted-foreground">·</Text>
-          <Pressable onPress={() => Linking.openURL(TERMS_URL)}>
+          <Pressable onPress={() => void Linking.openURL(TERMS_URL).catch(() => {})}>
             <Text className="text-xs font-sans-medium text-muted-foreground">
               Terms
             </Text>
           </Pressable>
           <Text className="text-xs text-muted-foreground">·</Text>
-          <Pressable onPress={() => Linking.openURL(PRIVACY_URL)}>
+          <Pressable
+            onPress={() => void Linking.openURL(PRIVACY_URL).catch(() => {})}
+          >
             <Text className="text-xs font-sans-medium text-muted-foreground">
               Privacy
             </Text>

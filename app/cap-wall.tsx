@@ -7,8 +7,7 @@ import { Pressable, Text, View } from "react-native";
 /**
  * Kind cap wall shown when a free user tries to add past FREE_ACTIVE_CAP active
  * subscriptions. Assistant-voice, not a barricade. Existing data is never
- * touched — this only blocks the new add. CTA routes to sign-in until the
- * RevenueCat paywall exists (Pro needs an account).
+ * touched — this only blocks the new add. CTA routes to "/paywall?source=cap_wall".
  */
 export default function CapWall() {
   const router = useRouter();

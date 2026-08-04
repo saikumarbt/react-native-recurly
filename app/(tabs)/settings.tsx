@@ -164,14 +164,22 @@ const Settings = () => {
   const handleRestore = async () => {
     if (restoring) return;
     setRestoring(true);
-    const active = await restorePurchases();
-    setRestoring(false);
-    Alert.alert(
-      active ? "Pro restored" : "No purchases found",
-      active
-        ? "Your myrev Pro access is active on this device."
-        : "We couldn't find a purchase to restore on this account.",
-    );
+    try {
+      const active = await restorePurchases();
+      Alert.alert(
+        active ? "Pro restored" : "No purchases found",
+        active
+          ? "Your myrev Pro access is active on this device."
+          : "We couldn't find a purchase to restore on this account.",
+      );
+    } catch {
+      Alert.alert(
+        "Couldn't restore",
+        "Something went wrong. Please check your connection and try again.",
+      );
+    } finally {
+      setRestoring(false);
+    }
   };
 
   const confirmClearData = () => {
@@ -298,8 +306,8 @@ const Settings = () => {
           </View>
         </Pressable>
 
-        {/* myrev Pro — upsell when free; "active" when Pro. CTA routes to
-            sign-in until the RevenueCat paywall exists. */}
+        {/* myrev Pro — upsell when free (CTA → paywall); status + trial/renewal
+            detail when active. */}
         {isPro ? (
           <View className="mb-1 rounded-3xl border border-accent bg-accent/10 p-5">
             <View className="flex-row items-center justify-between">
@@ -473,7 +481,7 @@ const Settings = () => {
             sublabel="Already bought Pro? Restore it on this device"
             divider
             right={<Chevron />}
-            onPress={handleRestore}
+            onPress={() => void handleRestore()}
           />
         </View>
 

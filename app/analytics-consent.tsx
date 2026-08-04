@@ -49,7 +49,7 @@ export default function AnalyticsConsent() {
           className="items-center rounded-2xl py-3 active:opacity-70"
         >
           <Text className="text-sm font-sans-bold text-muted-foreground">
-            Not now
+            No thanks
           </Text>
         </Pressable>
       </View>

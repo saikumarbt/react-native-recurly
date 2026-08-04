@@ -6,6 +6,7 @@ import ListHeading from "@/components/ListHeading";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
 import UpcomingSubscriptionCard from "@/components/UpcomingSubscriptionCard";
 import images from "@/constants/images";
+import { categoryColorRamp } from "@/constants/theme";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useEntitlement } from "@/context/EntitlementsContext";
 import { useSubscriptions } from "@/context/SubscriptionsContext";
@@ -186,13 +187,7 @@ export default function App() {
     return Array.from(byCat.entries()).sort((a, b) => b[1] - a[1]);
   }, [activeSubscriptions]);
 
-  const categoryColors = [
-    palette.accent,
-    "#9b8bef",
-    palette.success,
-    palette.warning,
-    palette.info,
-  ];
+  const categoryColors = categoryColorRamp(palette);
 
   const hour = new Date().getHours();
   const greeting =

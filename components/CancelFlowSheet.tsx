@@ -80,6 +80,15 @@ const CancelFlowSheet = ({
     if (guide?.url) Linking.openURL(guide.url).catch(() => {});
   };
 
+  // Free (or Pro without a curated link): no page to open, but still record the
+  // intent so cancelPendingAt is armed — that's what drives the detail check-in
+  // banner + the reconciliation reminder if the user leaves before confirming.
+  const startGenericCancel = () => {
+    markIntent();
+    posthog.capture("cancel_intent", { subscription_id: subId });
+    setStage("confirm");
+  };
+
   const resolveCancelled = () => {
     const sub = getSubscription(subId);
     const monthly = sub
@@ -159,7 +168,16 @@ const CancelFlowSheet = ({
                       Open {name}&apos;s cancel page ↗
                     </Text>
                   </Pressable>
-                ) : null}
+                ) : (
+                  <Pressable
+                    className="mt-5 items-center rounded-2xl bg-accent py-4"
+                    onPress={startGenericCancel}
+                  >
+                    <Text className="text-base font-sans-bold text-on-accent">
+                      I&apos;ll cancel it now
+                    </Text>
+                  </Pressable>
+                )}
 
                 {!isPro ? (
                   <Text className="mt-4 text-center text-xs font-sans-medium text-muted-foreground">

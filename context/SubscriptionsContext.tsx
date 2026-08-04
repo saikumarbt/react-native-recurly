@@ -1,12 +1,12 @@
 import {
   clearAllSubscriptions,
   getAllSubscriptions,
-  getLockedSubscriptionIds,
   insertSubscription,
-  lockSubscription as repoLock,
+  lockSubscriptions as repoLockMany,
   restoreSubscription as repoRestore,
   setSubscriptionStatus,
   softDeleteSubscription,
+  unlockAllLockedSubscriptions as repoUnlockAll,
   unlockSubscription as repoUnlock,
   updateSubscription as repoUpdate,
 } from "@/db/subscriptionsRepo";
@@ -188,7 +188,12 @@ export const SubscriptionsProvider = ({
 
   const lockSubscriptions = useCallback((ids: string[]) => {
     if (ids.length === 0) return;
-    ids.forEach((id) => repoLock(id));
+    try {
+      repoLockMany(ids); // atomic — all rows or none
+    } catch (e) {
+      console.warn("[subscriptions] lockSubscriptions failed", e);
+      return; // leave state + reminders untouched on failure
+    }
     const fresh = getAllSubscriptions();
     setSubscriptions(fresh);
     // Locked subs are paused → rescheduleAll drops their reminders.
@@ -206,9 +211,14 @@ export const SubscriptionsProvider = ({
   );
 
   const restoreLockedSubscriptions = useCallback(() => {
-    const ids = getLockedSubscriptionIds();
-    if (ids.length === 0) return;
-    ids.forEach((id) => repoUnlock(id));
+    let unlocked: string[];
+    try {
+      unlocked = repoUnlockAll(); // atomic; returns the ids it unlocked
+    } catch (e) {
+      console.warn("[subscriptions] restoreLockedSubscriptions failed", e);
+      return;
+    }
+    if (unlocked.length === 0) return;
     const fresh = getAllSubscriptions();
     setSubscriptions(fresh);
     void notifications.rescheduleAll(fresh);

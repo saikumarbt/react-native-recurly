@@ -1,6 +1,7 @@
 import BackButton from "@/components/BackButton";
 import { useTheme } from "@/context/ThemeContext";
 import { useSignUp } from "@clerk/expo";
+import { safeReturnTo } from "@/lib/navigation";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { usePostHog } from "posthog-react-native";
@@ -24,9 +25,11 @@ export default function SignUp() {
   const router = useRouter();
   const posthog = usePostHog();
   // Optional post-auth destination (e.g. the paywall resuming a trial the guest
-  // started). Falls back to the app root for a plain sign-up.
+  // started), validated against an allowlist so it can't be an arbitrary target.
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
-  const destination = (returnTo ?? "/") as Parameters<typeof router.replace>[0];
+  const destination = safeReturnTo(returnTo) as Parameters<
+    typeof router.replace
+  >[0];
 
   const [emailAddress, setEmailAddress] = React.useState("");
   const [password, setPassword] = React.useState("");

@@ -43,6 +43,11 @@ const BrandPickerSheet = ({
   const { varStyle, palette, scheme } = useTheme();
   const groups = useMemo(() => groupOnboardingBrands(query), [query]);
   const trimmedQuery = query.trim();
+  // While searching, every group is force-expanded and headers are inert;
+  // computed once (not per-category in the map below).
+  const searching = trimmedQuery.length > 0;
+  const effectiveOpen =
+    openCategory === undefined ? groups[0]?.category : openCategory;
   const hasExactMatch = useMemo(() => {
     const q = trimmedQuery.toLowerCase();
     return groups.some((g) => g.brands.some((b) => b.title.toLowerCase() === q));
@@ -133,11 +138,6 @@ const BrandPickerSheet = ({
                 )
               ) : (
                 groups.map(({ category, brands }) => {
-                  const searching = query.trim().length > 0;
-                  const effectiveOpen =
-                    openCategory === undefined
-                      ? groups[0]?.category
-                      : openCategory;
                   const expanded = searching || category === effectiveOpen;
                   return (
                     <View
@@ -149,6 +149,9 @@ const BrandPickerSheet = ({
                           !searching &&
                           setOpenCategory(expanded ? null : category)
                         }
+                        disabled={searching}
+                        accessibilityRole="button"
+                        accessibilityState={{ expanded, disabled: searching }}
                         className="flex-row items-center justify-between px-4 py-3.5"
                       >
                         <Text className="text-sm font-sans-bold text-primary">

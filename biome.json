@@ -1,0 +1,7 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.5/schema.json",
+  "//": "ESLint (via `expo lint`) is the project linter. This config exists only to keep Biome (editor extension) from erroring on the Tailwind entry stylesheet, whose @apply directives its CSS parser rejects. Applied centrally rather than annotating each @apply.",
+  "files": {
+    "includes": ["**", "!**/global.css"]
+  }
+}

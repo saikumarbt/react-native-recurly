@@ -48,9 +48,13 @@ const GENERIC: CancelGuide = {
   ],
 };
 
-/** Look up a cancel guide by subscription name, with a generic fallback. */
+/** Look up a cancel guide by subscription name, with a generic fallback. Picks
+ *  the LONGEST matching key so a specific guide ("amazon prime") wins over a
+ *  broader one ("amazon"), regardless of declaration order. */
 export function cancelGuideFor(name: string): CancelGuide {
   const key = normalizeName(name);
-  const hit = Object.keys(GUIDES).find((k) => key.includes(normalizeName(k)));
-  return hit ? GUIDES[hit] : GENERIC;
+  const match = Object.keys(GUIDES)
+    .filter((k) => key.includes(normalizeName(k)))
+    .sort((a, b) => normalizeName(b).length - normalizeName(a).length)[0];
+  return match ? GUIDES[match] : GENERIC;
 }

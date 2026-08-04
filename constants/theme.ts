@@ -48,29 +48,34 @@ export const palettes = {
 
 export type Palette = (typeof palettes)[ThemeName];
 
-/** CSS custom-property map for NativeWind vars(), derived from a palette. */
+/** camelCase palette key → `--color-<kebab>` CSS custom-property name. */
+const cssVarName = (key: string) =>
+  `--color-${key.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}`;
+
+/**
+ * CSS custom-property map for NativeWind vars(), derived MECHANICALLY from the
+ * palette so a new/renamed palette field can't be silently omitted (TS ties the
+ * keys to Palette). Same names/values as the previous hand-written map.
+ */
 export const themeVars = (name: ThemeName): Record<string, string> => {
   const p = palettes[name];
-  return {
-    "--color-background": p.background,
-    "--color-foreground": p.foreground,
-    "--color-card": p.card,
-    "--color-raised": p.raised,
-    "--color-muted": p.muted,
-    "--color-muted-foreground": p.mutedForeground,
-    "--color-faint": p.faint,
-    "--color-primary": p.primary,
-    "--color-accent": p.accent,
-    "--color-accent-press": p.accentPress,
-    "--color-on-accent": p.onAccent,
-    "--color-border": p.border,
-    "--color-success": p.success,
-    "--color-warning": p.warning,
-    "--color-destructive": p.destructive,
-    "--color-info": p.info,
-    "--color-subscription": p.subscription,
-  };
+  return Object.fromEntries(
+    (Object.keys(p) as (keyof Palette)[]).map((k) => [cssVarName(k), p[k]]),
+  );
 };
+
+/**
+ * Canonical category colour ramp — the biggest category always gets the brand
+ * accent. Shared by Home and Insights so a category reads the same colour in
+ * both (one order, no drift).
+ */
+export const categoryColorRamp = (p: Palette): string[] => [
+  p.accent,
+  "#9b8bef",
+  p.warning,
+  p.info,
+  p.success,
+];
 
 /** Back-compat: default (light) palette for any remaining static import. */
 export const colors = palettes.light;

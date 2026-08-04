@@ -233,42 +233,73 @@ export const setSubscriptionStatus = (
 };
 
 /**
- * Lock a sub on a Pro→Free downgrade: stored as status 'paused' (so it drops out
- * of the active count + reminders) PLUS locked_at (drives the "Reactivate with
- * Pro" UI + auto-restore). Distinct from a user pause so we can restore exactly
- * these on resubscribe.
+ * Lock the given subs on a Pro→Free downgrade, ATOMICALLY. Each becomes status
+ * 'paused' + locked_at (drops out of the active count + reminders; distinct from
+ * a user pause so we can restore exactly these on resubscribe). All-or-nothing:
+ * a failure rolls the whole batch back.
  */
-export const lockSubscription = (id: string): Subscription | null => {
+export const lockSubscriptions = (ids: string[]): void => {
+  if (ids.length === 0) return;
+  const db = getDatabase();
   const timestamp = nowIso();
-  getDatabase().runSync(
-    `UPDATE subscriptions
-     SET status = 'paused', paused_at = ?, locked_at = ?, updated_at = ?
-     WHERE id = ? AND deleted_at IS NULL`,
-    [timestamp, timestamp, timestamp, id],
-  );
-  return getSubscriptionById(id);
+  db.withTransactionSync(() => {
+    for (const id of ids) {
+      db.runSync(
+        `UPDATE subscriptions
+         SET status = 'paused', paused_at = ?, locked_at = ?, updated_at = ?
+         WHERE id = ? AND deleted_at IS NULL`,
+        [timestamp, timestamp, timestamp, id],
+      );
+    }
+  });
 };
 
-/** Unlock a downgrade-locked sub back to active (clears locked_at + paused_at). */
+/**
+ * Reactivate a single downgrade-locked sub. Restricted to rows that are actually
+ * locked (`locked_at IS NOT NULL`) so a normal paused/cancelled sub is never
+ * touched; returns null when nothing matched.
+ */
 export const unlockSubscription = (id: string): Subscription | null => {
   const timestamp = nowIso();
-  getDatabase().runSync(
+  const res = getDatabase().runSync(
     `UPDATE subscriptions
      SET status = 'active', paused_at = NULL, cancelled_at = NULL,
          locked_at = NULL, updated_at = ?
-     WHERE id = ? AND deleted_at IS NULL`,
+     WHERE id = ? AND deleted_at IS NULL AND locked_at IS NOT NULL`,
     [timestamp, id],
   );
-  return getSubscriptionById(id);
+  return res.changes > 0 ? getSubscriptionById(id) : null;
 };
 
-/** IDs of all subs currently locked by a downgrade (for bulk auto-restore). */
+/** IDs of all subs currently locked by a downgrade. */
 export const getLockedSubscriptionIds = (): string[] =>
   getDatabase()
     .getAllSync<{ id: string }>(
       "SELECT id FROM subscriptions WHERE locked_at IS NOT NULL AND deleted_at IS NULL",
     )
     .map((r) => r.id);
+
+/**
+ * Unlock ALL downgrade-locked subs atomically (resubscribe). Returns the ids
+ * that were unlocked (empty when none), so the caller can decide whether to
+ * refresh + reschedule.
+ */
+export const unlockAllLockedSubscriptions = (): string[] => {
+  const ids = getLockedSubscriptionIds();
+  if (ids.length === 0) return [];
+  const db = getDatabase();
+  const timestamp = nowIso();
+  db.withTransactionSync(() => {
+    db.runSync(
+      `UPDATE subscriptions
+       SET status = 'active', paused_at = NULL, cancelled_at = NULL,
+           locked_at = NULL, updated_at = ?
+       WHERE locked_at IS NOT NULL AND deleted_at IS NULL`,
+      [timestamp],
+    );
+  });
+  return ids;
+};
 
 /** kv helpers (settings, cached FX rates, flags). */
 export const getKv = (key: string): string | null => {

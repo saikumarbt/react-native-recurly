@@ -1,4 +1,5 @@
 import { BRAND_ICONS, type BrandIcon } from "@/constants/brandIcons";
+import { palettes } from "@/constants/theme";
 
 // Precompute a keyword lookup, longest-keyword-first so "apple music" wins
 // over "apple" and specific brands beat generic ones.
@@ -137,6 +138,6 @@ export const cardTint = (
 ): string => {
   const bg = getIconVisual(name).background;
   return scheme === "dark"
-    ? mixHex(bg, "#221d34", 0.82)
+    ? mixHex(bg, palettes.dark.raised, 0.82)
     : mixHex(bg, "#ffffff", 0.85);
 };

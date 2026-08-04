@@ -35,29 +35,37 @@ Track subscriptions, recurring bills, and upcoming payments in one place. myrev 
 ## 🤸 Quick Start
 
 ### Prerequisites
+
 - **Node.js** (>= 20) and **npm**
-- A **development build** (native modules like `expo-sqlite`, `expo-blur`, notifications don't run in Expo Go)
+- A **native development build** for the full app. `react-native-purchases` (RevenueCat) isn't bundled in Expo Go, so **real purchase / subscription testing requires a dev build** (`eas build --profile development`, or `npx expo run:android` / `run:ios`). `expo-sqlite`, `expo-blur`, and local `expo-notifications` all run in Expo Go, so the rest of the app can be developed there (notifications are local/scheduled only — no push server).
 
 ### Install
+
 ```bash
 npm install
 ```
 
 ### Run
+
 ```bash
 npx expo start -c
 ```
+
 Open on a dev build (or press **a**/**i** for an emulator/simulator).
 
 ### Environment Variables
+
 Create a `.env` in the project root:
+
 ```dotenv
 EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_key
 EXPO_PUBLIC_POSTHOG_KEY=your_posthog_project_api_key
 EXPO_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+EXPO_PUBLIC_RC_API_KEY=your_revenuecat_public_sdk_key
 ```
 
 ### Scripts
+
 ```bash
 npx expo lint      # ESLint via expo lint
 npx tsc --noEmit   # typecheck

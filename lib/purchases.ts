@@ -83,7 +83,8 @@ export async function fetchCustomerInfo(): Promise<CustomerInfo | null> {
   if (!configured) return null;
   try {
     return await Purchases.getCustomerInfo();
-  } catch {
+  } catch (e) {
+    console.warn("[purchases] getCustomerInfo failed", e);
     return null;
   }
 }
@@ -111,7 +112,8 @@ export async function getCurrentOffering(): Promise<PurchasesOffering | null> {
   if (!configured) return null;
   try {
     return (await Purchases.getOfferings()).current ?? null;
-  } catch {
+  } catch (e) {
+    console.warn("[purchases] getOfferings failed", e);
     return null;
   }
 }
@@ -125,6 +127,7 @@ export async function purchase(
     return { ok: true, cancelled: false, info: customerInfo };
   } catch (e: unknown) {
     const cancelled = !!(e as { userCancelled?: boolean })?.userCancelled;
+    if (!cancelled) console.warn("[purchases] purchasePackage failed", e);
     return { ok: false, cancelled };
   }
 }
@@ -133,7 +136,8 @@ export async function restore(): Promise<CustomerInfo | null> {
   if (!configured) return null;
   try {
     return await Purchases.restorePurchases();
-  } catch {
+  } catch (e) {
+    console.warn("[purchases] restorePurchases failed", e);
     return null;
   }
 }
