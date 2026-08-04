@@ -3,7 +3,7 @@ import { icons } from "@/constants/icons";
 import { Asset } from "expo-asset";
 import { useFonts } from "expo-font";
 import * as Notifications from "expo-notifications";
-import { SplashScreen, Stack, useRouter } from "expo-router";
+import { SplashScreen, Stack, usePathname, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -84,8 +84,17 @@ function PostHogUserIdentifier() {
 
 function RootLayoutContent() {
   const router = useRouter();
+  const pathname = usePathname();
+  const posthog = usePostHog();
   const { palette } = useTheme();
   const [splashDone, setSplashDone] = useState(false);
+
+  // Screen tracking for the funnel (PostHogProvider has no autocapture). Fires
+  // on every route change; respects the analytics opt-out (posthog is opted out
+  // there, so screen() is a no-op).
+  useEffect(() => {
+    posthog.screen(pathname);
+  }, [pathname, posthog]);
 
   // Region-gated analytics consent (GDPR): once past the splash, an onboarded
   // EEA/UK user who hasn't decided yet gets the one-time opt-in prompt. Analytics

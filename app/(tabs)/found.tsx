@@ -7,9 +7,10 @@ import "@/global.css";
 import { computeFound } from "@/lib/found";
 import { getKeptSubIds } from "@/lib/foundKept";
 import { formatCurrency } from "@/lib/utils";
-import { Redirect } from "expo-router";
+import { Redirect, useLocalSearchParams } from "expo-router";
 import { styled } from "nativewind";
-import { useMemo, useState } from "react";
+import { usePostHog } from "posthog-react-native";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 
@@ -23,6 +24,8 @@ const FoundReview = () => {
   const { subscriptions } = useSubscriptions();
   const { baseCurrency } = useCurrency();
   const { isPro } = useEntitlement();
+  const posthog = usePostHog();
+  const { source } = useLocalSearchParams<{ source?: string }>();
   const [cancelFor, setCancelFor] = useState<{ id: string; name: string } | null>(
     null,
   );
@@ -35,6 +38,13 @@ const FoundReview = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [subscriptions, rev],
   );
+
+  // Funnel: Pro opened the Found review, and from where.
+  useEffect(() => {
+    if (isPro) {
+      posthog.capture("found_review_opened", { surface: source ?? "unknown" });
+    }
+  }, [isPro, posthog, source]);
 
   if (!isPro) return <Redirect href="/insights" />;
 

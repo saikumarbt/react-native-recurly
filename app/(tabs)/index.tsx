@@ -5,6 +5,7 @@ import PulsingDot from "@/components/PulsingDot";
 import ListHeading from "@/components/ListHeading";
 import SubscriptionIcon from "@/components/SubscriptionIcon";
 import UpcomingSubscriptionCard from "@/components/UpcomingSubscriptionCard";
+import WinbackBanner from "@/components/WinbackBanner";
 import images from "@/constants/images";
 import { categoryColorRamp } from "@/constants/theme";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -250,6 +251,10 @@ export default function App() {
             {/* Add lives in the centre ＋ FAB on the tab bar (reachable from any
                 tab), so Home has no separate add button. */}
 
+            {/* Grace-period winback — only renders on a billing issue / pending
+                cancel while still Pro. */}
+            <WinbackBanner />
+
             {/* FEEL — spend, the emotional hero */}
             <View className="mb-4 rounded-3xl border border-border bg-card p-6">
               <Text className="text-xs font-sans-bold uppercase tracking-[2px] text-muted-foreground">
@@ -376,7 +381,7 @@ export default function App() {
                 <Pressable
                   onPress={() =>
                     isPro
-                      ? router.push("/found")
+                      ? router.push("/found?source=home")
                       : router.push("/paywall?source=home_found")
                   }
                   className="mb-4 rounded-2xl border border-accent bg-accent/5 p-3.5"
